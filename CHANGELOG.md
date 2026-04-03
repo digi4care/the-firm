@@ -5,6 +5,11 @@ All notable changes to The Firm are documented here.
 This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.1.1] - 2026-04-03
+
+### Toegevoegd
+- (nog in te vullen)
+
 ## [0.1.0] - 2026-04-03
 
 ### Added
