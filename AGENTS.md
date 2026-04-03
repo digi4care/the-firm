@@ -149,6 +149,23 @@ Meerdere agents kunnen tegelijk aan verschillende bestanden werken.
 
 ---
 
+## Engineering Standards
+
+### SOLID / DRY / TDD
+
+- **TDD**: test first, dan pas implementatie. `bun test` moet slagen voor commit.
+- **SOLID**: single responsibility per file/module, open voor extensie, interface segregation.
+- **DRY**: drie keer dezelfde logica = extracten. Gedeelde logica in `src/lib/`.
+
+### Elk werk begint met een ticket
+
+Fix, debug, feature, refactoring, test — **altijd** eerst `bd create`.
+
+- Geen ticket = geen code.
+- Geen "ik fix het even zonder ticket".
+
+---
+
 ## Project Commands
 
 ### Sync scripts
