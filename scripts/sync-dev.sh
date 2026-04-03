@@ -8,8 +8,9 @@ mkdir -p .pi
 # Kopieer APPEND_SYSTEM.md
 cp src/APPEND_SYSTEM.md .pi/APPEND_SYSTEM.md
 
-# Kopieer settings.json
-if [ -f "src/settings.json" ]; then
+# Kopieer settings.json — ALLEEN als .pi/settings.json nog niet bestaat
+# Settings zijn runtime state, niet overschrijven na eerste init
+if [ -f "src/settings.json" ] && [ ! -f ".pi/settings.json" ]; then
   cp src/settings.json .pi/settings.json
 fi
 
