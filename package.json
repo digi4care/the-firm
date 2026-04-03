@@ -21,10 +21,10 @@
 	},
 	"scripts": {
 		"update-deps": "ncu -u && bun install",
-"dev": "cp src/APPEND_SYSTEM.md .pi/APPEND_SYSTEM.md",
+		"dev": "cp src/APPEND_SYSTEM.md .pi/APPEND_SYSTEM.md",
 		"prod": "scripts/sync-prod.sh",
-"lint": "biome check . && markdownlint-cli2 \"*.md\" \"**/*.md\" \"!design\" \"!docs\" \"!.pi\" \"!.local\" \"!.personal\" \"!.beads\" \"!.dolt\" \"!node_modules\"",
-"lint:fix": "biome check --write . && markdownlint-cli2 --fix \"*.md\" \"**/*.md\" \"!design\" \"!docs\" \"!.pi\" \"!.local\" \"!.personal\" \"!.beads\" \"!.dolt\" \"!node_modules\"",
+		"lint": "biome check . && markdownlint-cli2 \"*.md\" \"**/*.md\" \"!design\" \"!docs\" \"!.pi\" \"!.local\" \"!.personal\" \"!.beads\" \"!.dolt\" \"!node_modules\"",
+		"lint:fix": "biome check --write . && markdownlint-cli2 --fix \"*.md\" \"**/*.md\" \"!design\" \"!docs\" \"!.pi\" \"!.local\" \"!.personal\" \"!.beads\" \"!.dolt\" \"!node_modules\"",
 		"format": "biome format --write .",
 		"format:check": "biome format .",
 		"version:patch": "bun scripts/version-bump.js patch",
@@ -35,5 +35,8 @@
 		"@biomejs/biome": "^2.4.10",
 		"npm-check-updates": "^20",
 		"markdownlint-cli2": "^0.22.0"
+	},
+	"dependencies": {
+		"zod": "^4.3.6"
 	}
 }

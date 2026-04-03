@@ -1,4 +1,4 @@
-# The Firm Client Dossier Design v0.2
+# The Firm Client Dossier Design v0.3
 
 ## Purpose
 
@@ -258,9 +258,9 @@ patterns:
 
 ### Technical project details
 
-Fields like `project_path`, `entry_point`, `repository_url`, `tech_stack_summary`, `project_type`, `testing_practice`, and `architecture_state` are **engagement-level**, not client-level. They belong in the engagement brief or `intake.yml`, not in the dossier.
+Fields like `project_path`, `entry_point`, `repository_url`, `tech_stack_summary`, `project_type`, `testing_practice`, and `architecture_state` now live in the project config (`./.firm/project.yml`), validated by a Zod schema in `src/schemas/project.ts`. They are not client-level data; they are project-specific technical context that changes per engagement.
 
-Reason: a client may have multiple projects. The dossier captures who they are, not what they're building right now. Specific project context belongs to the specific engagement.
+Reason: a client may have multiple projects. The dossier captures who they are (global, stable data). The project config captures what they're building right now (project-specific, mutable data). This gives technical details a proper home with schema validation, rather than treating them as orphaned fields.
 
 ### Notes section
 
@@ -294,6 +294,13 @@ Removed. The "stays small" principle means notes should either be promoted to st
 3. A dormant client can be reactivated with a new engagement.
 4. Archived clients are retained but not loaded into active context.
 
+### Project lifecycle
+
+1. Project config (`./.firm/project.yml`) is created when `npx the-firm --project` runs in a project directory.
+2. The config references the client dossier via `identity.client_id`, linking project to client.
+3. During engagements, technical project details are updated in the project config, not the dossier.
+4. The project config evolves alongside the engagement brief and intake records.
+
 ## Ownership model
 
 | Phase | Owner | What they update |
@@ -308,9 +315,12 @@ Removed. The "stays small" principle means notes should either be promoted to st
 ## Format and storage
 
 - **Format:** YAML (consistent with `intake.yml`, machine-readable, version-controllable)
-- **File name:** `client-dossier.yml`
-- **Location:** `.firm/clients/<client-id>/client-dossier.yml` (within the project repository)
-- **Versioning:** The dossier is committed to git. Changes are tracked through commits, not internal versioning.
+- **File name:** `client-dossier.yml` (dossier), `project.yml` (project config)
+- **Storage layers:**
+  - **Global:** `~/.firm/clients/<client-id>/client-dossier.yml` — installed via `npx the-firm --global`
+  - **Project:** `./.firm/project.yml` — installed via `npx the-firm --project` (or `npx the-firm` in a project directory)
+- **Git versioning:** The dossier is committed to git. Changes are tracked through commits, not internal versioning.
+- **Project reference:** Project config references client dossier via `identity.client_id`.
 
 ### Version field
 
@@ -325,11 +335,13 @@ Current schema version: `1`
 | `intake.yml` | Per-engagement. References client dossier by `identity.id`. Contains project-level technical details. |
 | Client brief | Per-engagement. Uses dossier context as input. |
 | Engagement register | Cross-references dossier for client-level aggregation. |
+
+| `project.yml` | Per-project. References client dossier by `identity.client_id`. Contains project-specific technical context and engagement state. |
 | Pattern library | Dossier patterns feed into the department-level pattern library. |
 
 ## What the dossier is NOT
 
-- **Not a project config.** Pi handles runtime config. The dossier handles relationship memory.
+- **Not a project config.** The dossier is the global client record (in `~/.firm/clients/`). Project-level configuration lives in `./.firm/project.yml`. Both use Zod schemas for validation.
 - **Not a replacement for intake.** The dossier is input to intake, not its output.
 - **Not exposed to the client.** The client sees the intake summary. The dossier is internal intelligence.
 - **Not a dumping ground.** Every field must earn its place. If a section stays empty across three engagements, it gets removed.
@@ -360,8 +372,14 @@ Fields like `project_path`, `entry_point`, and `tech_stack_summary` are engageme
 
 The structured `lessons` format (date, engagement ID, lesson text) was over-engineered. In practice, the lesson content matters more than its metadata. Git history already provides traceability. A flat list is easier to maintain, easier to read, and more likely to be kept up to date.
 
+
+### Why global/project split
+
+Client identity, communication preferences, and behavioral patterns are stable across projects. A client's accessibility needs don't change when they start a new project. Technical context, however, changes per project — stack, entry points, architecture state. A solo developer may work on multiple projects for the same client. The global/project split keeps stable client data in one place while allowing per-project variation. The global install (`npx the-firm --global`) enables cross-project client memory; The Firm remembers the client even when you switch repositories.
+
 ## Version history
 
+- v0.3 -- global/project storage split; added project config schema; Zod validation schemas in `src/schemas/`; npx installer concept
 - v0.2 -- scenario-tested: expanded accessibility from boolean to structured needs + output_preferences; added last_contact to identity; defined engagement types and outcome values inline
 - v0.1 -- refined after agency-pattern review: added decision_velocity, time_sensitivity, success_criteria; merged steering + interaction_mode; removed project-specific technical fields; flattened lessons to distilled
 - v0 -- initial design, based on BMAD research + agency patterns + handoff findings
