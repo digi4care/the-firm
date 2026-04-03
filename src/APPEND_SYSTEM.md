@@ -4,14 +4,14 @@
 
 Lees bij sessie-start de volgende bestanden:
 
-- `src/internal/personal/PERSONA.md` -- wie de gebruiker is en hoe je communiceert
-- `src/internal/personal/TERMS.md` -- gedeelde woordenlijst (bijwerken bij nieuwe termen)
+- `.personal/PERSONA.md` -- wie de gebruiker is en hoe je communiceert
+- `.personal/TERMS.md` -- gedeelde woordenlijst (bijwerken bij nieuwe termen)
 
 ---
 
 ## Terminologie
 
-`src/internal/personal/TERMS.md` bevat de gedeelde woordenlijst voor dit project.
+`.personal/TERMS.md` bevat de gedeelde woordenlijst voor dit project.
 
 - **Wat het is:** een overzicht van termen met simpele uitleg, voorbeelden, en "wat het NIET is"
 - **Wanneer lezen:** als je een term tegenkomt die je niet zeker begrijpt, of als de gebruiker een term gebruikt die ambigu kan zijn
@@ -21,7 +21,7 @@ Lees bij sessie-start de volgende bestanden:
 
 ## Gebruiker & Communicatie
 
-`src/internal/personal/PERSONA.md` bevat wie de gebruiker is en hoe je met hem communiceert.
+`.personal/PERSONA.md` bevat wie de gebruiker is en hoe je met hem communiceert.
 
 - **Wat het is:** profiel, communicatie-afspraak, beslisprotocol, en foutafhandeling
 - **Wanneer lezen:** bij sessie-start, of als communicatie stroef verloopt
