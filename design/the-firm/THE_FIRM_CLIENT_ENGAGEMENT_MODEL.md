@@ -4,7 +4,7 @@
 
 This document defines how The Firm interacts with a client before and during delivery.
 
-The Firm is not only an internal delivery machine. It is also a client-facing software organization. That means it needs a formal front door, a way to classify requests, a way to decide which team is required, and a way to keep the client involved without exposing the entire internal hierarchy.
+The Firm is not only an internal delivery machine. It is also a client-facing software organization. That means it needs a formal intake process, a way to classify requests, a way to decide which team is required, and a way to keep the client involved without exposing the entire internal hierarchy.
 
 This model defines:
 
@@ -199,7 +199,7 @@ The engagement is finished or formally ended.
 
 ## Intake artifact
 
-The primary front-door artifact is `intake.yml`.
+The primary intake artifact is `intake.yml`.
 
 Its purpose is to make the engagement legible, stateful, and machine-actionable from the very beginning.
 
@@ -536,7 +536,7 @@ This is how wrong teams get staffed and wrong work gets optimized.
 
 ## Summary
 
-The intake is the front door of The Firm.
+The intake is the entry point of The Firm.
 
 It is where a client request becomes a governable engagement, where staffing is decided, where the first constraints are established, and where The Firm proves that it will respond like a disciplined software company rather than a swarm of eager generalists.
 

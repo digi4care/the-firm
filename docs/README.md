@@ -32,5 +32,5 @@ This directory contains the public-facing documentation for The Firm.
 
 Also available:
 
-- `front-door.md` — how The Firm converts raw client input into governed work
+- `intake.md` — how The Firm converts raw client input into governed work
 - `validation.md` — how to check whether a repo is minimally The Firm-enabled after bootstrap

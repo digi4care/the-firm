@@ -55,7 +55,7 @@ Purpose:
 
 ### 2. Engagement context
 
-Client and engagement truth captured at the front door.
+Client and engagement truth captured at intake.
 
 Examples:
 

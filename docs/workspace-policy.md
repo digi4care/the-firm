@@ -7,7 +7,7 @@ The Firm operates with explicit workspace discipline. This document explains exe
 The execution root is the canonical directory against which all relative paths are resolved. It is not necessarily the shell's current working directory.
 
 ```
-Shell CWD: /home/user/projects/the-firm/.pi/commands/front-desk/
+Shell CWD: /home/user/projects/the-firm/.pi/commands/intake/
             ↓
 Execution Root: /home/user/projects/the-firm/
             ↓

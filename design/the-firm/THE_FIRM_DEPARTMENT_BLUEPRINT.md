@@ -1,4 +1,4 @@
-# The Firm Department Blueprint Methodology v0
+# The Firm Department Blueprint Methodology v1
 
 ## Purpose
 
@@ -60,6 +60,63 @@ The output of the department -- with the distinction:
 - Does it hand off to another department?
 - Does it contribute to The Firm's internal state?
 
+## Design process
+
+Before a department design is considered ready for implementation, it must go through
+this review cycle. The cycle was established during the Intake department dogfooding
+run and applies to all future departments.
+
+### 1. Proposal
+
+Draft the department design by answering all six blueprint questions.
+This produces a design document at `design/the-firm/THE_FIRM_DEPARTMENT_<NAME>.md`.
+
+The proposal should be specific enough that another person (or agent) could challenge it.
+
+### 2. Review
+
+Test the design against realistic scenarios -- not happy-path only, but edge cases,
+emergency situations, and handoff boundaries with other departments.
+
+Look for:
+
+- Missing steps in the internal flow
+- Unclear handoffs (who receives what, in what format)
+- Edge cases the flow does not cover
+- Overlap with other departments
+- Expertise areas that should be separate agents vs. one agent with multiple contexts
+
+### 3. Revision
+
+Address findings from the review. Update the design document.
+Each finding should be explicitly resolved or deferred with a reason.
+
+### 4. Approval
+
+The design is coherent and complete enough to implement.
+"Complete enough" means it covers the primary flow and at least the known edge cases.
+
+Approval does not mean perfect. It means the design can survive its first real-world test.
+
+### 5. Test (dogfooding)
+
+Implement the department and run it. This is where real gaps surface --
+not in review, but in execution.
+
+### 6. Iterate
+
+Feed learnings from the test back into the design document.
+Bump the version. Update the blueprint methodology itself if a structural gap was found.
+
+### Rules
+
+- The blueprint methodology itself is a working version. If the design process reveals
+  that a blueprint question is missing or poorly scoped, update the methodology.
+- Each department design starts at v0.1 (proposal) and increments on revision.
+- The design process is linear within a department but iterative across departments:
+  lessons from Department B may feed back into Department A's design.
+
 ## Version history
 
 - v0 -- initial working version, co-designed during brainstorm session
+- v1 -- added design process (Proposal → Review → Revision → Approval → Test → Iterate)
