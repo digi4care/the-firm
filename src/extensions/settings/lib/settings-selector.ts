@@ -2,14 +2,23 @@
  * settings-selector.ts — The Firm settings selector TUI component
  *
  * Uses pi-tui's SettingsList for settings rendering.
- * Tab bar is rendered inline (no TabBar component in our pi-tui version).
+ * Submenu settings (thresholds, tokens) get a SelectList dropdown overlay.
+ * Tab bar is rendered inline.
  *
  * Pure component — receives settings as input, calls onChange/onCancel.
- * No direct file I/O or Pi SDK dependencies.
  */
 
-import { matchesKey, type SettingItem, SettingsList, truncateToWidth } from "@mariozechner/pi-tui";
-import { getSettingsForTab, type SettingDef } from "./settings-defs";
+import {
+	Container,
+	matchesKey,
+	type SelectItem,
+	SelectList,
+	type SettingItem,
+	SettingsList,
+	Text,
+	truncateToWidth,
+} from "@mariozechner/pi-tui";
+import { getSettingsForTab, type SettingDef, type SubmenuSettingDef } from "./settings-defs";
 import {
 	getDefault,
 	SETTING_TABS,
@@ -29,18 +38,14 @@ interface ThemeLike {
 }
 
 export interface SettingsSelectorOptions {
-	/** Current setting values: path → display value (string) */
 	settings: Map<string, string>;
-	/** Theme object from ctx.ui.custom() callback */
 	theme: ThemeLike;
-	/** Called when a setting value changes */
 	onChange: (path: string, newValue: string) => void;
-	/** Called when user presses Escape */
 	onCancel: () => void;
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Inline tab bar rendering (TabBar not exported in our pi-tui)
+// Inline tab bar rendering
 // ═══════════════════════════════════════════════════════════════
 
 function renderTabBar(theme: ThemeLike, activeIndex: number, width: number): string[] {
@@ -68,7 +73,7 @@ function renderTabBar(theme: ThemeLike, activeIndex: number, width: number): str
 }
 
 // ═══════════════════════════════════════════════════════════════
-// Helpers
+// Theme helpers
 // ═══════════════════════════════════════════════════════════════
 
 function getSettingsListTheme(theme: ThemeLike) {
@@ -82,7 +87,82 @@ function getSettingsListTheme(theme: ThemeLike) {
 	};
 }
 
-function defToSettingItem(def: SettingDef, currentValue: string): SettingItem | null {
+function getSelectListTheme(theme: ThemeLike) {
+	return {
+		selected: (text: string) => theme.fg("accent", text),
+		unselected: (text: string) => theme.fg("dim", text),
+		cursor: theme.fg("accent", "→ "),
+		description: (text: string) => theme.fg("muted", text),
+	};
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Submenu component — dropdown overlay for selecting a value
+// ═══════════════════════════════════════════════════════════════
+
+class SubmenuOverlay extends Container {
+	#selectList: SelectList;
+
+	constructor(
+		title: string,
+		options: ReadonlyArray<{ value: string; label: string; description?: string }>,
+		currentValue: string,
+		theme: ThemeLike,
+		onSelect: (value: string) => void,
+		onCancel: () => void,
+	) {
+		super();
+
+		// Title
+		this.addChild(new Text(theme.bold(theme.fg("accent", title)), 0, 0));
+		this.addChild(new Text("", 0, 0));
+
+		// Build select items
+		const items: SelectItem[] = options.map((o) => ({
+			value: o.value,
+			label: o.description ? `${o.label} — ${o.description}` : o.label,
+		}));
+
+		this.#selectList = new SelectList(items, Math.min(items.length, 12), getSelectListTheme(theme));
+
+		// Pre-select current value
+		const currentIndex = items.findIndex((o) => o.value === currentValue);
+		if (currentIndex !== -1) {
+			this.#selectList.setSelectedIndex(currentIndex);
+		}
+
+		this.#selectList.onSelect = (item) => {
+			onSelect(item.value);
+		};
+		this.#selectList.onCancel = onCancel;
+
+		this.addChild(this.#selectList);
+
+		// Hint
+		this.addChild(new Text(theme.fg("dim", "  Enter to select · Esc to go back"), 0, 0));
+	}
+
+	handleInput(data: string): void {
+		this.#selectList.handleInput(data);
+	}
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Setting def → SettingItem conversion
+// ═══════════════════════════════════════════════════════════════
+
+function getDefaultDisplay(def: SettingDef): string {
+	const val = getDefault(def.path as SettingPath);
+	if (typeof val === "boolean") return val ? "true" : "false";
+	return String(val ?? "");
+}
+
+function defToSettingItem(
+	def: SettingDef,
+	currentValue: string,
+	theme: ThemeLike,
+	onChange: (path: string, newValue: string) => void,
+): SettingItem | null {
 	switch (def.type) {
 		case "boolean":
 			return {
@@ -92,6 +172,7 @@ function defToSettingItem(def: SettingDef, currentValue: string): SettingItem | 
 				currentValue,
 				values: ["true", "false"],
 			};
+
 		case "enum":
 			return {
 				id: def.path,
@@ -100,36 +181,43 @@ function defToSettingItem(def: SettingDef, currentValue: string): SettingItem | 
 				currentValue,
 				values: [...def.values],
 			};
+
 		case "submenu":
 			return {
 				id: def.path,
 				label: def.label,
 				description: def.description,
 				currentValue,
-				values: def.options.map((o) => o.value),
+				submenu: (cv, done) => {
+					const overlay = new SubmenuOverlay(
+						def.label,
+						def.options,
+						cv,
+						theme,
+						(value) => {
+							onChange(def.path, value);
+							done(value);
+						},
+						() => done(),
+					);
+					return overlay;
+				},
 			};
-		case "text":
-			return {
-				id: def.path,
-				label: def.label,
-				description: def.description,
-				currentValue,
-			};
+
 		default:
 			return null;
 	}
 }
 
-function getDefaultDisplay(def: SettingDef): string {
-	const val = getDefault(def.path as SettingPath);
-	if (typeof val === "boolean") return val ? "true" : "false";
-	return String(val ?? "");
-}
+// ═══════════════════════════════════════════════════════════════
+// Component factory
+// ═══════════════════════════════════════════════════════════════
 
 function buildListForTab(
 	tabId: SettingTab,
 	settings: Map<string, string>,
 	listTheme: ReturnType<typeof getSettingsListTheme>,
+	theme: ThemeLike,
 	onChange: (path: string, newValue: string) => void,
 	onCancel: () => void,
 ): SettingsList {
@@ -138,7 +226,7 @@ function buildListForTab(
 
 	for (const def of defs) {
 		const value = settings.get(def.path) ?? getDefaultDisplay(def);
-		const item = defToSettingItem(def, value);
+		const item = defToSettingItem(def, value, theme, onChange);
 		if (item) items.push(item);
 	}
 
@@ -154,26 +242,26 @@ function buildListForTab(
 	);
 }
 
-// ═══════════════════════════════════════════════════════════════
-// Component factory
-// ═══════════════════════════════════════════════════════════════
-
 export function createSettingsSelector(options: SettingsSelectorOptions) {
 	const { settings, theme, onChange, onCancel } = options;
 	const listTheme = getSettingsListTheme(theme);
 
 	let currentTabIndex = 0;
-	let currentList = buildListForTab(SETTING_TABS[0]!, settings, listTheme, onChange, onCancel);
+	let currentList = buildListForTab(
+		SETTING_TABS[0]!,
+		settings,
+		listTheme,
+		theme,
+		onChange,
+		onCancel,
+	);
 
 	return {
 		render(width: number): string[] {
 			const lines: string[] = [];
-
-			// Tab bar
 			lines.push(...renderTabBar(theme, currentTabIndex, width));
 			lines.push("");
 
-			// Settings list
 			if (currentList) {
 				lines.push(...currentList.render(width));
 			}
@@ -186,39 +274,37 @@ export function createSettingsSelector(options: SettingsSelectorOptions) {
 		},
 
 		handleInput(data: string): void {
-			// Tab / Right → next tab
 			if (matchesKey(data, "tab") || matchesKey(data, "right")) {
 				currentTabIndex = (currentTabIndex + 1) % SETTING_TABS.length;
 				currentList = buildListForTab(
 					SETTING_TABS[currentTabIndex]!,
 					settings,
 					listTheme,
+					theme,
 					onChange,
 					onCancel,
 				);
 				return;
 			}
 
-			// Shift+Tab / Left → previous tab
 			if (matchesKey(data, "shift+tab") || matchesKey(data, "left")) {
 				currentTabIndex = (currentTabIndex - 1 + SETTING_TABS.length) % SETTING_TABS.length;
 				currentList = buildListForTab(
 					SETTING_TABS[currentTabIndex]!,
 					settings,
 					listTheme,
+					theme,
 					onChange,
 					onCancel,
 				);
 				return;
 			}
 
-			// Escape → cancel
 			if (data === "\x1b" || data === "\x1b\x1b") {
 				onCancel();
 				return;
 			}
 
-			// Everything else → settings list
 			if (currentList) {
 				currentList.handleInput(data);
 			}
