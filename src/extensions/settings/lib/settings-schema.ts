@@ -182,16 +182,6 @@ export const SETTINGS_SCHEMA = {
 	},
 
 	// ── Workflows ────────────────────────────────────────────
-	"theFirm.workflows.autoSaveHandoff": {
-		type: "boolean",
-		default: false,
-		ui: {
-			tab: "workflows",
-			label: "Auto-Save Handoff Docs",
-			description: "Automatically save handoff documents to markdown files",
-		},
-	},
-
 	"theFirm.workflows.compactionStrategy": {
 		type: "enum",
 		values: ["context-full", "handoff", "off"] as const,
@@ -199,7 +189,71 @@ export const SETTINGS_SCHEMA = {
 		ui: {
 			tab: "workflows",
 			label: "Compaction Strategy",
-			description: "How to handle context overflow",
+			description: "How to handle context overflow: in-place, handoff to new session, or disabled",
+			submenu: true,
+		},
+	},
+
+	"theFirm.compaction.thresholdPercent": {
+		type: "number",
+		default: -1,
+		ui: {
+			tab: "workflows",
+			label: "Compaction Threshold %",
+			description: "Percentage of context window before auto-compaction triggers (-1 = use Pi default)",
+			submenu: true,
+		},
+	},
+
+	"theFirm.compaction.thresholdTokens": {
+		type: "number",
+		default: -1,
+		ui: {
+			tab: "workflows",
+			label: "Compaction Token Limit",
+			description: "Fixed token limit for compaction (-1 = use Pi default, overrides percentage if set)",
+			submenu: true,
+		},
+	},
+
+	"theFirm.compaction.handoffSaveToDisk": {
+		type: "boolean",
+		default: false,
+		ui: {
+			tab: "workflows",
+			label: "Save Handoff Docs",
+			description: "Save generated handoff documents to .local/HANDOFF.md",
+		},
+	},
+
+	"theFirm.compaction.autoContinue": {
+		type: "boolean",
+		default: true,
+		ui: {
+			tab: "workflows",
+			label: "Auto-Continue",
+			description: "Automatically continue after compaction/handoff",
+		},
+	},
+
+	"theFirm.compaction.reserveTokens": {
+		type: "number",
+		default: 16384,
+		ui: {
+			tab: "workflows",
+			label: "Reserve Tokens",
+			description: "Number of tokens to keep after compaction (higher = more context preserved)",
+			submenu: true,
+		},
+	},
+
+	"theFirm.compaction.keepRecentTokens": {
+		type: "number",
+		default: 20000,
+		ui: {
+			tab: "workflows",
+			label: "Keep Recent Tokens",
+			description: "Always keep the last N tokens of recent conversation",
 			submenu: true,
 		},
 	},

@@ -85,6 +85,34 @@ const OPTION_PROVIDERS: Partial<Record<SettingPath, OptionProvider>> = {
 		},
 		{ value: "off", label: "Off", description: "Disable automatic compaction" },
 	],
+	"theFirm.compaction.thresholdPercent": [
+		{ value: "-1", label: "Default", description: "Use Pi's built-in threshold" },
+		{ value: "50", label: "50%", description: "Compact when half the context is used" },
+		{ value: "60", label: "60%", description: "Compact at 60% usage" },
+		{ value: "70", label: "70%", description: "Compact at 70% usage" },
+		{ value: "80", label: "80%", description: "Compact at 80% usage" },
+		{ value: "90", label: "90%", description: "Compact at 90% usage (aggressive)" },
+	],
+	"theFirm.compaction.thresholdTokens": [
+		{ value: "-1", label: "Default", description: "Use Pi's built-in token limit" },
+		{ value: "50000", label: "50K tokens", description: "Compact at 50K tokens" },
+		{ value: "100000", label: "100K tokens", description: "Compact at 100K tokens" },
+		{ value: "150000", label: "150K tokens", description: "Compact at 150K tokens" },
+		{ value: "200000", label: "200K tokens", description: "Compact at 200K tokens (most models)" },
+	],
+	"theFirm.compaction.reserveTokens": [
+		{ value: "4096", label: "4K tokens", description: "Minimal context after compaction" },
+		{ value: "8192", label: "8K tokens", description: "Small context reserve" },
+		{ value: "16384", label: "16K tokens (default)", description: "Standard reserve" },
+		{ value: "32768", label: "32K tokens", description: "Large context reserve" },
+		{ value: "65536", label: "64K tokens", description: "Very large context reserve" },
+	],
+	"theFirm.compaction.keepRecentTokens": [
+		{ value: "5000", label: "5K tokens", description: "Keep only very recent messages" },
+		{ value: "10000", label: "10K tokens", description: "Keep recent messages" },
+		{ value: "20000", label: "20K tokens (default)", description: "Standard recent window" },
+		{ value: "40000", label: "40K tokens", description: "Large recent window" },
+	],
 };
 
 // ═══════════════════════════════════════════════════════════════
