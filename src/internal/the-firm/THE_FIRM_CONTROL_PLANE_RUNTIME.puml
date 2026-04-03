@@ -1,0 +1,85 @@
+@startuml
+
+title The Firm — Control Plane Runtime Dispatch
+left to right direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam defaultTextAlignment center
+skinparam ArrowColor #4B5563
+skinparam RectangleBorderColor #374151
+skinparam RectangleBackgroundColor #FFFFFF
+skinparam PackageBorderColor #374151
+skinparam PackageBackgroundColor #F8FAFC
+skinparam NoteBackgroundColor #FFF7D6
+skinparam NoteBorderColor #D6B656
+skinparam roundcorner 12
+
+legend right
+  Source basis:
+  * THE_FIRM_CONTROL_PLANE.md
+  * THE_FIRM_WORKFLOW_ARCHITECTURE.md
+endlegend
+
+package "Persistent state" {
+  rectangle ".firm/run-state.yml\nengagement_id\nphase\nunit\nowner_office\nparticipating_roles\nnext_step\nrequired_artifacts\nblockers\nhistory[]" as run_state
+  rectangle "Beads issue graph\nreadiness\ndependencies\nclaiming\nblockers\nclosure" as beads
+  rectangle "Repository evidence\nartifacts\nhandoffs\nverdicts\nstate files" as repo
+  rectangle "Dolt audit truth\ndecisions\nhandoffs\nevidence refs\nworkflow history" as dolt
+}
+
+package "Control plane" {
+  rectangle "Dispatcher\nread run-state\ninspect issue state\ninspect artifacts\nclassify current unit" as dispatcher
+  rectangle "Gate validator\nartifact exists\nartifact non-empty\nhandoff exists\nissue state compatible\nverdict recorded" as validator
+  rectangle "Office mapper\nintake -> Product/Workflow\ndiscovery -> Architecture\ndesign -> Architecture\nbuild -> Engineering\nverify -> QA\nclose -> QA/Release + Workflow" as office_mapper
+  rectangle "Transition engine\nactionable -> dispatch\ncomplete -> next legal unit\nblocked -> inject escalation\nstalled -> resume" as transition_engine
+  rectangle "Transport prep\nbuild task-tool compatible calls\nshared context packets\nassignment packets\ndepends_on and wave hints\nisolation hints" as transport_prep
+}
+
+package "Runtime" {
+  rectangle "OMP runtime\nagents\ntools\ninteractive sessions" as omp
+  rectangle "Active unit execution\nintake\ndiscovery\ndesign\nbuild\nverify\nclose" as active_unit
+}
+
+run_state --> dispatcher
+beads --> dispatcher
+repo --> dispatcher
+repo --> validator
+dolt --> repo
+
+dispatcher --> validator : validate exit/entry criteria
+dispatcher --> office_mapper : derive owning office
+dispatcher --> transition_engine : current unit status
+validator --> transition_engine : legal / illegal transition
+office_mapper --> transition_engine : assigned office
+transition_engine --> transport_prep : compile next legal execution packet
+transport_prep --> omp : dispatch governed next step
+omp --> active_unit : execute assigned unit
+active_unit --> repo : write artifacts and evidence
+active_unit --> beads : update work state
+active_unit --> run_state : update phase/unit/next_step
+active_unit --> dolt : append durable history
+transition_engine --> run_state : persist next legal state
+transition_engine --> dispatcher : resume when unfinished
+
+note bottom of dispatcher
+  The runtime should prefer mechanical dispatch
+  over agent self-selection.
+end note
+
+note bottom of transport_prep
+  Delegation transport should be compiled from persisted state
+  rather than improvised from chat context.
+end note
+
+
+note bottom of validator
+  Movement should be justified by state,
+  not by confidence.
+end note
+
+note bottom of run_state
+  Recommended machine-operable phases:
+  intake, discovery, design, build, verify, close.
+end note
+@enduml

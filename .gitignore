@@ -1,0 +1,25 @@
+# Internal working materials
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+
+# Local runtime leftovers
+.firm/state/
+
+# Beads / Dolt files (added by bd init)
+.dolt/
+*.db
+.beads-credential-key
+
+
+# Beads local/sensitive runtime files
+.beads/.beads-credential-key
+.beads/interactions.jsonl
+.beads/dolt-server.port
+
+# Local OMP env
+.omp/.env
+
+# Downloaded candidate skill archives
+downloads/
