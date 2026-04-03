@@ -6,6 +6,7 @@
 
 import { DEBUG_PALETTE, fg, formatDuration, statusIcon } from "./lib/debug-theme.ts";
 import type { DashboardState } from "./lib/types.ts";
+import { truncateToWidth } from "@mariozechner/pi-tui";
 
 export class CompactWidget {
 	private cachedWidth?: number;
@@ -52,15 +53,7 @@ export class CompactWidget {
 			parts.push(fg(P.dim, formatDuration(Date.now() - state.agent.startedAt)));
 		}
 
-		const line = parts.join(" ");
-		const plain = line.replace(/\x1b\[[0-9;]*m/g, "");
-		if (plain.length > width) {
-			// strip ANSI, truncate, done
-			const stripped = line.replace(/\x1b\[[0-9;]*m/g, "");
-			this.cachedLines = [stripped.slice(0, width)];
-		} else {
-			this.cachedLines = [line];
-		}
+		this.cachedLines = [truncateToWidth(parts.join(" "), width)];
 		this.cachedWidth = width;
 		return this.cachedLines;
 	}
