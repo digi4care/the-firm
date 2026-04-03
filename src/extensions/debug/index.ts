@@ -23,9 +23,8 @@ const REFRESH_EVENTS = [
 	"turn_end",
 	"tool_execution_start",
 	"tool_execution_end",
-	"model_select",
-	"message_start",
-	"message_end",
+	"tool_call",
+	"user_bash",
 	"context",
 	"before_provider_request",
 ] as const;
@@ -36,11 +35,13 @@ export default function debugDashboard(pi: ExtensionAPI) {
 	let refreshTimer: ReturnType<typeof setInterval> | undefined;
 	let widgetCtx: ExtensionContext | undefined;
 
-	// ── Session start: activate collector + widget ────────────────────────
+	// Start collector immediately to catch all events
+	collector.start();
+
+	// ── Session start: activate widget ────────────────────────────────────
 
 	pi.on("session_start", async (_event, ctx) => {
 		widgetCtx = ctx;
-		collector.start();
 		applyWidget(ctx, widget);
 
 		// Periodic refresh for live durations
@@ -113,8 +114,16 @@ export default function debugDashboard(pi: ExtensionAPI) {
 function applyWidget(ctx: ExtensionContext, widget: CompactWidget): void {
 	if (!ctx.hasUI) return;
 
-	ctx.ui.setWidget("debug-dashboard", (_tui, _theme) => ({
-		render: (width: number) => widget.render(width),
-		invalidate: () => widget.invalidate(),
-	}));
+	ctx.ui.setWidget(
+		"debug-dashboard",
+		(_tui, theme) => ({
+			render: (width: number) => {
+				const lines = widget.render(width);
+				// Add background to make it non-transparent
+				return lines.map(line => line.padEnd(width));
+			},
+			invalidate: () => widget.invalidate(),
+		}),
+		{ placement: "belowEditor" }
+	);
 }
