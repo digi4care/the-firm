@@ -82,11 +82,22 @@ export interface AgentState {
 
 // ── Dashboard State ────────────────────────────────────────────────────────
 
+export interface HookState {
+	/** Hook name (e.g. "context", "before_provider_request") */
+	name: string;
+	/** When the hook started */
+	startedAt: number;
+	/** Hook-specific details */
+	details?: Record<string, unknown>;
+}
+
 export interface DashboardState {
 	/** Tracked events (ring buffer) */
 	events: TrackedEvent[];
 	/** Active tool calls */
 	activeTools: Map<string, ToolCall>;
+	/** Currently active hook, if any */
+	activeHook: HookState | null;
 	/** Agent state */
 	agent: AgentState;
 	/** Session start time */

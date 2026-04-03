@@ -10,6 +10,7 @@ import type {
 	AgentPhase,
 	DashboardState,
 	EventCategory,
+	HookState,
 	ToolCall,
 	ToolStatus,
 	TrackedEvent,
@@ -202,12 +203,46 @@ export class EventCollector {
 	// ── Hook Events ───────────────────────────────────────────────────────
 
 	private trackHookEvents(): void {
-		this.pi.on("context", () => {
-			this.recordEvent("hook", "context", "Context hook fired");
+		this.pi.on("context", (event) => {
+			const msgCount = event.messages?.length ?? 0;
+			const hook: HookState = {
+				name: "context",
+				startedAt: Date.now(),
+				details: { messageCount: msgCount },
+			};
+			this.state.activeHook = hook;
+			this.recordEvent("hook", "context", `Context hook (${msgCount} msgs)`, {
+				messageCount: msgCount,
+			});
 		});
 
-		this.pi.on("before_provider_request", () => {
-			this.recordEvent("hook", "before_provider_request", "Provider request hook");
+		this.pi.on("before_provider_request", (event) => {
+			const payloadKeys = event.payload ? Object.keys(event.payload) : [];
+			const model = event.payload?.model ?? "unknown";
+			const hook: HookState = {
+				name: "before_provider_request",
+				startedAt: Date.now(),
+				details: { model, payloadKeys },
+			};
+			this.state.activeHook = hook;
+			this.recordEvent("hook", "before_provider_request", `Provider request (${model})`, {
+				model,
+				payloadKeys,
+			});
+		});
+
+		// Clear active hook after hooks resolve (next tick)
+		this.pi.on("turn_start", () => {
+			this.state.activeHook = null;
+		});
+		this.pi.on("turn_end", () => {
+			this.state.activeHook = null;
+		});
+		this.pi.on("tool_execution_start", () => {
+			this.state.activeHook = null;
+		});
+		this.pi.on("message_start", () => {
+			this.state.activeHook = null;
 		});
 	}
 
@@ -244,6 +279,7 @@ export class EventCollector {
 		return {
 			events: [],
 			activeTools: new Map(),
+			activeHook: null,
 			agent: {
 				phase: "idle",
 				model: undefined,

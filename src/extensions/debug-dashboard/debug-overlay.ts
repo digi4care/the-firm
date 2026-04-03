@@ -58,6 +58,7 @@ const CATEGORY_KEYS: Record<string, EventCategory> = {
 export class DebugOverlay {
 	private selectedIndex = 0;
 	private scrollOffset = 0;
+	private detailMode = false;
 	private filter: EventFilter = {
 		categories: new Set(ALL_CATEGORIES),
 		search: "",
@@ -67,7 +68,10 @@ export class DebugOverlay {
 	constructor(
 		private readonly getState: () => DashboardState,
 		private readonly onClose: () => void,
-	) {}
+		detail = false,
+	) {
+		this.detailMode = detail;
+	}
 
 	public handleInput(data: string, requestRender: () => void): void {
 		if (this.filterMode) {
@@ -87,6 +91,8 @@ export class DebugOverlay {
 			this.onClose();
 		} else if (data === "f") {
 			this.filterMode = !this.filterMode;
+		} else if (data === "d") {
+			this.detailMode = !this.detailMode;
 		} else if (data in CATEGORY_KEYS) {
 			const cat = CATEGORY_KEYS[data];
 			if (this.filter.categories.has(cat)) {
@@ -139,6 +145,23 @@ export class DebugOverlay {
 		}
 		container.addChild(new Text(` ${agentParts.join(" ")}`, 0, 0));
 
+		// Active hook
+		if (state.activeHook) {
+			const hookDur = formatDuration(Date.now() - state.activeHook.startedAt);
+			const hookParts: string[] = [
+				fg(P.dim, " hook:"),
+				fg(P.hook, state.activeHook.name),
+				fg(P.dim, hookDur),
+			];
+			if (state.activeHook.details) {
+				const detailStr = Object.entries(state.activeHook.details)
+					.map(([k, v]) => `${k}=${v}`)
+					.join(", ");
+				hookParts.push(fg(P.dim, detailStr));
+			}
+			container.addChild(new Text(hookParts.join(" "), 0, 0));
+		}
+
 		// Active tools
 		if (state.activeTools.size > 0) {
 			const toolParts: string[] = [fg(P.dim, " tools:")];
@@ -148,6 +171,18 @@ export class DebugOverlay {
 				toolParts.push(`${icon} ${fg(P.tool, tool.name)} ${fg(P.dim, dur)}`);
 			}
 			container.addChild(new Text(toolParts.join(" "), 0, 0));
+		}
+		if (this.detailMode) {
+			container.addChild(
+				new Text(
+					fg(
+						P.warning,
+						` ${event.eventType.padEnd(32)}${fg(P.dim, JSON.stringify(event.details ?? {}))}`,
+					),
+					0,
+					0,
+				),
+			);
 		}
 
 		container.addChild(new Text(fg(P.border, "-".repeat(width)), 0, 0));
@@ -200,7 +235,11 @@ export class DebugOverlay {
 		}
 
 		container.addChild(
-			new Text(fg(P.dim, " up/down scroll | 1-8 filter | a toggle all | f search | q close"), 0, 0),
+			new Text(
+				fg(P.dim, " up/down scroll | 1-8 filter | a toggle all | d detail | f search | q close"),
+				0,
+				0,
+			),
 		);
 
 		return container.render(width);

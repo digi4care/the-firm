@@ -26,6 +26,8 @@ const REFRESH_EVENTS = [
 	"model_select",
 	"message_start",
 	"message_end",
+	"context",
+	"before_provider_request",
 ] as const;
 
 export default function debugDashboard(pi: ExtensionAPI) {
@@ -51,15 +53,18 @@ export default function debugDashboard(pi: ExtensionAPI) {
 	// ── /debug command: open overlay ──────────────────────────────────────
 
 	pi.registerCommand("tf-debug", {
-		description: "Open debug dashboard overlay",
-		handler: async (_args, ctx) => {
+		description: "Open debug dashboard overlay (--detail for expanded view)",
+		handler: async (args, ctx) => {
 			if (!ctx.hasUI) return;
+
+			const detail = args.includes("--detail") || args.includes("-d");
 
 			await ctx.ui.custom<void>(
 				(tui, _theme, _keybindings, done) => {
 					const overlay = new DebugOverlay(
 						() => collector.state,
 						() => done(undefined),
+						detail,
 					);
 
 					return {

@@ -50,6 +50,14 @@ export class CompactWidget {
 			parts.push(fg(P.turn, `${state.agent.turnIndex + 1}/${state.agent.totalTurns}`));
 		}
 
+		// Active hook
+		if (state.activeHook) {
+			const hookDur = formatDuration(Date.now() - state.activeHook.startedAt);
+			parts.push(fg(P.dim, "hook"));
+			parts.push(fg(P.hook, state.activeHook.name));
+			parts.push(fg(P.dim, hookDur));
+		}
+
 		// Active tools
 		const runningTools = this.countRunningTools(state);
 		const totalTools = state.activeTools.size;
