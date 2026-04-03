@@ -51,8 +51,12 @@ export const QualityBar = z.enum(["prototype", "professional", "production"]);
 export const ClientSchema = z.object({
 	// Verplicht bij intake
 	display_name: z.string().min(1, "Client name is required"),
-	language: z.string().default("nl"),
+	spoken_language: z.string().optional(),
+	preferred_language: z.string().optional(),
 	created: z.string().datetime({ offset: true }),
+
+	// Backward compat: oud 'language' veld wordt gemigreerd
+	language: z.string().optional(),
 
 	// Optioneel — gevuld naarmate we meer leren
 	profile: z
@@ -85,6 +89,14 @@ export const ClientSchema = z.object({
 			learned: z.array(z.string()).default([]),
 		})
 		.optional(),
+}).transform((data) => {
+	// Backward compat: migreer oud 'language' veld
+	const hasLegacyLanguage = !!data.language;
+	const spoken = data.spoken_language ?? (hasLegacyLanguage ? data.language : undefined) ?? "en";
+	const preferred = data.preferred_language ?? (hasLegacyLanguage ? data.language : undefined) ?? "en";
+	// Verwijder legacy veld
+	const { language, ...rest } = data;
+	return { ...rest, spoken_language: spoken, preferred_language: preferred };
 });
 
 // ── Project sectie ───────────────────────────────────────

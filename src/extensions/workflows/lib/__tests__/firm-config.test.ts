@@ -22,7 +22,8 @@ const fullConfig = {
 	firm: { version: 1 },
 	client: {
 		display_name: "Chris",
-		language: "nl",
+		spoken_language: "nl",
+		preferred_language: "en",
 		created: now,
 		profile: {
 			background: "MBO/HBO developer",
@@ -78,6 +79,8 @@ describe("FirmConfigSchema", () => {
 	test("parses full config (everything filled in)", () => {
 		const result = FirmConfigSchema.parse(fullConfig);
 		expect(result.client.profile?.skill_level).toBe("intermediate");
+		expect(result.client.spoken_language).toBe("nl");
+		expect(result.client.preferred_language).toBe("en");
 		expect(result.project.technical_context?.architecture_type).toBe("monorepo");
 		expect(result.engagement.type).toBe("greenfield-build");
 	});
@@ -94,9 +97,10 @@ describe("FirmConfigSchema", () => {
 		expect(result.project.description).toBe("");
 	});
 
-	test("defaults client language to nl", () => {
+	test("defaults spoken_language and preferred_language to en", () => {
 		const result = FirmConfigSchema.parse(minimalConfig);
-		expect(result.client.language).toBe("nl");
+		expect(result.client.spoken_language).toBe("en");
+		expect(result.client.preferred_language).toBe("en");
 	});
 
 	test("rejects missing client name", () => {
@@ -127,6 +131,26 @@ describe("FirmConfigSchema", () => {
 				project: { name: "test", created: now },
 			}),
 		).toThrow();
+	});
+
+	test("backward compat: old 'language' migrates to spoken_language and preferred_language", () => {
+		const result = FirmConfigSchema.parse({
+			firm: { version: 1 },
+			client: { display_name: "Legacy", language: "en", created: now },
+			project: { name: "test", created: now },
+		});
+		expect(result.client.spoken_language).toBe("en");
+		expect(result.client.preferred_language).toBe("en");
+	});
+
+	test("spoken and preferred language can differ", () => {
+		const result = FirmConfigSchema.parse({
+			firm: { version: 1 },
+			client: { display_name: "Bilingual", spoken_language: "nl", preferred_language: "en", created: now },
+			project: { name: "test", created: now },
+		});
+		expect(result.client.spoken_language).toBe("nl");
+		expect(result.client.preferred_language).toBe("en");
 	});
 });
 
@@ -164,6 +188,8 @@ describe("Progressive disclosure", () => {
 		expect(client.communication).toBeUndefined();
 		expect(client.preferences).toBeUndefined();
 		expect(client.patterns).toBeUndefined();
+		expect(client.spoken_language).toBe("en");
+		expect(client.preferred_language).toBe("en");
 	});
 
 	test("client with profile added later", () => {

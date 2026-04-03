@@ -61,6 +61,7 @@ Status: draft | final
 
 ## Rules
 
+- **Schrijf de brief in de preferred_language** van de client (uit handoff context)
 - Write for the NEXT reader, not for yourself
 - Be specific, not vague — "authentication system with email + password" not "login stuff"
 - If you don't have enough info for a section, write "TBD — needs <what>"
