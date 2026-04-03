@@ -16,7 +16,7 @@ The Firm maintains truth across multiple systems. Understanding what each system
 │  → Git — File content, code history                         │
 ├─────────────────────────────────────────────────────────────┤
 │  Layer 1: Execution Truth                                   │
-│  → AGENTS.md + .omp/ — Runtime behavior, role definitions   │
+│  → AGENTS.md + .pi/ — Runtime behavior, role definitions   │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -25,6 +25,7 @@ The Firm maintains truth across multiple systems. Understanding what each system
 ### Git: Code and File Truth
 
 Git owns:
+
 - Source code files
 - `.firm/` artifact files
 - Configuration files
@@ -32,11 +33,13 @@ Git owns:
 - Documentation files
 
 Git does not own:
+
 - Issue state
 - Workflow history
 - Runtime behavior
 
 **What to look for in Git**:
+
 - What the code does
 - What artifacts exist
 - What changed and when
@@ -44,6 +47,7 @@ Git does not own:
 ### Beads: Issue State Truth
 
 Beads owns:
+
 - Work item existence
 - Issue status (proposed, ready, in_progress, etc.)
 - Dependencies and blockers
@@ -51,11 +55,13 @@ Beads owns:
 - Priority and assignment
 
 Beads does not own:
+
 - File content
 - Design decisions
 - Code changes
 
 **What to look for in Beads**:
+
 - What work items exist
 - What state they are in
 - What blocks what
@@ -64,17 +70,20 @@ Beads does not own:
 ### Dolt: Versioned Workflow History
 
 Dolt owns:
+
 - Historical issue states
 - State transitions with timestamps
 - Evidence records
 - Audit trail
 
 Dolt does not own:
+
 - Current file content
 - Design rationale
 - Future plans
 
 **What to look for in Dolt**:
+
 - What happened when
 - Who changed what (via query)
 - Historical patterns
@@ -82,6 +91,7 @@ Dolt does not own:
 ### `.firm/` Artifacts: Decision Truth
 
 `.firm/` owns:
+
 - Design decisions and rationale
 - Handoff context and acceptance criteria
 - Verification requirements
@@ -89,30 +99,35 @@ Dolt does not own:
 - Change request history
 
 `.firm/` does not own:
+
 - Code implementation
 - Issue state
 - Automatic synchronization
 
 **What to look for in `.firm/`**:
+
 - Why a decision was made
 - What was handed off and when
 - What proof was required
 - What risks were known
 
-### `AGENTS.md` + `.omp/`: Execution Truth
+### `AGENTS.md` + `.pi/`: Execution Truth
 
-`AGENTS.md` and `.omp/` own:
+`AGENTS.md` and `.pi/` own:
+
 - How agents behave
 - Role boundaries
 - Handoff requirements
 - Artifact templates
 
 They do not own:
+
 - Specific decisions
 - Issue content
 - Code logic
 
-**What to look for in `AGENTS.md` + `.omp/`**:
+**What to look for in `AGENTS.md` + `.pi/`**:
+
 - What a role should do
 - How to create an artifact
 - What escalation path to use
@@ -136,6 +151,7 @@ Issues reference artifacts by path. Artifact state drives issue transitions.
 ### Code-to-Artifact Contract
 
 Code changes should reference the design artifact that authorized them:
+
 - Commit messages may reference `technical-design.md`
 - PR descriptions may link to related issues
 - Code comments may reference verification plans
@@ -145,6 +161,7 @@ Code changes should reference the design artifact that authorized them:
 ### State-to-Evidence Contract
 
 Issue state claims must be supported by evidence:
+
 - `verified` requires `qa-verdict.md`
 - `ready` requires `technical-design.md`
 - `closed` requires `release-readiness.md`
@@ -196,6 +213,7 @@ grep -r "<issue-id>" .firm/
 **Problem**: State truth (Beads) and decision truth (artifacts) are out of sync.
 
 **Resolution**:
+
 1. Check if `qa-verdict.md` exists in `.firm/artifacts/<eng>/`
 2. If it exists but is not linked, link it
 3. If it does not exist, the issue state is wrong—revert to `qa_pending`
@@ -205,6 +223,7 @@ grep -r "<issue-id>" .firm/
 **Problem**: Decision truth (artifacts) and code truth (Git) are out of sync.
 
 **Resolution**:
+
 1. Check if design was updated after code was written
 2. If code is correct, update design artifact
 3. If design is correct, create code fix issue
@@ -214,8 +233,9 @@ grep -r "<issue-id>" .firm/
 **Problem**: Execution truth (`AGENTS.md`) and actual behavior differ.
 
 **Resolution**:
+
 1. Check `AGENTS.md` for expected behavior
-2. Check agent definition in `.omp/agents/`
+2. Check agent definition in `.pi/agents/`
 3. If agent behavior is wrong, escalate to fix agent
 4. If agent behavior is correct but surprising, update documentation
 
@@ -224,6 +244,7 @@ grep -r "<issue-id>" .firm/
 **Problem**: Dolt history and artifact history are not aligned.
 
 **Resolution**:
+
 1. Check Dolt for workflow state transitions
 2. Check Git for artifact file history
 3. Cross-reference timestamps to reconstruct timeline

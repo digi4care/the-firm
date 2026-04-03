@@ -50,11 +50,13 @@ The Firm organizes authority into offices, each with clear responsibilities and 
 **Lead**: `product_lead`
 
 **Key roles**:
+
 - `product_strategist` — High-level product direction
 - `product_manager` — Feature scoping and sequencing
 - `acceptance_designer` — Acceptance criteria and edge cases
 
 **Decisions**:
+
 - What problem to solve
 - What is in and out of scope
 - What success looks like
@@ -67,11 +69,13 @@ The Firm organizes authority into offices, each with clear responsibilities and 
 **Lead**: `architecture_lead`
 
 **Key roles**:
+
 - `solution_architect` — Design lock and contracts
 - `verification_planner` — Proof burden and risk tiering
 - `context_scout` — Code surface mapping
 
 **Decisions**:
+
 - How to solve the problem
 - Interface contracts and boundaries
 - Verification requirements by risk tier
@@ -84,12 +88,14 @@ The Firm organizes authority into offices, each with clear responsibilities and 
 **Lead**: `engineering_lead`
 
 **Key roles**:
+
 - `frontend_engineer` — Client-side implementation
 - `backend_engineer` — Service implementation
 - `test_engineer` — Test implementation
 - `integration_engineer` — Cross-system integration
 
 **Decisions**:
+
 - Implementation approach within design constraints
 - Code organization and patterns
 - Unit and integration test design
@@ -102,11 +108,13 @@ The Firm organizes authority into offices, each with clear responsibilities and 
 **Lead**: `qa_lead`
 
 **Key roles**:
+
 - `qa_verifier` — Verification execution
 - `regression_reviewer` — Change risk analysis
 - `release_reviewer` — Go/no-go decisions
 
 **Decisions**:
+
 - Whether evidence is sufficient
 - Whether claims are valid
 - Whether release criteria are met
@@ -119,11 +127,13 @@ The Firm organizes authority into offices, each with clear responsibilities and 
 **Lead**: `workflow_governor`
 
 **Key roles**:
+
 - `issue_orchestrator` — Work item structure
 - `handoff_coordinator` — Cross-office transitions
 - `state_recorder` — State history and evidence
 
 **Decisions**:
+
 - Whether state transitions are valid
 - Whether handoffs are complete
 - Whether artifacts meet format requirements
@@ -284,6 +294,7 @@ When urgent action is required (production incident, security vulnerability):
 ### Daily Operations
 
 Most work proceeds without escalation:
+
 - Roles stay within boundaries
 - Gates are passed with standard artifacts
 - Handoffs happen per protocol
@@ -339,6 +350,7 @@ Governance adds overhead, but it reduces rework and defects. The pilot phase in 
 **Q: What if the client demands a change that violates the design lock?**
 
 Escalate to `client_partner`. The change may require:
+
 - Revisiting Gate 3 (Design Lock)
 - Accepting technical debt
 - Extending timeline

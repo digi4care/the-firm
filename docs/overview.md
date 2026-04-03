@@ -7,6 +7,7 @@ It is designed for teams or individuals who want more than a generic coding assi
 ## The core model
 
 The Firm combines:
+
 - client intake and engagement handling
 - issue-first execution
 - specialist roles
@@ -18,6 +19,7 @@ The Firm combines:
 ## Why it exists
 
 AI coding systems often fail in predictable ways:
+
 - they optimize for speed instead of the right outcome
 - they blur planning, implementation, and QA into one role
 - they lose context over long-running work
@@ -28,9 +30,9 @@ The Firm exists to solve those problems with operating discipline rather than pr
 
 ## What it runs on
 
-The Firm is designed to run on top of OMP.
+The Firm is designed to run on top of Pi.
 
-- OMP provides the runtime and tools
+- Pi provides the runtime and tools
 - Beads provides the issue-control plane
 - Dolt provides versioned workflow truth
 - The Firm provides doctrine, workflow, governance, and runtime role structure

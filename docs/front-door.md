@@ -42,14 +42,14 @@ continues.
 This repo now includes:
 
 - the `firm-front-desk` skill
-- `.omp/templates/request-routing.md`
-- `.omp/commands/front-desk/` generated from `src/commands/front-desk/`
-- `.omp/extensions/the-firm-runtime-router.ts` generated from `src/extensions/the-firm-runtime-router.ts`
+- `.pi/templates/request-routing.md`
+- `.pi/commands/front-desk/` generated from `src/commands/front-desk/`
+- `.pi/extensions/the-firm-runtime-router.ts` generated from `src/extensions/the-firm-runtime-router.ts`
 
-> `omp run front-desk [--engagement=<id>] [--active-issue=<id>] <request>`
+> `pi run front-desk [--engagement=<id>] [--active-issue=<id>] <request>`
 > Current routing rule: the authoritative hardcoded routing contract lives
 > in English inside `resolveLifecycleRouting()` in
-> `.omp/extensions/the-firm-runtime.ts`, while raw client request text
+> in `.pi/extensions/the-firm-runtime.ts`, while raw client request text
 > may be in any language.
 > Current guardrail: no planning, research, design, or implementation
 > may proceed until a governed issue exists; direct continuation remains
@@ -58,13 +58,12 @@ This repo now includes:
 > operator whether to attach to an active issue or create or attach the
 > next governed Beads work item before delivery expands.
 > Current helper-linkage rule: active governed continuation should point to
-> `omp run link-artifact <issue-id> --type=engagement --engagement=<id>` so
-> the active governed issue gets explicit engagement-artifact traceability.
+> `pi run link-artifact <issue-id> --type=engagement --engagement=<id>` so
 > Current issue-path rule: execution-structuring, active-engagement work without
-> an issue, or intake-first routing may point to `omp run issue-tree <engagement-id>`
+> an issue, or intake-first routing may point to `pi run issue-tree <engagement-id>`
 > so the next governed issue path is created before delivery expands.
-> Current consumer rule: `.omp/commands/front-desk/` and
-> `.omp/templates/request-routing.md` consume lifecycle routing truth; they
+> Current consumer rule: `.pi/commands/front-desk/` and
+> `.pi/templates/request-routing.md` consume lifecycle routing truth; they
 > must not invent alternate routing categories or ownership rules.
 
 These are early runtime assets for The Firm's front-door behavior.

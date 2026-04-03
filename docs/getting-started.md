@@ -5,6 +5,7 @@
 Use The Firm in greenfield mode when you want a new repository to start with operating discipline from day zero.
 
 The basic path is:
+
 1. install The Firm runtime files
 2. initialize issue tracking
 3. define the first engagement through intake
@@ -52,7 +53,7 @@ The brownfield bootstrap is assessment-first. It scaffolds the operating contrac
 ### The Brownfield Bootstrap Command
 
 ```bash
-.omp/scripts/the-firm-bootstrap.sh brownfield \\
+.pi/scripts/the-firm-bootstrap.sh brownfield \\
   --engagement-id eng-001 \
   --repo-root /path/to/existing-repo \
   --client-name "Client Name" \
@@ -62,9 +63,8 @@ The brownfield bootstrap is assessment-first. It scaffolds the operating contrac
 ```
 
 This creates the operating contract structure. The actual restructuring happens through governed delivery after the contract is established.
+
 ## In practice
-
-
 
 ## Optional Initial Issue Seeding
 
@@ -75,22 +75,22 @@ If `bd` is available and you want the bootstrap to create the first minimal issu
 ```
 
 This currently seeds only:
+
 - one initiative
 - one feature beneath it
 
 That keeps the bootstrap issue-first without pretending to know the full roadmap.
-
 
 ## Validate the Scaffold
 
 After bootstrap, validate the target repo with:
 
 ```bash
-.omp/scripts/the-firm-validate.sh --repo-root /path/to/target-repo
+.pi/scripts/the-firm-validate.sh --repo-root /path/to/target-repo
 ```
 
 If issue control must already be active, use:
 
 ```bash
-.omp/scripts/the-firm-validate.sh --repo-root /path/to/target-repo --require-beads
+.pi/scripts/the-firm-validate.sh --repo-root /path/to/target-repo --require-beads
 ```

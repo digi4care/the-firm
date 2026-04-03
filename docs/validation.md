@@ -5,20 +5,22 @@ The Firm bootstrap process should be followed by validation.
 ## Validator command
 
 ```bash
-.omp/scripts/the-firm-validate.sh --repo-root /path/to/target-repo
+.pi/scripts/the-firm-validate.sh --repo-root /path/to/target-repo
 ```
 
 If you want to require active issue control as part of validation:
 
 ```bash
-.omp/scripts/the-firm-validate.sh --repo-root /path/to/target-repo --require-beads
+.pi/scripts/the-firm-validate.sh --repo-root /path/to/target-repo --require-beads
 ```
 
 ## What it checks
+
 The validator currently checks for:
+
 - `AGENTS.md`
-- `.omp/agents/`
-- `.omp/templates/`
+- `.pi/agents/`
+- `.pi/templates/`
 - `.firm/README.md`
 - `.firm/intake/`
 - `.firm/engagements/`
@@ -28,5 +30,6 @@ The validator currently checks for:
 - execution-root/path-discipline guidance in `AGENTS.md`
 
 ## Why it matters
+
 Bootstrap creates a scaffold.
 Validation checks whether that scaffold is strong enough to be treated as a real The Firm starting point rather than a loose copy of files.

@@ -5,6 +5,7 @@ Adopting The Firm in an existing codebase requires a different approach than gre
 ## The Core Problem
 
 Existing repositories contain:
+
 - Undocumented assumptions
 - Hidden dependencies
 - Unclear boundaries
@@ -45,7 +46,7 @@ The contract creates structure. The pilot phase proves it. Wider execution follo
 ## Bootstrap Command
 
 ```bash
-.omp/scripts/the-firm-bootstrap.sh brownfield \
+.pi/scripts/the-firm-bootstrap.sh brownfield \
   --engagement-id eng-001 \
   --repo-root /path/to/existing-repo \
   --client-name "Client Name" \
@@ -78,6 +79,7 @@ The contract creates structure. The pilot phase proves it. Wider execution follo
 **Goal**: Make current reality explicit.
 
 **Activities**:
+
 - Code surface analysis: map modules, dependencies, coupling
 - Verification maturity assessment: what tests exist, what do they cover
 - Architecture documentation: what patterns exist, which are consistent
@@ -90,6 +92,7 @@ The contract creates structure. The pilot phase proves it. Wider execution follo
 **Goal**: Distill existing work into structured backlog.
 
 **Activities**:
+
 - Inventory existing issues, TODOs, and planned work
 - Map to The Firm backlog structure (initiatives → features → tasks)
 - Identify dependencies and blockers
@@ -102,6 +105,7 @@ The contract creates structure. The pilot phase proves it. Wider execution follo
 **Goal**: Define where The Firm operates first.
 
 **Activities**:
+
 - Identify a bounded area with clear interfaces
 - Define what is in the pilot boundary
 - Define what is outside (still important, not yet governed)
@@ -114,6 +118,7 @@ The contract creates structure. The pilot phase proves it. Wider execution follo
 **Goal**: Plan the restructuring work itself.
 
 **Activities**:
+
 - Staff the minimum sufficient team
 - Define phases and review points
 - Identify risks specific to brownfield constraints
@@ -154,6 +159,7 @@ After the pilot succeeds, expand governance in waves:
 4. **Wave 4**: Legacy components (may remain partially governed)
 
 Each wave requires:
+
 - Updated pilot-boundary.md
 - Assessment of new area
 - Updated engagement plan
@@ -164,6 +170,7 @@ Each wave requires:
 ### Code Without Tests
 
 Do not block adoption on full test coverage. Instead:
+
 - Document what is tested and what is not
 - Add verification plans for new work
 - Gradually add tests as code is touched
@@ -172,11 +179,13 @@ Do not block adoption on full test coverage. Instead:
 ### Code Without Documentation
 
 Technical discovery creates the initial documentation. Do not:
+
 - Try to document everything upfront
 - Block on perfect understanding
 - Expect original authors to explain their intent
 
 Do:
+
 - Document what you learn as you work
 - Update discovery artifacts as understanding improves
 - Accept uncertainty in initial assessments
@@ -184,6 +193,7 @@ Do:
 ### Code with Heavy Coupling
 
 The pilot boundary should exclude heavily coupled areas until:
+
 - Interfaces are clarified
 - Dependencies are mapped
 - Contract tests exist
@@ -193,13 +203,13 @@ The pilot boundary should exclude heavily coupled areas until:
 After bootstrap, validate the scaffold:
 
 ```bash
-.omp/scripts/the-firm-validate.sh --repo-root /path/to/target-repo
+.pi/scripts/the-firm-validate.sh --repo-root /path/to/target-repo
 ```
 
 If issue control must be active:
 
 ```bash
-.omp/scripts/the-firm-validate.sh --repo-root /path/to/target-repo --require-beads
+.pi/scripts/the-firm-validate.sh --repo-root /path/to/target-repo --require-beads
 ```
 
 ## Common Patterns
@@ -207,6 +217,7 @@ If issue control must be active:
 ### Brownfield Adoption with Active Development
 
 When the codebase is actively changing during adoption:
+
 - Shorten pilot phase (3-5 days instead of 1-2 weeks)
 - Accept higher uncertainty in technical discovery
 - Focus on establishing rhythm over perfect documentation
@@ -214,6 +225,7 @@ When the codebase is actively changing during adoption:
 ### Brownfield Adoption with Stakeholder Pressure
 
 When there is pressure to skip assessment:
+
 - Reference the operating contract explicitly
 - Explain that skipping assessment increases risk
 - Offer to parallelize assessment with urgent fixes in ungoverned mode
@@ -222,6 +234,7 @@ When there is pressure to skip assessment:
 ### Brownfield Adoption with Multiple Codebases
 
 When adopting across multiple repositories:
+
 - Each repo gets its own engagement
 - Create a parent engagement for coordination
 - Define cross-repo dependencies explicitly

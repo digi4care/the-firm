@@ -1,6 +1,6 @@
 # Architecture
 
-The Firm is a layered operating system that runs on top of OMP. Understanding its architecture helps operators make informed decisions about customization, debugging, and extension.
+The Firm is a layered operating system that runs on top of Pi. Understanding its architecture helps operators make informed decisions about customization, debugging, and extension.
 
 ## System Layers
 
@@ -11,7 +11,7 @@ The Firm is a layered operating system that runs on top of OMP. Understanding it
 │  - Gated execution phases   - Independent QA                 │
 │  - Risk-tiered verification - Explicit governance            │
 ├─────────────────────────────────────────────────────────────┤
-│                    OMP (Runtime + Tools)                     │
+│                    Pi  (Runtime + Tools)                     │
 │  - Agent dispatch           - Tool orchestration             │
 │  - Skill system             - Command framework              │
 │  - Template engine                                          │
@@ -32,16 +32,16 @@ The Firm is a layered operating system that runs on top of OMP. Understanding it
 
 ## Component Responsibilities
 
-### OMP Runtime
+### Pi Runtime
 
-OMP provides the execution environment for The Firm:
+Pi provides the execution environment for The Firm:
 
-- **Agent dispatch**: Routes work to role-specialized agents defined in `.omp/agents/`
+- **Agent dispatch**: Routes work to role-specialized agents defined in `.pi/agents/`
 - **Tool access**: Provides the tool surface (read, edit, grep, bash, etc.)
-- **Skill system**: Loads domain-specific skills from `.omp/skills/`
-- **Command framework**: Exposes commands like `omp run handoff-state` via `.omp/commands/`
+- **Skill system**: Loads domain-specific skills from `.pi/skills/`
+- **Command framework**: Exposes commands like `pi run handoff-state` via `.pi/commands/`
 
-The Firm overrides OMP's default assumptions with its own doctrine in `AGENTS.md`.
+The Firm overrides Pi's default assumptions with its own doctrine in `AGENTS.md`.
 
 ### Beads Control Plane
 
@@ -75,6 +75,7 @@ The `.firm/` directory is the structured artifact root:
 | `.firm/artifacts/` | Cross-cutting design and decision records | Immutable once accepted |
 
 Artifacts are the source of truth for:
+
 - Design decisions (what was decided and why)
 - Handoff context (what changed, what risks remain)
 - Verification requirements (what proof is required)
@@ -93,7 +94,7 @@ Artifacts are the source of truth for:
 
 1. Work is claimed from an approved issue (Beads)
 2. Agent produces artifacts in `.firm/artifacts/<eng>/`
-3. Handoff artifact created with `omp run handoff-state`
+3. Handoff artifact created with `pi run handoff-state`
 4. Issue state updated via `bd update`
 5. Downstream agent verifies handoff before accepting
 
@@ -132,7 +133,8 @@ Once an artifact is accepted at a gate (design lock, QA entry, release), it beco
 
 ### Adding Roles
 
-Create a new file in `.omp/agents/` following the existing pattern. Define:
+Create a new file in `.pi/agents/` following the existing pattern. Define:
+
 - Role purpose and boundaries
 - Input artifacts required
 - Output artifacts produced
@@ -140,11 +142,11 @@ Create a new file in `.omp/agents/` following the existing pattern. Define:
 
 ### Adding Artifact Types
 
-Add templates to `.omp/templates/` and update relevant agent definitions to reference them.
+Add templates to `.pi/templates/` and update relevant agent definitions to reference them.
 
 ### Adding Commands
 
-Create a new directory under `.omp/commands/` with an `index.ts` entry point.
+Create a new directory under `.pi/commands/` with an `index.ts` entry point.
 
 ## Anti-Patterns
 
@@ -166,6 +168,7 @@ Create a new directory under `.omp/commands/` with an `index.ts` entry point.
 ### Debugging
 
 When something goes wrong, check in order:
+
 1. Issue state in Beads (`bd show <id>`)
 2. Engagement state in `.firm/engagements/<eng>/`
 3. Artifact history in `.firm/artifacts/<eng>/`
@@ -209,4 +212,4 @@ This is an operational error. The artifact-to-issue contract (documented in [iss
 
 **Q: Can I customize the agent definitions?**
 
-Yes. The `.omp/agents/` files are your local runtime configuration. Customize them to match your team's needs, but maintain the office boundaries and handoff discipline.
+Yes. The `.pi/agents/` files are your local runtime configuration. Customize them to match your team's needs, but maintain the office boundaries and handoff discipline.

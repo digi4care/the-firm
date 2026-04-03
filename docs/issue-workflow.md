@@ -5,11 +5,13 @@ The Firm is issue-first.
 That means serious work should begin from a governed work item, not from chat momentum alone.
 
 ## Core systems
+
 - Git tracks files and code history
 - Beads tracks work items, dependencies, readiness, blockers, and closure state
 - `.firm/` stores structured engagement, design, handoff, QA, and release artifacts
 
 ## Typical flow
+
 1. Intake creates the first engagement context
 2. Issue control is initialized or verified
 3. The first initiative and feature work items are created
@@ -17,7 +19,9 @@ That means serious work should begin from a governed work item, not from chat mo
 5. QA and release decisions are reflected back into issue state
 
 ## Lifecycle thinking
+
 The exact issue states may vary by work item type, but the core pattern is:
+
 - proposed
 - triaged
 - ready
@@ -61,13 +65,14 @@ Artifacts under `.firm/` carry the work; Beads issues track state. This section 
 - Use kebab-case: `technical-design.md`, not `technicalDesign.md`
 - Include engagement ID in path: `artifacts/eng-001/`
 - Use descriptive prefixes for multiple artifacts: `api-design.md`, `db-design.md`
+
 ## Minimal Bootstrap Issue Tree vs. Governed Operations
 
 The bootstrap can optionally seed a minimal issue tree: one initiative and one feature. This is **intentional minimalism**—the bootstrap creates the minimum governed work structure, not your entire roadmap.
 
 ```bash
 # Bootstrap with minimal issue tree
-.omp/scripts/the-firm-bootstrap.sh greenfield --engagement-id eng-001 --init-beads --seed-issues
+.pi/scripts/the-firm-bootstrap.sh greenfield --engagement-id eng-001 --init-beads --seed-issues
 ```
 
 After bootstrap, use governed operations to expand:
@@ -97,7 +102,7 @@ bd create "Implement OAuth2 Login" --type feature --priority P1 --parent <initia
 
 ### Option 3: Helper Command
 
-Use `omp run issue-tree <engagement-id> [--initiative-title=...] [--feature-title=...]` when you want the concrete command sequence for the first governed pair, including the required `active_work_items` update in `engagement.yml`.
+Use `pi run issue-tree <engagement-id> [--initiative-title=...] [--feature-title=...]` when you want the concrete command sequence for the first governed pair, including the required `active_work_items` update in `engagement.yml`.
 
 ### Option 4: Backlog Distillation Skill
 
@@ -119,8 +124,8 @@ When work moves between offices (Product → Architecture → Engineering → QA
 ### The Handoff Pattern
 
 1. **Create the handoff artifact** documenting what changed and why
-   - Recommended helper path: `omp run handoff-state <issue-id> --to=<state> --from=<role> --to-role=<role> --engagement=<engagement-id>`
-   - This copies `.omp/templates/handoff.yml` into `.firm/artifacts/<engagement-id>/handoff-<issue>-<from>-to-<to>.yml`
+   - Recommended helper path: `pi run handoff-state <issue-id> --to=<state> --from=<role> --to-role=<role> --engagement=<engagement-id>`
+   - This copies `.pi/templates/handoff.yml` into `.firm/artifacts/<engagement-id>/handoff-<issue>-<from>-to-<to>.yml`
    - Include: before/after state, delivered artifacts, decisions made, known limitations
 
 2. **Update the issue state** to reflect what is now legally true

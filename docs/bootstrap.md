@@ -5,7 +5,7 @@ The Firm currently provides a practical bootstrap script rather than a full inst
 ## Greenfield
 
 ```bash
-.omp/scripts/the-firm-bootstrap.sh greenfield \\
+.pi/scripts/the-firm-bootstrap.sh greenfield \\
   --engagement-id eng-001 \
   --repo-root /path/to/target-repo \
   --client-name "Client Name" \
@@ -21,7 +21,7 @@ This mode is for new repositories that should start under The Firm from day zero
 The brownfield bootstrap establishes a mandatory operating contract for existing repositories. This is not a full migration—it is an assessment-first scaffold that lets The Firm continue building under governed structure without forcing the client to manually organize planning chaos.
 
 ```bash
-.omp/scripts/the-firm-bootstrap.sh brownfield \\
+.pi/scripts/the-firm-bootstrap.sh brownfield \\
   --engagement-id eng-001 \
   --repo-root /path/to/existing-repo \
   --client-name "Client Name" \
@@ -49,23 +49,28 @@ The brownfield scaffold creates a deterministic artifact set that must exist bef
 - Promise immediate full governance coverage
 
 The contract creates the structure. The pilot phase proves it. Wider execution follows.
+
 ## What gets scaffolded
+
 - `AGENTS.md`
-- `.omp/agents/`
-- `.omp/templates/`
+- `.pi/agents/`
+- `.pi/templates/`
 - `.firm/README.md`
 - `.firm/intake/<engagement-id>/`
 - `.firm/engagements/<engagement-id>/`
 - `.firm/artifacts/<engagement-id>/`
 
 ## What it does not do yet
+
 - full brownfield migration
 - complete roadmap creation
 - full installer logic
 - advanced validation beyond the bootstrap output itself
 
 ## Safe behavior
+
 The script is designed to:
+
 - initialize git when missing
 - refuse to overwrite an existing engagement directory
 - require `--force` before refreshing runtime scaffolding into a repo that already contains The Firm files

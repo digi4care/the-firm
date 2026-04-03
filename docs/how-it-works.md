@@ -8,6 +8,7 @@ A request does not jump straight into coding.
 It is first classified through intake.
 
 Typical request types include:
+
 - idea shaping
 - plan review
 - plan optimization
@@ -22,6 +23,7 @@ The Firm does not deploy every role on every request.
 It chooses the minimum sufficient team for the engagement.
 
 Typical roles include:
+
 - client-facing roles
 - product roles
 - architecture roles
@@ -32,6 +34,7 @@ Typical roles include:
 ## 3. Work moves through phases
 
 Serious work moves through gates such as:
+
 - intake
 - product framing
 - technical discovery
@@ -45,6 +48,7 @@ Serious work moves through gates such as:
 
 The Firm prefers structured artifacts over raw conversational history.
 Examples include:
+
 - intake records
 - design documents
 - handoff records
