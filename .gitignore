@@ -18,11 +18,22 @@ Thumbs.db
 .beads/interactions.jsonl
 .beads/dolt-server.port
 
-# Local/personal files (handoff, session notes)
+# Local/personal files (handoff, session notes, persona)
 .local/
+.personal/
 
 # Local OMP runtime layer
-.omp/
+.pi/
 
 # Downloaded candidate skill archives
 downloads/
+.ai_docs/
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Biome cache
+.cache/

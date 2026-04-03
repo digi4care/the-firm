@@ -1,0 +1,20 @@
+{
+  "default": true,
+  "MD013": {
+    "line_length": 160,
+    "code_blocks": false,
+    "tables": false
+  },
+  "MD024": {
+    "siblings_only": true
+  },
+  "MD033": {
+    "allowed_elements": ["br", "details", "summary", "!--"]
+  },
+  "MD035": {
+    "style": "---"
+  },
+  "MD036": false,
+  "MD040": false,
+  "MD060": false
+}

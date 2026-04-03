@@ -2,56 +2,74 @@
 
 **Agent Guidelines voor The Firm**
 
-Dit project bouwt The Firm: een engineering operating system voor AI-assisted software development. De design documentatie staat in `src/internal/the-firm/`.
+Dit project bouwt The Firm: een engineering operating system voor AI-assisted software development. De design documentatie staat in `design/the-firm/`.
 
 ---
 
-## IMPORTANT: This File Contains TIMELESS INFO ONLY
-
-**Dit bestand hoeft normaal niet meer veranderd te worden na aanmaak.**
+## Dit bestand bevat alleen permanente waarheden
 
 - GEEN actuele bugs of issues
 - GEEN tijdelijke workarounds
-- ALLEEN permanente waarheden over het project
+- Actuele issues horen in beads (issue tracker), niet hier
 
-Actuele issues horen in planning docs of issue tracker, niet hier.
+---
 
+## Terminologie
 
-## CRITICAL: Tool Usage Rules
+| Woord | Betekenis |
+|---|---|
+| tool | Ingebouwde agent-actie (read, write, edit, grep) |
+| programma | CLI-programma (gh, bun, git, beads) |
 
-### Bestanden lezen en schrijven
+Bij twijfel: vragen.
 
-| Wat je wilt doen | NIET gebruiken | WEL gebruiken |
-|---|---|---|
-| Bestand lezen | `cat`, `head`, `tail`, `less` | `read` tool (met `offset`/`limit` voor delen) |
-| Bestand schrijven | `echo >`, `cat <<`, `tee` | `write` tool |
-| Bestand bewerken | `sed`, `awk`, `perl -i` | `edit` tool (met anchors) of `ast_edit` |
-| Zoeken in code | `grep`, `rg` via bash | `grep` tool of `ast_grep` |
-| Bestanden vinden | `find`, `ls` via bash | `find` tool of `read` op directory |
+---
 
-### Waarom
+## Project Structuur
 
-Deze bash-commando's worden **geblokkeerd** omdat de ingebouwde tools meer context geven, veiliger zijn, en beter werken met grote bestanden. Als je `cat` probeert te gebruiken krijg je een "Blocked" error.
+```text
+.
+├── AGENTS.md                  ← dit bestand (projectregels)
+├── APPEND_SYSTEM.md           ← sessie-instructies (dev-only)
+├── CHANGELOG.md               ← versiegeschiedenis
+├── package.json               ← project metadata + scripts
+│
+├── src/                       ← bronlaag (alles wat naar .pi/ gesynct wordt)
+│   └── APPEND_SYSTEM.md       ← sessie-instructies (wordt gekopieerd naar .pi/)
+│
+├── design/                  ← design documentatie (in git, NIET naar .pi/)
+│   ├── the-firm/              ← design docs (v0)
+│   │   ├── THE_FIRM_VISION.md
+│   │   ├── THE_FIRM_DOCTRINE.md
+│   │   └── ... (meer design docs)
+│   └── REFERENCES.md          ← repo-links en relaties
+├── .ai_docs/                  ← instructies voor de AI agent
+│   └── principles/            ← anti-slop, intent engineering
+├── docs/                      ← gebruikers-documentatie
+│   ├── overview.md
+│   ├── how-it-works.md
+│   └── ... (meer docs)
+│
+├── scripts/                   ← build/sync scripts
+│
+├── .personal/                 ← persona + woordenlijst (gitignored)
+├── .pi/                       ← runtimelaag (gitignored, gevuld door sync)
+├── .local/                    ← tijdelijke/handoff bestanden (gitignored)
+└── .git/
+```
 
-- **LEES altijd een bestand volledig voordat je het bewerkt.**
+### Lagen
 
-## CRITICAL: Git Rules (Parallel Agents)
+```
+bron          sync            runtime
+~~~~~         ~~~~            ~~~~~~~
+src/     ──────────>    .pi/         (bun run dev / prod)
+  APPEND_SYSTEM.md ──> APPEND_SYSTEM.md   (alleen bij dev)
 
-Meerdere agents kunnen tegelijk aan verschillende bestanden werken.
-
-### Committen
-- **ALLEEN bestanden committen die JIJ in DEZE sessie hebt veranderd**
-- NOOIT `git add -A` of `git add .` -- die pakken ook wijzigingen van andere agents
-- ALTIJD `git add <specifieke-bestanden>` gebruiken
-- Check `git status` voordat je commit
-
-### Verboden git operaties
-- `git reset --hard` -- vernietigt uncommitted wijzigingen
-- `git checkout .` -- vernietigt uncommitted wijzigingen
-- `git clean -fd` -- verwijdert untracked bestanden
-- `git stash` -- stash ALLES inclusief werk van andere agents
-- `git add -A` / `git add .` -- staged werk van andere agents
-- `git commit --no-verify` -- omzeilt required checks
+design/        nooit naar .pi/        design docs, the-firm/
+.personal/     nooit naar .pi/        persona, woordenlijst
+.local/        nooit naar .pi/        handoff, session notes
+```
 
 ---
 
@@ -67,50 +85,115 @@ Dit project is in de opstartfase. De stack wordt hier bijgewerkt zodra keuzes zi
 
 ---
 
-## Project Structuur
+## Development Workflow
 
-```text
-.
-├── AGENTS.md                  ← dit bestand (projectregels, altijd aanwezig)
-├── ai_docs/
-│   └── principles/            ← algemene principes (anti-slop, intent engineering)
-├── docs/                      ← gebruikers-documentatie
-│   ├── overview.md
-│   ├── how-it-works.md
-│   ├── runtime-agents.md
-│   └── ... (meer docs)
-├── src/                       ← source laag (alles wat gecommit wordt)
-│   ├── APPEND_SYSTEM.md       ← sessie-instructies (dev-only, gekopieerd naar .omp/)
-│   └── internal/
-│       ├── personal/          ← persona + woordenlijst
-│       │   ├── PERSONA.md
-│       │   └── TERMS.md
-│       └── the-firm/          ← design documentatie (v0)
-│           ├── THE_FIRM_VISION.md
-│           ├── THE_FIRM_DOCTRINE.md
-│           └── ... (meer design docs)
-├── .omp/                      ← runtime laag (niet in git, gevuld bij dev release)
-├── .gitignore
-└── .git/
-```
+### Sessie start
+
+Elke nieuwe sessie leest in deze volgorde:
+
+1. `AGENTS.md` -- projectregels en structuur (dit bestand)
+2. `src/APPEND_SYSTEM.md` -- sessie-instructies (persona, context, cli-programma's)
+3. `.local/HANDOFF.md` -- overdracht van vorige sessie (indien aanwezig)
+4. `beads list` -- openstaande issues ophalen
+
+### Werken
+
+1. Pick een issue uit beads (of overleg met gebruiker)
+2. Maak wijzigingen in de juiste laag (zie Lagen hierboven)
+3. Test je wijzigingen
+4. Commit alleen bestanden die jij hebt veranderd
+
+### Sessie afronde
+
+Zie "Session Completion" onderaan dit bestand (beads integration sectie).
 
 ---
 
-## Available Skills
+## Tool Usage Rules
 
-Nog te bepalen na installatie.
+### Bestanden lezen en schrijven
+
+| Wat je wilt doen | NIET gebruiken | WEL gebruiken |
+|---|---|---|
+| Bestand lezen | `cat`, `head`, `tail`, `less` | `read` tool (met `offset`/`limit` voor delen) |
+| Bestand schrijven | `echo >`, `cat <<`, `tee` | `write` tool |
+| Bestand bewerken | `sed`, `awk`, `perl -i` | `edit` tool (met anchors) of `ast_edit` |
+| Zoeken in code | `grep`, `rg` via bash | `grep` tool of `ast_grep` |
+| Bestanden vinden | `find`, `ls` via bash | `find` tool of `read` op directory |
+
+Deze bash-commando's worden **geblokkeerd** omdat de ingebouwde tools meer context geven, veiliger zijn, en beter werken met grote bestanden. Als je `cat` probeert te gebruiken krijg je een "Blocked" error.
+
+- **LEES altijd een bestand volledig voordat je het bewerkt.**
 
 ---
 
-## Testing Guidelines
+## Git Rules (Parallel Agents)
 
-Nog te bepalen na stack-keuze.
+Meerdere agents kunnen tegelijk aan verschillende bestanden werken.
+
+### Committen
+
+- **ALLEEN bestanden committen die JIJ in DEZE sessie hebt veranderd**
+- NOOIT `git add -A` of `git add .` -- die pakken ook wijzigingen van andere agents
+- ALTIJD `git add <specifieke-bestanden>` gebruiken
+- Check `git status` voordat je commit
+
+### Verboden git operaties
+
+- `git reset --hard` -- vernietigt uncommitted wijzigingen
+- `git checkout .` -- vernietigt uncommitted wijzigingen
+- `git clean -fd` -- verwijdert untracked bestanden
+- `git stash` -- stash ALLES inclusief werk van andere agents
+- `git add -A` / `git add .` -- staged werk van andere agents
+- `git commit --no-verify` -- omzeilt required checks
 
 ---
 
 ## Project Commands
 
-Nog te bepalen na setup.
+### Sync scripts
+
+| Command | Wat het doet |
+|---|---|
+| `bun run dev` | Kopieert `src/APPEND_SYSTEM.md` naar `.pi/` |
+| `bun run prod` | Synced `src/` naar `.pi/` ZONDER `APPEND_SYSTEM.md` |
+
+### Linting en formatting
+
+| Command | Wat het doet |
+|---|---|
+| `bun run lint` | Biome check + markdownlint op alle bestanden |
+| `bun run lint:fix` | Biome + markdownlint met auto-fix |
+| `bun run format` | Biome format alle bestanden (write) |
+| `bun run format:check` | Biome format check (dry-run) |
+
+### Versiebeheer
+
+| Command | Wat het doet |
+|---|---|
+| `bun run version:patch` | Bump patch (0.1.0 -> 0.1.1) + changelog + git tag |
+| `bun run version:minor` | Bump minor (0.1.0 -> 0.2.0) + changelog + git tag |
+| `bun run version:major` | Bump major (0.1.0 -> 1.0.0) + changelog + git tag |
+
+Het versie-bump script (`scripts/version-bump.js`):
+
+- Leest huidige versie uit `package.json`
+- Bumped versienummer
+- Voegt nieuw entry toe aan `CHANGELOG.md`
+- Maakt een git commit + tag (`vNIEUWE_VERSIE`)
+
+### Issue tracking (Beads)
+
+| Command | Wat het doet |
+|---|---|
+| `beads list` | Toon alle issues |
+| `beads ready` | Toon beschikbare work (open, geen blockers) |
+| `beads create --title "..." --body "..."` | Nieuw issue aanmaken |
+| `beads show <id>` | Issue details bekijken |
+| `beads close <id>` | Issue sluiten |
+| `beads status` | Overzicht issue database |
+
+Issue prefix: `the-firm` (issues heten `the-firm-<hash>`)
 
 ---
 
@@ -121,6 +204,8 @@ Nog te bepalen na setup.
 - Doorgaan als het niet duidelijk is wat de bedoeling is
 - Code schrijven "omdat het kan" in plaats van "omdat het nodig is"
 - Destructive git commands gebruiken zonder toestemming
+
+---
 
 <!-- BEGIN BEADS INTEGRATION v:1 profile:minimal hash:ca08a54f -->
 ## Beads Issue Tracker
@@ -152,17 +237,20 @@ bd close <id>         # Complete work
 2. **Run quality gates** (if code changed) - Tests, linters, builds
 3. **Update issue status** - Close finished work, update in-progress items
 4. **PUSH TO REMOTE** - This is MANDATORY:
+
    ```bash
    git pull --rebase
    bd dolt push
    git push
    git status  # MUST show "up to date with origin"
    ```
+
 5. **Clean up** - Clear stashes, prune remote branches
 6. **Verify** - All changes committed AND pushed
 7. **Hand off** - Provide context for next session
 
 **CRITICAL RULES:**
+
 - Work is NOT complete until `git push` succeeds
 - NEVER stop before pushing - that leaves work stranded locally
 - NEVER say "ready to push when you are" - YOU must push
