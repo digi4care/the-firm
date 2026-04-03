@@ -221,8 +221,8 @@ export const SETTINGS_SCHEMA = {
 		default: false,
 		ui: {
 			tab: "workflows",
-			label: "Save Handoff Docs",
-			description: "Save generated handoff documents to .local/HANDOFF.md",
+			label: "Keep Handoff on Disk",
+			description: "Keep .local/HANDOFF.md after new session consumes it (handoff is always generated regardless of this setting)",
 		},
 	},
 

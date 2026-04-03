@@ -201,6 +201,8 @@ export default function registerWorkflowSettings(pi: ExtensionAPI) {
 	});
 
 	// ── Inject handoff into first agent turn ───────────────
+	// Leest HANDOFF.md altijd (als het bestaat) en injecteert in de eerste turn.
+	// handoffSaveToDisk bepaalt of het bestand bewaard blijft of wordt opgeruimd.
 	pi.on("before_agent_start", async (event, _ctx) => {
 		// Only inject once
 		if (handoffInjected) return;
@@ -221,8 +223,10 @@ export default function registerWorkflowSettings(pi: ExtensionAPI) {
 			"",
 		].join("\n");
 
-		// Clear the handoff doc so it's not re-consumed
-		clearHandoffDoc();
+		// Clear the handoff doc only if user doesn't want it saved to disk
+		if (!isHandoffSaveToDisk()) {
+			clearHandoffDoc();
+		}
 
 		return {
 			systemPrompt: event.systemPrompt + "\n\n" + contextMessage,
@@ -245,11 +249,8 @@ export default function registerWorkflowSettings(pi: ExtensionAPI) {
 	});
 
 	// ── After compaction: save LLM-generated handoff ───────
+	// Altijd handoff opslaan na compaction (context ging verloren, dit is de vangnet)
 	pi.on("session_compact", async (_event, ctx) => {
-		const strategy = getCompactionStrategy();
-
-		if (!isHandoffSaveToDisk() && strategy !== "handoff") return;
-
 		try {
 			const entries = ctx.sessionManager.getEntries();
 			if (entries.length < 2) return;
@@ -264,10 +265,6 @@ export default function registerWorkflowSettings(pi: ExtensionAPI) {
 				saveHandoffDoc(
 					`# Handoff — After Compaction\n\nGenerated: ${new Date().toISOString()}\n\n${result.summary}`,
 				);
-
-				if (strategy === "handoff") {
-					ctx.ui.notify("📋 Handoff saved to .local/HANDOFF.md", "info");
-				}
 			} else {
 				const basicHandoff = generateBasicHandoff(entries);
 				saveHandoffDoc(
@@ -279,12 +276,14 @@ export default function registerWorkflowSettings(pi: ExtensionAPI) {
 		}
 	});
 
-	// ── Session shutdown: generate and save handoff ────────
+	// ── Session shutdown: ALWAYS generate handoff ────────
+	// Handoff wordt ALTIJD gegenereerd bij shutdown.
+	// handoffSaveToDisk bepaalt of het bestand bewaard blijft na consumptie
+	// door de nieuwe sessie (true = bewaren, false = opruimen na inject).
 	pi.on("session_shutdown", async (_event, ctx) => {
 		const entries = ctx.sessionManager?.getEntries?.();
 
-		// Generate and save handoff doc
-		if (isHandoffSaveToDisk() && entries && entries.length >= 2) {
+		if (entries && entries.length >= 2) {
 			try {
 				const result = await generateHandoffSummary(
 					entries,
@@ -310,14 +309,12 @@ export default function registerWorkflowSettings(pi: ExtensionAPI) {
 					saveSessionMetadata({ handoffGenerated: true, method: "basic" });
 				}
 			} catch {
-				if (entries.length >= 2) {
-					const basicHandoff = generateBasicHandoff(entries);
+				const basicHandoff = generateBasicHandoff(entries);
 					saveHandoffDoc(
 						`# Handoff — Session End\n\nGenerated: ${new Date().toISOString()}\n\n${basicHandoff}`,
 					);
-				}
 			}
-		} else if (isHandoffSaveToDisk()) {
+		} else {
 			saveHandoffDoc(
 				`# Handoff — Session End\n\nGenerated: ${new Date().toISOString()}\n\n*Session was empty or had insufficient context for handoff.*`,
 			);
