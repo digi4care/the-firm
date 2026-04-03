@@ -9,6 +9,8 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { KeybindingsManager, setKeybindings, TUI_KEYBINDINGS } from "@mariozechner/pi-tui";
 
+import { visibleWidth } from "@mariozechner/pi-tui";
+
 describe("settings-selector", () => {
 	beforeEach(() => {
 		setKeybindings(new KeybindingsManager(TUI_KEYBINDINGS));
@@ -80,7 +82,6 @@ describe("settings-selector", () => {
 
 			const width = 60;
 			const lines = component.render(width);
-			const { visibleWidth } = await import("@mariozechner/pi-tui");
 			for (const line of lines) {
 				expect(visibleWidth(line)).toBeLessThanOrEqual(width);
 			}
@@ -103,17 +104,15 @@ describe("settings-selector", () => {
 			});
 
 			// Initial render
-			const linesBefore = component.render(80);
-			const _beforeText = linesBefore.join("");
+			component.render(80);
 
 			// Press Tab to switch tab
 			component.handleInput("\t");
 
 			const linesAfter = component.render(80);
-			const _afterText = linesAfter.join("");
 
 			// Tab content should change (different settings visible)
-			// At minimum, it should not crash
+			// At minimum it should not crash
 			expect(linesAfter.length).toBeGreaterThan(0);
 		});
 	});
@@ -166,6 +165,135 @@ describe("settings-selector", () => {
 			component.handleInput("\x1b"); // Escape
 
 			expect(cancelled).toBe(true);
+		});
+	});
+
+	describe("submenu interaction", () => {
+		it("opens submenu on Enter for submenu-type setting", async () => {
+			const { createSettingsSelector } = await getModule();
+			const changes: Array<[string, string]> = [];
+			const settings = new Map<string, string>([
+				["theFirm.symbolPreset", "emoji"],
+			]);
+
+			const component = createSettingsSelector({
+				settings,
+				theme: createMockTheme() as any,
+				onChange: (id, val) => changes.push([id, val]),
+				onCancel: () => {},
+			});
+
+			// Render to initialize
+			component.render(80);
+
+			// The first setting on General tab is "Confirm Before Delete" (boolean)
+			// Navigate down to find a submenu setting (symbolPreset)
+			// Let's navigate to the right setting by pressing down
+			component.handleInput("\x1b[B"); // down
+			component.handleInput("\x1b[B"); // down
+			component.handleInput("\x1b[B"); // down
+			component.handleInput("\x1b[B"); // down
+			component.render(80);
+
+			// Press Enter to open submenu
+			component.handleInput("\n");
+
+			// Should render without crash (submenu overlay)
+			const submenuLines = component.render(80);
+			expect(submenuLines.length).toBeGreaterThan(0);
+		});
+
+		it("selects a submenu option and calls onChange", async () => {
+			const { createSettingsSelector } = await getModule();
+			const changes: Array<[string, string]> = [];
+			const settings = new Map<string, string>([
+				["theFirm.symbolPreset", "emoji"],
+			]);
+
+			const component = createSettingsSelector({
+				settings,
+				theme: createMockTheme() as any,
+				onChange: (id, val) => changes.push([id, val]),
+				onCancel: () => {},
+			});
+
+			// Navigate to symbolPreset (submenu setting)
+			component.render(80);
+			component.handleInput("\x1b[B"); // down
+			component.handleInput("\x1b[B"); // down
+			component.handleInput("\x1b[B"); // down
+			component.handleInput("\x1b[B"); // down
+			component.render(80);
+
+			// Open submenu
+			component.handleInput("\n");
+			component.render(80);
+
+			// Press down to change selection from emoji to unicode
+			component.handleInput("\x1b[B");
+
+			// Press Enter to select
+			component.handleInput("\n");
+
+			expect(changes.length).toBeGreaterThanOrEqual(1);
+			expect(changes.some((c) => c[0] === "theFirm.symbolPreset" && c[1] === "unicode")).toBe(true);
+		});
+
+		it("cancels submenu on Escape without calling onChange", async () => {
+			const { createSettingsSelector } = await getModule();
+			const changes: Array<[string, string]> = [];
+			const settings = new Map<string, string>([
+				["theFirm.symbolPreset", "emoji"],
+			]);
+
+			const component = createSettingsSelector({
+				settings,
+				theme: createMockTheme() as any,
+				onChange: (id, val) => changes.push([id, val]),
+				onCancel: () => {},
+			});
+
+			// Navigate to symbolPreset
+			component.render(80);
+			component.handleInput("\x1b[B"); // down x4
+			component.handleInput("\x1b[B");
+			component.handleInput("\x1b[B");
+			component.handleInput("\x1b[B");
+			component.render(80);
+
+			// Open submenu
+			component.handleInput("\n");
+			component.render(80);
+
+			// Press Escape to cancel submenu
+			component.handleInput("\x1b");
+
+			// Should be back to main list, no change
+			expect(changes.length).toBe(0);
+
+			// Main list should still render
+			const mainLines = component.render(80);
+			expect(mainLines.length).toBeGreaterThan(0);
+		});
+
+		it("renders all tabs without crashing", async () => {
+			const { createSettingsSelector } = await getModule();
+			const settings = new Map<string, string>();
+
+			const component = createSettingsSelector({
+				settings,
+				theme: createMockTheme() as any,
+				onChange: () => {},
+				onCancel: () => {},
+			});
+
+			// Render all 4 tabs
+			for (let i = 0; i < 4; i++) {
+				const lines = component.render(80);
+				expect(lines.length).toBeGreaterThan(0);
+				expect(lines.every((l) => visibleWidth(l) <= 80)).toBe(true);
+				component.handleInput("\t");
+			}
 		});
 	});
 });

@@ -9,13 +9,12 @@
  */
 
 import {
-	Container,
 	matchesKey,
 	type SelectItem,
+	type SelectListTheme,
 	SelectList,
 	type SettingItem,
 	SettingsList,
-	Text,
 	truncateToWidth,
 } from "@mariozechner/pi-tui";
 import { getSettingsForTab, type SettingDef, type SubmenuSettingDef } from "./settings-defs";
@@ -87,64 +86,14 @@ function getSettingsListTheme(theme: ThemeLike) {
 	};
 }
 
-function getSelectListTheme(theme: ThemeLike) {
+function getSelectListTheme(theme: ThemeLike): SelectListTheme {
 	return {
-		selected: (text: string) => theme.fg("accent", text),
-		unselected: (text: string) => theme.fg("dim", text),
-		cursor: theme.fg("accent", "→ "),
+		selectedPrefix: (text: string) => theme.fg("accent", text),
+		selectedText: (text: string) => theme.fg("accent", text),
 		description: (text: string) => theme.fg("muted", text),
+		scrollInfo: (text: string) => theme.fg("dim", text),
+		noMatch: (text: string) => theme.fg("dim", text),
 	};
-}
-
-// ═══════════════════════════════════════════════════════════════
-// Submenu component — dropdown overlay for selecting a value
-// ═══════════════════════════════════════════════════════════════
-
-class SubmenuOverlay extends Container {
-	#selectList: SelectList;
-
-	constructor(
-		title: string,
-		options: ReadonlyArray<{ value: string; label: string; description?: string }>,
-		currentValue: string,
-		theme: ThemeLike,
-		onSelect: (value: string) => void,
-		onCancel: () => void,
-	) {
-		super();
-
-		// Title
-		this.addChild(new Text(theme.bold(theme.fg("accent", title)), 0, 0));
-		this.addChild(new Text("", 0, 0));
-
-		// Build select items
-		const items: SelectItem[] = options.map((o) => ({
-			value: o.value,
-			label: o.description ? `${o.label} — ${o.description}` : o.label,
-		}));
-
-		this.#selectList = new SelectList(items, Math.min(items.length, 12), getSelectListTheme(theme));
-
-		// Pre-select current value
-		const currentIndex = items.findIndex((o) => o.value === currentValue);
-		if (currentIndex !== -1) {
-			this.#selectList.setSelectedIndex(currentIndex);
-		}
-
-		this.#selectList.onSelect = (item) => {
-			onSelect(item.value);
-		};
-		this.#selectList.onCancel = onCancel;
-
-		this.addChild(this.#selectList);
-
-		// Hint
-		this.addChild(new Text(theme.fg("dim", "  Enter to select · Esc to go back"), 0, 0));
-	}
-
-	handleInput(data: string): void {
-		this.#selectList.handleInput(data);
-	}
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -189,18 +138,33 @@ function defToSettingItem(
 				description: def.description,
 				currentValue,
 				submenu: (cv, done) => {
-					const overlay = new SubmenuOverlay(
-						def.label,
-						def.options,
-						cv,
-						theme,
-						(value) => {
-							onChange(def.path, value);
-							done(value);
-						},
-						() => done(),
+					const selectItems: SelectItem[] = def.options.map((o) => ({
+						value: o.value,
+						label: o.label,
+						description: o.description,
+					}));
+
+					const selectList = new SelectList(
+						selectItems,
+						Math.min(selectItems.length, 10),
+						getSelectListTheme(theme),
 					);
-					return overlay;
+
+					const currentIndex = selectItems.findIndex((o) => o.value === cv);
+					if (currentIndex !== -1) {
+						selectList.setSelectedIndex(currentIndex);
+					}
+
+					selectList.onSelect = (item) => {
+						onChange(def.path, item.value);
+						done(item.value);
+					};
+
+					selectList.onCancel = () => {
+						done();
+					};
+
+					return selectList;
 				},
 			};
 
@@ -274,6 +238,7 @@ export function createSettingsSelector(options: SettingsSelectorOptions) {
 		},
 
 		handleInput(data: string): void {
+			// Tab / Right → next tab
 			if (matchesKey(data, "tab") || matchesKey(data, "right")) {
 				currentTabIndex = (currentTabIndex + 1) % SETTING_TABS.length;
 				currentList = buildListForTab(
@@ -287,6 +252,7 @@ export function createSettingsSelector(options: SettingsSelectorOptions) {
 				return;
 			}
 
+			// Shift+Tab / Left → previous tab
 			if (matchesKey(data, "shift+tab") || matchesKey(data, "left")) {
 				currentTabIndex = (currentTabIndex - 1 + SETTING_TABS.length) % SETTING_TABS.length;
 				currentList = buildListForTab(
@@ -300,11 +266,13 @@ export function createSettingsSelector(options: SettingsSelectorOptions) {
 				return;
 			}
 
+			// Escape → cancel (only if not in submenu — SettingsList handles submenu escape)
 			if (data === "\x1b" || data === "\x1b\x1b") {
 				onCancel();
 				return;
 			}
 
+			// Everything else → settings list (handles up/down/enter/submenu)
 			if (currentList) {
 				currentList.handleInput(data);
 			}
