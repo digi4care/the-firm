@@ -1,0 +1,24 @@
+# The Firm — Project Config
+# Dit bestand wordt automatisch gegenereerd door de Intake Office.
+# Je kunt het aanpassen, maar laat de structuur intact.
+
+firm:
+  version: 1
+
+client:
+  display_name: ""        # Hoe de client genoemd wil worden
+  language: "nl"          # Communicatie taal (nl, en, etc.)
+  created: ""             # ISO datum (YYYY-MM-DD)
+
+project:
+  name: ""                # Project naam
+  description: ""         # Korte beschrijving (1-2 zinnen)
+  stack: []               # Lijst met technologieën (bijv. TypeScript, Bun, Svelte)
+  created: ""             # ISO datum (YYYY-MM-DD)
+  status: active          # active, paused, completed, archived
+
+intake:
+  engagement_type: ""     # idea-shaping, plan-review, greenfield-build, brownfield-adoption, scoped-delivery, rescue
+  classified: false       # true na classificatie
+  next_office: ""         # Volgende office na intake (product, architecture, engineering)
+  completed: ""           # ISO datum wanneer intake afgerond (YYYY-MM-DD), leeg = nog bezig
