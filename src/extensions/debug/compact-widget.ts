@@ -41,7 +41,7 @@ export class CompactWidget {
 
 		const tools = [...state.activeTools.values()];
 		if (tools.length > 0) {
-			const names = tools.map(t => t.name).join(",");
+			const names = [...new Set(tools.map(t => t.name))].join(",");
 			parts.push(fg(P.tool, `tool:${names}`));
 		}
 
