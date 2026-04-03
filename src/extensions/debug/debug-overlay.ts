@@ -25,13 +25,13 @@ import {
 	formatDuration,
 	formatTime,
 	statusIcon,
-} from "../../lib/debug/debug-theme.ts";
+} from "./lib/debug-theme.ts";
 import type {
 	DashboardState,
 	EventCategory,
 	EventFilter,
 	TrackedEvent,
-} from "../../lib/debug/types.ts";
+} from "./lib/types.ts";
 
 const ALL_CATEGORIES: EventCategory[] = [
 	"session",

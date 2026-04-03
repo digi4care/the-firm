@@ -14,7 +14,7 @@ import type {
 	ToolCall,
 	ToolStatus,
 	TrackedEvent,
-} from "../../lib/debug/types.ts";
+} from "./lib/types.ts";
 
 const MAX_EVENTS = 500;
 

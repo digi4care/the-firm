@@ -7,8 +7,8 @@
  * Uses raw ANSI colors from debug-theme so it's theme-independent.
  */
 
-import { DEBUG_PALETTE, fg, formatDuration, statusIcon } from "../../lib/debug/debug-theme.ts";
-import type { DashboardState, ToolCall } from "../../lib/debug/types.ts";
+import { DEBUG_PALETTE, fg, formatDuration, statusIcon } from "./lib/debug-theme.ts";
+import type { DashboardState, ToolCall } from "./lib/types.ts";
 
 export class CompactWidget {
 	private cachedWidth?: number;

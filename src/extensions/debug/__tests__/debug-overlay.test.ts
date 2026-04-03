@@ -6,7 +6,7 @@
  */
 
 import { describe, expect, it } from "bun:test";
-import type { DashboardState, EventCategory, TrackedEvent } from "../../../lib/debug/types.ts";
+import type { DashboardState, EventCategory, TrackedEvent } from "../lib/types.ts";
 import { DebugOverlay } from "../debug-overlay.ts";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────

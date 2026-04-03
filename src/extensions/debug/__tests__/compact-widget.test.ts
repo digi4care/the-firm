@@ -3,7 +3,7 @@
  */
 
 import { describe, expect, it } from "bun:test";
-import type { DashboardState } from "../../../lib/debug/types.ts";
+import type { DashboardState } from "../lib/types.ts";
 import { CompactWidget } from "../compact-widget.ts";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
