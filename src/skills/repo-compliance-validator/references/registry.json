@@ -1,0 +1,15 @@
+{
+	"version": "1.0.0",
+	"registry_type": "reference_documents",
+	"entries": [
+		{
+			"id": "compliance-guide",
+			"title": "Compliance Guide",
+			"filename": "compliance-guide.md",
+			"category": "validation",
+			"description": "How to assess whether a repository is truly operating under The Firm.",
+			"keywords": ["compliance", "validation", "bootstrap", "adoption", "firm-enabled"],
+			"language": "en"
+		}
+	]
+}

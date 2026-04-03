@@ -1,0 +1,15 @@
+{
+	"version": "1.0.0",
+	"registry_type": "reference_documents",
+	"entries": [
+		{
+			"id": "backlog-guide",
+			"title": "Backlog Guide",
+			"filename": "backlog-guide.md",
+			"category": "workflow",
+			"description": "How to convert multiple asks into a prioritized backlog and next runs.",
+			"keywords": ["backlog", "prioritization", "runs", "dependencies"],
+			"language": "en"
+		}
+	]
+}

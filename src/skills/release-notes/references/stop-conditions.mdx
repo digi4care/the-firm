@@ -1,0 +1,64 @@
+# Stop Conditions
+
+When to pause automation and ask for user confirmation.
+
+## Stop and Ask
+
+Stop and request user confirmation for:
+
+| Condition | Why |
+|-----------|-----|
+| Risky doc changes | Narrative, philosophy, or security-related content |
+| VERSION bump | Major version decisions affect semver |
+| New TODOS items | User decides roadmap priorities |
+| Cross-doc contradictions | Narrative inconsistencies require judgment |
+
+## Continue Without Stopping
+
+Never stop for these — just do them:
+
+| Action | Reason |
+|--------|--------|
+| Factual corrections | Diff shows the truth |
+| Adding table/list items | Mechanical update |
+| Updating paths/counts | Fact, not opinion |
+| Fixing stale cross-references | Maintenance |
+| CHANGELOG voice polish | Improvement, not rewrite |
+
+## Decision Flow
+
+1. Is the change directly reflected in the diff? → Continue
+2. Is the change purely factual (path, count, version)? → Continue
+3. Does the change affect project narrative/philosophy? → Stop
+4. Is there ambiguity about what the change should be? → Stop
+5. Otherwise → Continue
+
+## Examples
+
+### Continue (no stop needed)
+
+```diff
+- 5 skills available
++ 14 skills available
+```
+
+```diff
+- import { foo } from './old-path'
++ import { foo } from './new-path'
+```
+
+### Stop and ask
+
+**Philosophy change:**
+```diff
+- Minimal API surface
++ Flexible API with many options
+```
+Ask: "This changes the project philosophy. Confirm this update?"
+
+**Version bump:**
+```
+Current: 1.2.3
+Change implies: 2.0.0 (breaking)
+```
+Ask: "This appears to be a breaking change. Bump to 2.0.0?"

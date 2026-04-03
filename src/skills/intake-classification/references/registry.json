@@ -1,0 +1,15 @@
+{
+	"version": "1.0.0",
+	"registry_type": "reference_documents",
+	"entries": [
+		{
+			"id": "classification-guide",
+			"title": "Classification Guide",
+			"filename": "classification-guide.md",
+			"category": "workflow",
+			"description": "How to classify raw requests into engagement types and first next steps.",
+			"keywords": ["intake", "classification", "engagement", "staffing", "routing"],
+			"language": "en"
+		}
+	]
+}

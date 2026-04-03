@@ -1,0 +1,147 @@
+# Review Report Template
+
+Use this template for consistent review output.
+
+## Standard Report Format
+
+```markdown
+# Code Review Report
+
+## Summary
+
+- Branch: {branch-name}
+- Base: {base-branch}
+- Files: {n} changed
+- Status: {READY | NEEDS FIXES | BLOCKED}
+
+## CRITICAL Issues ({n})
+
+1. **{Issue Type}** in `{file}:{line}`
+   - {AUTO-FIX | MANUAL}: {description}
+   - Commit: `{commit-message}`
+
+## INFORMATIONAL Issues ({n})
+
+1. **{Issue Type}** in `{file}:{line}`
+   - {AUTO-FIX | ASK}: {description}
+
+## Auto-Fixes Applied ({n})
+
+- {description of fix 1}
+- {description of fix 2}
+
+## Questions ({n})
+
+- {question}?
+  [ ] {option 1}
+  [ ] {option 2}
+  [ ] {option 3}
+
+## Recommendation
+
+{READY: Approve for merge}
+{NEEDS FIXES: Fix CRITICAL issues before merge}
+{BLOCKED: Requires resolution before proceeding}
+```
+
+---
+
+## Status Codes
+
+| Status | Meaning |
+|--------|---------|
+| READY | No blocking issues, can merge |
+| NEEDS FIXES | CRITICAL issues present, fix before merge |
+| BLOCKED | Merge conflicts, architectural concerns, or requires discussion |
+
+---
+
+## Issue Classification
+
+### AUTO-FIX
+
+Apply directly without user input:
+
+- Parameterized SQL queries
+- Extract magic constants
+- Remove unused imports
+- Fix formatting issues
+
+### ASK
+
+Requires user decision:
+
+- Error handling strategy
+- Trade-offs in approach
+- Architectural decisions
+- Business logic questions
+
+### MANUAL
+
+Needs human implementation:
+
+- Complex refactoring
+- Business logic changes
+- API contract changes
+
+---
+
+## Commit Message Patterns
+
+```
+fix(security): use parameterized query
+refactor: extract MAGIC_NUMBER constant
+style: remove unused imports
+docs: clarify error handling
+test: add edge case for status handling
+```
+
+---
+
+## Scope Report Format
+
+```markdown
+## Scope Assessment
+
+- Size: {quick | standard | comprehensive}
+- Files: {n}
+- Lines: {+n/-n}
+- Type: {feature | fix | refactor | docs | test}
+
+## Scope Drift Analysis
+
+- [x] Changes align with intent
+- [x] No unrelated modifications
+- [ ] {flagged concern}
+
+## Risk Level
+
+- {LOW | MEDIUM | HIGH}
+- Reasoning: {brief explanation}
+```
+
+---
+
+## Question Batching
+
+When multiple questions arise, batch into single AskUserQuestion:
+
+```markdown
+## Questions for Reviewer
+
+1. **Error handling in `api.ts:89`**
+   How should this error be handled?
+   - [ ] Log and continue
+   - [ ] Throw to caller
+   - [ ] Return default value
+
+2. **Caching strategy in `cache.ts:45`**
+   Should we use TTL or explicit invalidation?
+   - [ ] TTL (5 minutes)
+   - [ ] Explicit invalidation on update
+
+3. **Enum default in `status.ts:12`**
+   Should unknown status throw or default?
+   - [ ] Throw error
+   - [ ] Default to 'pending'
+```

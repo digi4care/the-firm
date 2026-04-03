@@ -1,0 +1,20 @@
+{
+	"version": "1.0.0",
+	"created": "2026-03-17T16:05:11.318Z",
+	"last_updated": "2026-03-17T16:05:11.318Z",
+	"registry_type": "reference_documents",
+	"entries": [
+		{
+			"id": "plan-document-reviewer-prompt",
+			"title": "Plan Document Reviewer Prompt",
+			"filename": "plan-document-reviewer-prompt.md",
+			"category": "custom",
+			"description": "Reference for Plan Document Reviewer Prompt.",
+			"keywords": ["plan-document-reviewer-prompt"],
+			"topics": ["references"],
+			"language": "en",
+			"created": "2026-03-17T16:05:11.318Z",
+			"last_updated": "2026-03-17T16:05:11.318Z"
+		}
+	]
+}

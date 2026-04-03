@@ -1,0 +1,195 @@
+# Review Checklist
+
+Use this checklist during the two-pass review process.
+
+## Pass 1: CRITICAL (Must Fix)
+
+### SQL & Data Safety
+
+- [ ] SQL injection vulnerabilities checked
+- [ ] All queries use parameterized inputs
+- [ ] Transaction boundaries correct
+- [ ] Data validation in place
+
+```typescript
+// DANGEROUS
+const query = `SELECT * FROM users WHERE id = ${userId}`;
+
+// SAFE
+const query = 'SELECT * FROM users WHERE id = $1';
+db.query(query, [userId]);
+```
+
+### Race Conditions & Concurrency
+
+- [ ] TOCTOU vulnerabilities checked
+- [ ] Locks/mutexes present where needed
+- [ ] Async/await patterns correct
+- [ ] Shared mutable state protected
+
+```typescript
+// DANGEROUS - Race condition
+if (!cache.has(key)) {
+  cache.set(key, await fetchData()); // Another request might set it
+}
+
+// SAFE
+await mutex.runExclusive(async () => {
+  if (!cache.has(key)) {
+    cache.set(key, await fetchData());
+  }
+});
+```
+
+### LLM Output Trust Boundary
+
+- [ ] AI output validated before use
+- [ ] Prompt injection risks assessed
+- [ ] Output sanitized for sensitive contexts
+- [ ] Content validation in place
+
+```typescript
+// DANGEROUS
+const response = await llm.generate(userInput);
+eval(response); // Never trust LLM output
+
+// SAFE
+const response = await llm.generate(sanitize(userInput));
+const validated = validateSchema(response);
+```
+
+### Enum & Value Completeness
+
+- [ ] All switch cases handled
+- [ ] All enum values covered
+- [ ] Default cases throw explicit errors
+- [ ] No silent failures
+
+```typescript
+// DANGEROUS
+switch (status) {
+  case 'active': return 1;
+  case 'inactive': return 0;
+  // Missing 'pending', 'archived'
+}
+
+// SAFE
+switch (status) {
+  case 'active': return 1;
+  case 'inactive': return 0;
+  case 'pending': return 2;
+  case 'archived': return 3;
+  default: throw new Error(`Unknown status: ${status}`);
+}
+```
+
+---
+
+## Pass 2: INFORMATIONAL (Should Consider)
+
+### Conditional Side Effects
+
+- [ ] No hidden state mutations
+- [ ] Async behavior explicit
+- [ ] Global state changes documented
+
+```typescript
+// SUSPICIOUS
+function calculateTotal(items) {
+  itemCount = items.length; // Side effect!
+  return items.reduce((sum, item) => sum + item.price, 0);
+}
+```
+
+### Magic Numbers & String Coupling
+
+- [ ] Hardcoded values extracted to constants
+- [ ] String duplication removed
+- [ ] Constants defined in central location
+
+```typescript
+// BEFORE
+if (status === 'active') { ... }
+if (status === 'active') { ... } // Duplicated
+
+// AFTER
+const STATUS_ACTIVE = 'active';
+if (status === STATUS_ACTIVE) { ... }
+```
+
+### Dead Code & Consistency
+
+- [ ] Unused imports removed
+- [ ] Commented code deleted
+- [ ] Patterns consistent across files
+
+```bash
+# Find unused exports
+npx ts-prune
+
+# Find dead code
+npx knip
+```
+
+### LLM Prompt Issues
+
+- [ ] Instructions clear and specific
+- [ ] Examples provided for complex tasks
+- [ ] Formatting consistent
+
+### Test Gaps
+
+- [ ] Edge cases tested
+- [ ] Error paths covered
+- [ ] Integration tests present
+
+### View/Frontend Issues
+
+- [ ] WCAG 2.1 AA accessibility met
+- [ ] Responsive across breakpoints
+- [ ] Performance acceptable
+
+---
+
+## Scope Drift Check
+
+Before code quality review:
+
+- [ ] Changes align with stated intent
+- [ ] No unrelated files modified
+- [ ] Requirements fully addressed
+- [ ] No scope creep detected
+
+**Red flags:**
+
+- Files changed unrelated to PR description
+- Requirements not addressed
+- Extra features added beyond scope
+- Configuration changes without justification
+
+---
+
+## Design Review (Frontend Only)
+
+If diff touches `.tsx`, `.jsx`, `.vue`, `.svelte`, `.css`, `.scss`:
+
+- [ ] Follows design system (check DESIGN.md)
+- [ ] Accessible (WCAG 2.1 AA)
+- [ ] Responsive across breakpoints
+- [ ] Consistent with existing patterns
+- [ ] Performance optimized
+
+---
+
+## Verification Checklist
+
+Before marking review complete:
+
+- [ ] Scope drift checked
+- [ ] CRITICAL pass completed
+- [ ] INFORMATIONAL pass completed
+- [ ] Design review (if frontend)
+- [ ] Auto-fixes applied
+- [ ] Questions batched
+- [ ] Report generated
+- [ ] Recommendation provided

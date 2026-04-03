@@ -1,0 +1,102 @@
+# Documentation Voice Guidelines
+
+How to write and update documentation files.
+
+## Core Principles
+
+- **Automated:** Make obvious factual updates directly
+- **Minimal stops:** Only pause for risky/subjective decisions
+- **Polish only:** Minor wording improvements, never rewrite content
+
+## Voice by File Type
+
+### CHANGELOG.md
+
+Format: Follow [Keep a Changelog](https://keepachangelog.com/)
+
+```markdown
+## [Unreleased]
+
+### Added
+- New feature descriptions
+
+### Changed
+- Modified behavior descriptions
+
+### Fixed
+- Bug fix descriptions
+
+### Removed
+- Deprecated feature removals
+```
+
+Voice rules:
+- Use imperative mood: "Add feature" not "Added feature"
+- Be specific: "Fix null pointer in auth flow" not "Fix bug"
+- Group by category: Added, Changed, Fixed, Removed, Deprecated, Security
+
+### README.md
+
+- Update feature lists when functionality changes
+- Update command/usage examples when API changes
+- Update counts/numbers when adding or removing items
+- Keep installation instructions current
+
+### AGENTS.md
+
+- Update when architecture changes
+- Update when new skills/agents/hooks are added
+- Update when build commands change
+- Update when project structure changes
+
+### API Documentation
+
+- Update endpoint descriptions when behavior changes
+- Update request/response examples when schemas change
+- Update authentication notes when auth flow changes
+
+## Polish Rules
+
+**Allowed (no stop):**
+- Fix typos and grammar
+- Improve sentence clarity
+- Standardize formatting
+- Update stale cross-references
+
+**Not allowed (stop required):**
+- Rewriting paragraphs
+- Changing technical explanations
+- Adding new sections
+- Removing existing sections
+
+## Cross-File Consistency
+
+When updating documentation:
+
+1. Check if change affects multiple files
+2. Update all affected files consistently
+3. Verify cross-references still resolve
+4. Ensure version numbers match across files
+
+## Common Patterns
+
+### Adding a new skill
+
+Files to update:
+- README.md (skills table)
+- AGENTS.md (skills section)
+- CHANGELOG.md (Added section)
+
+### Changing a command
+
+Files to update:
+- README.md (commands section)
+- AGENTS.md (build commands section)
+- CHANGELOG.md (Changed section)
+
+### Removing a feature
+
+Files to update:
+- README.md (remove from features)
+- AGENTS.md (update if architecture affected)
+- CHANGELOG.md (Removed section)

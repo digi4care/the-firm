@@ -1,0 +1,15 @@
+{
+	"version": "1.0.0",
+	"registry_type": "reference_documents",
+	"entries": [
+		{
+			"id": "routing-guide",
+			"title": "Routing Guide",
+			"filename": "routing-guide.md",
+			"category": "workflow",
+			"description": "How the firm-front-desk skill chooses between intake, backlog, direct routing, and escalation.",
+			"keywords": ["routing", "front desk", "intake", "backlog", "escalation"],
+			"language": "en"
+		}
+	]
+}
