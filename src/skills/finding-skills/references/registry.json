@@ -1,0 +1,15 @@
+{
+	"version": "1.0.0",
+	"registry_type": "reference_documents",
+	"entries": [
+		{
+			"id": "discovery-guide",
+			"title": "Discovery Guide",
+			"filename": "discovery-guide.md",
+			"category": "workflow",
+			"description": "Search order, external sources, and audit-before-adoption rules for finding-skills.",
+			"keywords": ["skills", "discovery", "audit", "optimize", "adoption"],
+			"language": "en"
+		}
+	]
+}

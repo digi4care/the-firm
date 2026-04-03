@@ -1,0 +1,49 @@
+{
+	"references": [
+		{
+			"path": "schema-types.md",
+			"title": "Schema Types",
+			"summary": "Primitive schemas, string formats, enums, records, maps, files, JSON, and core schema building blocks."
+		},
+		{
+			"path": "parsing-and-inference.md",
+			"title": "Parsing and Inference",
+			"summary": "parse APIs, coercion, inference, and input/output typing guidance."
+		},
+		{
+			"path": "objects-and-composition.md",
+			"title": "Objects and Composition",
+			"summary": "Objects, unions, composition, recursion, and schema derivation patterns."
+		},
+		{
+			"path": "refinements-and-transforms.md",
+			"title": "Refinements and Transforms",
+			"summary": "Refine, superRefine, transform, pipe, defaults, and staged parsing."
+		},
+		{
+			"path": "error-handling.md",
+			"title": "Error Handling",
+			"summary": "ZodError handling, formatting, and safe reporting patterns."
+		},
+		{
+			"path": "advanced-features.md",
+			"title": "Advanced Features",
+			"summary": "Codecs, branded types, registries, and JSON Schema support."
+		},
+		{
+			"path": "anti-patterns.md",
+			"title": "Anti-Patterns",
+			"summary": "Common Zod mistakes with bad and good examples."
+		},
+		{
+			"path": "boundary-architecture.md",
+			"title": "Boundary Architecture",
+			"summary": "API, forms, env, and external-service boundary placement."
+		},
+		{
+			"path": "linter-and-ci.md",
+			"title": "Linter and CI",
+			"summary": "Linting, CI checks, schema snapshots, and dependency hygiene."
+		}
+	]
+}

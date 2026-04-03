@@ -1,0 +1,32 @@
+{
+	"version": "1.0.0",
+	"created": "2026-04-01T08:18:23.386Z",
+	"last_updated": "2026-04-01T08:18:23.386Z",
+	"registry_type": "reference_documents",
+	"entries": [
+		{
+			"id": "scoring-rubric",
+			"title": "ACE Scoring Rubric",
+			"filename": "scoring-rubric.md",
+			"category": "framework",
+			"description": "Detailed ACE scoring criteria, thresholds, and common quality patterns.",
+			"keywords": ["ace", "scoring", "rubric", "quality"],
+			"topics": ["scoring", "evaluation", "quality"],
+			"language": "en",
+			"created": "2026-04-01T08:18:23.386Z",
+			"last_updated": "2026-04-01T08:18:23.386Z"
+		},
+		{
+			"id": "report-template",
+			"title": "ACE Report Template",
+			"filename": "report-template.md",
+			"category": "template",
+			"description": "Canonical structure for delivering ACE reflection reports.",
+			"keywords": ["ace", "report", "template", "reflection"],
+			"topics": ["reporting", "template", "reflection"],
+			"language": "en",
+			"created": "2026-04-01T08:18:23.386Z",
+			"last_updated": "2026-04-01T08:18:23.386Z"
+		}
+	]
+}

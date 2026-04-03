@@ -1,0 +1,29 @@
+{
+	"references": [
+		{
+			"path": "generics-and-constraints.md",
+			"title": "Generics and Constraints",
+			"summary": "Generic design, constraints, and reusable abstraction guidance."
+		},
+		{
+			"path": "conditional-and-infer.md",
+			"title": "Conditional Types and Infer",
+			"summary": "Conditional branching, distributivity, and type extraction patterns."
+		},
+		{
+			"path": "mapped-and-template-types.md",
+			"title": "Mapped and Template Types",
+			"summary": "Object-shape transformation, key remapping, and string contract patterns."
+		},
+		{
+			"path": "patterns-and-state-machines.md",
+			"title": "Patterns and State Machines",
+			"summary": "Discriminated unions, reducers, builders, and typed event patterns."
+		},
+		{
+			"path": "type-guards-and-testing.md",
+			"title": "Type Guards and Testing",
+			"summary": "Guards, assertion functions, and compile-time type test patterns."
+		}
+	]
+}

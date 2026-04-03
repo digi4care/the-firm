@@ -1,0 +1,68 @@
+{
+	"version": "1.0.0",
+	"created": "2026-02-25T00:00:00Z",
+	"last_updated": "2026-03-17T00:00:00Z",
+	"registry_type": "reference_documents",
+	"entries": [
+		{
+			"id": "pi-sdk-reference",
+			"title": "Pi SDK Reference",
+			"filename": "pi-sdk-reference.md",
+			"category": "sdk",
+			"description": "Pi SDK frontmatter specification, name rules, and tool registration patterns.",
+			"keywords": ["sdk", "frontmatter", "name", "description", "allowed-tools", "validation"],
+			"topics": ["sdk", "validation"],
+			"language": "en",
+			"created": "2026-03-17T00:00:00Z",
+			"last_updated": "2026-03-17T00:00:00Z"
+		},
+		{
+			"id": "workflow-playbook",
+			"title": "Workflow Playbook",
+			"filename": "workflow-playbook.md",
+			"category": "workflow",
+			"description": "Execution flow for planning, auditing, creating, and optimizing skills.",
+			"keywords": ["workflow", "plan", "audit", "create", "optimize", "quality-gate"],
+			"topics": ["workflow", "execution"],
+			"language": "en",
+			"created": "2026-02-25T00:00:00Z",
+			"last_updated": "2026-02-25T00:00:00Z"
+		},
+		{
+			"id": "quality-rubric",
+			"title": "Quality Rubric",
+			"filename": "quality-rubric.md",
+			"category": "quality",
+			"description": "Rubric and gate policy for validating skill quality before apply. Includes Pi SDK validation rules.",
+			"keywords": ["quality", "rubric", "gate", "score", "validation", "frontmatter", "name"],
+			"topics": ["quality", "validation"],
+			"language": "en",
+			"created": "2026-02-25T00:00:00Z",
+			"last_updated": "2026-03-17T00:00:00Z"
+		},
+		{
+			"id": "templates",
+			"title": "Templates",
+			"filename": "templates.md",
+			"category": "templates",
+			"description": "Structured input templates for plan, create, and optimize operations.",
+			"keywords": ["templates", "json", "inputs", "create", "optimize"],
+			"topics": ["templates", "inputs"],
+			"language": "en",
+			"created": "2026-02-25T00:00:00Z",
+			"last_updated": "2026-02-25T00:00:00Z"
+		},
+		{
+			"id": "troubleshooting",
+			"title": "Troubleshooting",
+			"filename": "troubleshooting.md",
+			"category": "support",
+			"description": "Common issues and fixes for skill-creator execution flow.",
+			"keywords": ["troubleshooting", "errors", "dry-run", "quality-gate", "registry"],
+			"topics": ["support", "errors"],
+			"language": "en",
+			"created": "2026-02-25T00:00:00Z",
+			"last_updated": "2026-02-25T00:00:00Z"
+		}
+	]
+}
