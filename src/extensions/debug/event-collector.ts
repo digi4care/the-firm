@@ -164,6 +164,11 @@ export class EventCollector {
 				argsPreview: JSON.stringify(event.args).slice(0, 80),
 			};
 			this.state.activeTools.set(event.toolCallId, toolCall);
+			this.state.toolHistory.push(toolCall);
+			// Keep last 20 tools
+			if (this.state.toolHistory.length > 20) {
+				this.state.toolHistory.shift();
+			}
 			this.recordEvent("tool", "tool_execution_start", `${event.toolName} started`, {
 				toolCallId: event.toolCallId,
 				toolName: event.toolName,
@@ -285,6 +290,7 @@ export class EventCollector {
 		return {
 			events: [],
 			activeTools: new Map(),
+			toolHistory: [],
 			activeHook: null,
 			agent: {
 				phase: "idle",

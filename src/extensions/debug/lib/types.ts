@@ -96,6 +96,8 @@ export interface DashboardState {
 	events: TrackedEvent[];
 	/** Active tool calls */
 	activeTools: Map<string, ToolCall>;
+	/** Persistent tool history — never cleared, always shows names */
+	toolHistory: ToolCall[];
 	/** Currently active hook, if any */
 	activeHook: HookState | null;
 	/** Agent state */

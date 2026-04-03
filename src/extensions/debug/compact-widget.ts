@@ -2,38 +2,29 @@
  * compact-widget.ts — Always-visible status widget above the editor
  *
  * Shows a compact single-line summary:
- *   ● agent-phase | model | turn N | tools: N running | events: N
+ *   ● agent-phase | model | turn N | tools | events: N
  *
  * Uses raw ANSI colors from debug-theme so it's theme-independent.
  */
 
 import { DEBUG_PALETTE, fg, formatDuration, statusIcon } from "./lib/debug-theme.ts";
-import type { DashboardState, ToolCall } from "./lib/types.ts";
+import type { DashboardState } from "./lib/types.ts";
 
 export class CompactWidget {
-	private cachedWidth?: number;
-	private cachedLines?: string[];
-
 	constructor(private readonly getState: () => DashboardState) {}
 
 	/** Render the widget lines */
 	public render(width: number): string[] {
-		if (this.cachedLines && this.cachedWidth === width) {
-			return this.cachedLines;
-		}
-
 		const state = this.getState();
 		const P = DEBUG_PALETTE;
 
 		const parts: string[] = [];
 
 		// Phase icon
-		const phaseIcon = statusIcon(state.agent.phase);
-		parts.push(phaseIcon);
+		parts.push(statusIcon(state.agent.phase));
 
 		// Phase label
-		const phaseLabel = this.phaseLabel(state.agent.phase);
-		parts.push(fg(P.text, phaseLabel));
+		parts.push(fg(P.text, this.phaseLabel(state.agent.phase)));
 
 		// Separator
 		parts.push(fg(P.dim, "│"));
@@ -58,21 +49,12 @@ export class CompactWidget {
 			parts.push(fg(P.dim, hookDur));
 		}
 
-		// Active tools — show names of running tools, count of done
-		const runningTools = this.runningToolsList(state);
-		const doneCount = this.countDoneTools(state);
-		if (runningTools.length > 0 || doneCount > 0) {
-			if (runningTools.length > 0) {
-				for (const tool of runningTools) {
-					parts.push(statusIcon(tool.status));
-					parts.push(fg(P.tool, tool.name));
-				}
-				if (doneCount > 0) {
-					parts.push(fg(P.dim, `+${doneCount}`));
-				}
-			} else {
-				parts.push(fg(P.dim, "tools"));
-				parts.push(fg(P.dim, `${doneCount}`));
+		// Tools — ALWAYS show names from persistent history
+		const tools = state.toolHistory ?? [];
+		if (tools.length > 0) {
+			for (const tool of tools) {
+				parts.push(statusIcon(tool.status));
+				parts.push(fg(P.tool, tool.name));
 			}
 		}
 
@@ -82,29 +64,14 @@ export class CompactWidget {
 
 		// Duration
 		if (state.agent.startedAt && state.agent.phase !== "idle") {
-			const elapsed = Date.now() - state.agent.startedAt;
-			parts.push(fg(P.dim, formatDuration(elapsed)));
+			parts.push(fg(P.dim, formatDuration(Date.now() - state.agent.startedAt)));
 		}
 
-		const line = parts.join(" ");
-
-		// Truncate to width
-		this.cachedLines = [this.truncateAnsi(line, width)];
-		this.cachedWidth = width;
-		return this.cachedLines;
+		return [parts.join(" ")];
 	}
 
-	/** Invalidate cached render (call when state changes) */
-	public invalidate(): void {
-		this.cachedWidth = undefined;
-		this.cachedLines = undefined;
-	}
-
-	/** Render as a function compatible with ctx.ui.setWidget() */
-	public asRenderFunction = (): string[] => {
-		// Use a default width of 120 — will be overridden by actual widget render
-		return this.render(120);
-	};
+	/** Invalidate cached render (no-op now, kept for API compat) */
+	public invalidate(): void {}
 
 	// ── Helpers ───────────────────────────────────────────────────────────
 
@@ -123,48 +90,5 @@ export class CompactWidget {
 			default:
 				return phase;
 		}
-	}
-
-	private runningToolsList(state: DashboardState): ToolCall[] {
-		const result: ToolCall[] = [];
-		for (const tool of state.activeTools.values()) {
-			if (tool.status === "running") result.push(tool);
-		}
-		return result;
-	}
-
-	private countDoneTools(state: DashboardState): number {
-		let count = 0;
-		for (const tool of state.activeTools.values()) {
-			if (tool.status !== "running") count++;
-		}
-		return count;
-	}
-
-	private truncateAnsi(text: string, maxWidth: number): string {
-		// Simple approach: if visible length exceeds width, slice the raw string
-		// For a more robust solution we'd use visibleWidth from pi-tui
-		const visibleLen = text.replace(/\x1b\[[0-9;]*m/g, "").length;
-		if (visibleLen <= maxWidth) return text;
-
-		// Trim from the front, keeping ANSI codes intact
-		let pos = 0;
-		let visible = 0;
-		const target = visibleLen - maxWidth;
-		while (pos < text.length && visible < target) {
-			if (text[pos] === "\x1b") {
-				// Skip ANSI escape sequence
-				const semiPos = text.indexOf("m", pos);
-				if (semiPos !== -1) {
-					pos = semiPos + 1;
-				} else {
-					pos++;
-				}
-			} else {
-				visible++;
-				pos++;
-			}
-		}
-		return text.slice(pos);
 	}
 }
