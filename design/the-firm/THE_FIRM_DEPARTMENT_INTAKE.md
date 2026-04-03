@@ -151,7 +151,7 @@ The Intake Lead is NOT the same as the `client_partner` defined in the Client En
 - **Intake Lead:** Owns the intake conversation. Hands off after intake is complete.
 - **Client Partner:** Owns the ongoing client relationship throughout the engagement. Exists outside the Intake department.
 
-This mirrors how real boutique firms work: the person who takes the initial call is not the same person who manages the account long-term.
+This mirrors how real tech bedrijven work: the person who takes the initial call is not the same person who manages the account long-term.
 
 ## Relationship to existing design docs
 
@@ -161,4 +161,4 @@ This mirrors how real boutique firms work: the person who takes the initial call
 
 ## Version history
 
-- v0 -- initial design, co-designed during brainstorm session, based on boutique consulting and agency intake patterns
+- v0 -- initial design, co-designed during brainstorm session, based on tech bedrijf intake patronen

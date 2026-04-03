@@ -381,5 +381,5 @@ Client identity, communication preferences, and behavioral patterns are stable a
 
 - v0.3 -- global/project storage split; added project config schema; Zod validation schemas in `src/schemas/`; npx installer concept
 - v0.2 -- scenario-tested: expanded accessibility from boolean to structured needs + output_preferences; added last_contact to identity; defined engagement types and outcome values inline
-- v0.1 -- refined after agency-pattern review: added decision_velocity, time_sensitivity, success_criteria; merged steering + interaction_mode; removed project-specific technical fields; flattened lessons to distilled
-- v0 -- initial design, based on BMAD research + agency patterns + handoff findings
+- v0.1 -- refined after review: added decision_velocity, time_sensitivity, success_criteria; merged steering + interaction_mode; removed project-specific technical fields; flattened lessons to distilled
+- v0 -- initial design, based on BMAD research + handoff findings
