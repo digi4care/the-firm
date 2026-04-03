@@ -100,6 +100,12 @@ export class EventCollector {
 	private trackAgentEvents(): void {
 		this.pi.on("before_agent_start", (event) => {
 			this.setPhase("starting");
+			// Clear done tools from previous run
+			for (const [id, tool] of this.state.activeTools) {
+				if (tool.status !== "running") {
+					this.state.activeTools.delete(id);
+				}
+			}
 			this.state.agent.currentPrompt = event.prompt;
 			this.state.agent.turnIndex = 0;
 			this.state.agent.totalTurns = 0;

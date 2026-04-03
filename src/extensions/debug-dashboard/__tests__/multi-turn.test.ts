@@ -6,10 +6,9 @@
  */
 
 import { describe, expect, it, mock } from "bun:test";
-import { EventCollector } from "../event-collector.ts";
 import { CompactWidget } from "../compact-widget.ts";
 import { DebugOverlay } from "../debug-overlay.ts";
-import type { DashboardState } from "../../../lib/debug/types.ts";
+import { EventCollector } from "../event-collector.ts";
 
 // ── Mock ────────────────────────────────────────────────────────────────────
 
@@ -35,7 +34,10 @@ function createMockPi() {
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 /** Simulate a complete agent run with tool calls */
-function simulateAgentRun(pi: ReturnType<typeof createMockPi>, tools: string[] = ["read", "edit", "bash"]) {
+function simulateAgentRun(
+	pi: ReturnType<typeof createMockPi>,
+	tools: string[] = ["read", "edit", "bash"],
+) {
 	// User input
 	pi.emit("input", { type: "input", text: "do something", source: "interactive" });
 
@@ -47,7 +49,10 @@ function simulateAgentRun(pi: ReturnType<typeof createMockPi>, tools: string[] =
 	pi.emit("context", { type: "context", messages: [{ role: "user", content: "do something" }] });
 
 	// Provider request
-	pi.emit("before_provider_request", { type: "before_provider_request", payload: { model: "test-model" } });
+	pi.emit("before_provider_request", {
+		type: "before_provider_request",
+		payload: { model: "test-model" },
+	});
 
 	// Turn with tool calls
 	pi.emit("turn_start", { type: "turn_start", turnIndex: 0, timestamp: Date.now() });
@@ -132,9 +137,8 @@ describe("Multi-turn: names persist after first prompt", () => {
 		const lines = widget.render(120);
 		const content = plain(lines[0]);
 
-		// Compact widget shows tool count, not individual names
-		expect(content).toContain("tools");
-		expect(content).toContain("1"); // 1 running tool
+		// Should show "edit" tool NAME, not just a number
+		expect(content).toContain("edit");
 	});
 
 	it("overlay shows event labels after second run", () => {
@@ -147,7 +151,11 @@ describe("Multi-turn: names persist after first prompt", () => {
 		// Second run
 		simulateAgentRun(pi, ["edit", "write"]);
 
-		const overlay = new DebugOverlay(() => collector.state, () => {}, false);
+		const overlay = new DebugOverlay(
+			() => collector.state,
+			() => {},
+			false,
+		);
 		const lines = overlay.render(120, 40);
 		const content = plain(lines.join("\n"));
 

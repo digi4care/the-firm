@@ -8,7 +8,7 @@
  */
 
 import { DEBUG_PALETTE, fg, formatDuration, statusIcon } from "../../lib/debug/debug-theme.ts";
-import type { DashboardState } from "../../lib/debug/types.ts";
+import type { DashboardState, ToolCall } from "../../lib/debug/types.ts";
 
 export class CompactWidget {
 	private cachedWidth?: number;
@@ -58,17 +58,21 @@ export class CompactWidget {
 			parts.push(fg(P.dim, hookDur));
 		}
 
-		// Active tools
-		const runningTools = this.countRunningTools(state);
-		const totalTools = state.activeTools.size;
-		if (totalTools > 0) {
-			parts.push(fg(P.dim, "tools"));
-			if (runningTools > 0) {
-				parts.push(fg(P.running, `${runningTools}●`));
-				parts.push(fg(P.dim, "/"));
-				parts.push(fg(P.tool, `${totalTools}`));
+		// Active tools — show names of running tools, count of done
+		const runningTools = this.runningToolsList(state);
+		const doneCount = this.countDoneTools(state);
+		if (runningTools.length > 0 || doneCount > 0) {
+			if (runningTools.length > 0) {
+				for (const tool of runningTools) {
+					parts.push(statusIcon(tool.status));
+					parts.push(fg(P.tool, tool.name));
+				}
+				if (doneCount > 0) {
+					parts.push(fg(P.dim, `+${doneCount}`));
+				}
 			} else {
-				parts.push(fg(P.tool, `${totalTools}`));
+				parts.push(fg(P.dim, "tools"));
+				parts.push(fg(P.dim, `${doneCount}`));
 			}
 		}
 
@@ -121,10 +125,18 @@ export class CompactWidget {
 		}
 	}
 
-	private countRunningTools(state: DashboardState): number {
+	private runningToolsList(state: DashboardState): ToolCall[] {
+		const result: ToolCall[] = [];
+		for (const tool of state.activeTools.values()) {
+			if (tool.status === "running") result.push(tool);
+		}
+		return result;
+	}
+
+	private countDoneTools(state: DashboardState): number {
 		let count = 0;
 		for (const tool of state.activeTools.values()) {
-			if (tool.status === "running") count++;
+			if (tool.status !== "running") count++;
 		}
 		return count;
 	}

@@ -8,7 +8,6 @@
 import { describe, expect, it, mock } from "bun:test";
 import { EventCollector } from "../event-collector.ts";
 
-// biome-ignore lint/suspicious/noExplicitAny: test mocks require any
 type AnyFunction = (...args: any[]) => any;
 
 // ── Mock ExtensionAPI ───────────────────────────────────────────────────────
@@ -275,6 +274,17 @@ describe("EventCollector", () => {
 			});
 
 			expect(collector.state.agent.currentPrompt).toBe("fix the bug");
+		});
+
+		it("clears done tools when a new agent run starts", () => {
+			const { collector, pi } = collectorWithEvents(3);
+
+			// 3 done tools from run 1
+			expect(collector.state.activeTools.size).toBe(3);
+
+			// New agent run clears done tools
+			pi.emit("before_agent_start", { type: "before_agent_start", prompt: "run 2" });
+			expect(collector.state.activeTools.size).toBe(0);
 		});
 	});
 

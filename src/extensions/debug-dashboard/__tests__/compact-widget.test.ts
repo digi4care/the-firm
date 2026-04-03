@@ -48,7 +48,7 @@ describe("CompactWidget", () => {
 			expect(lines.length).toBe(1);
 		});
 
-		it("renders with active running tool", () => {
+		it("renders with active running tool — shows tool NAME", () => {
 			const widget = new CompactWidget(() =>
 				createState({
 					agent: { ...createState().agent, phase: "running" },
@@ -68,6 +68,8 @@ describe("CompactWidget", () => {
 			);
 			const lines = widget.render(120);
 			expect(lines.length).toBe(1);
+			const plain = lines[0].replace(/\x1b\[[0-9;]*m/g, "");
+			expect(plain).toContain("bash"); // tool NAME visible, not just a count
 		});
 
 		it("renders with model and turns", () => {
@@ -107,7 +109,7 @@ describe("CompactWidget", () => {
 			expect(plain).toContain("context");
 		});
 
-		it("renders with multiple active tools", () => {
+		it("renders with multiple running tools — shows all names", () => {
 			const widget = new CompactWidget(() =>
 				createState({
 					agent: { ...createState().agent, phase: "running" },
@@ -125,10 +127,80 @@ describe("CompactWidget", () => {
 			);
 			const lines = widget.render(120);
 			expect(lines.length).toBe(1);
-			// Compact widget shows running count + total, not individual names
 			const plain = lines[0].replace(/\x1b\[[0-9;]*m/g, "");
-			expect(plain).toContain("tools");
-			expect(plain).toContain("2"); // total count
+			expect(plain).toContain("read");
+			expect(plain).toContain("bash");
+		});
+
+		it("renders with done tools — shows count only", () => {
+			const widget = new CompactWidget(() =>
+				createState({
+					agent: { ...createState().agent, phase: "idle" },
+					activeTools: new Map([
+						[
+							"call-1",
+							{
+								id: "call-1",
+								name: "read",
+								status: "done" as const,
+								startedAt: Date.now(),
+								endedAt: Date.now(),
+							},
+						],
+						[
+							"call-2",
+							{
+								id: "call-2",
+								name: "bash",
+								status: "done" as const,
+								startedAt: Date.now(),
+								endedAt: Date.now(),
+							},
+						],
+					]),
+				}),
+			);
+			const lines = widget.render(120);
+			const plain = lines[0].replace(/\x1b\[[0-9;]*m/g, "");
+			expect(plain).toContain("2");
+		});
+
+		it("renders running + done tools — shows name and +count", () => {
+			const widget = new CompactWidget(() =>
+				createState({
+					agent: { ...createState().agent, phase: "running" },
+					activeTools: new Map([
+						[
+							"call-1",
+							{ id: "call-1", name: "edit", status: "running" as const, startedAt: Date.now() },
+						],
+						[
+							"call-2",
+							{
+								id: "call-2",
+								name: "read",
+								status: "done" as const,
+								startedAt: Date.now(),
+								endedAt: Date.now(),
+							},
+						],
+						[
+							"call-3",
+							{
+								id: "call-3",
+								name: "bash",
+								status: "done" as const,
+								startedAt: Date.now(),
+								endedAt: Date.now(),
+							},
+						],
+					]),
+				}),
+			);
+			const lines = widget.render(120);
+			const plain = lines[0].replace(/\x1b\[[0-9;]*m/g, "");
+			expect(plain).toContain("edit"); // running tool name
+			expect(plain).toContain("+2"); // 2 done tools
 		});
 
 		it("renders with event count", () => {
