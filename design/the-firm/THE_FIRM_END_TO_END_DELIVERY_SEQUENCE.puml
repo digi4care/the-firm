@@ -1,0 +1,94 @@
+@startuml
+
+title The Firm — End-to-End Delivery Sequence
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultTextAlignment center
+skinparam ArrowColor #4B5563
+skinparam SequenceLifeLineBorderColor #374151
+skinparam SequenceLifeLineBackgroundColor #F8FAFC
+skinparam ParticipantBorderColor #374151
+skinparam ParticipantBackgroundColor #FFFFFF
+skinparam NoteBackgroundColor #FFF7D6
+skinparam NoteBorderColor #D6B656
+skinparam roundcorner 12
+
+autonumber
+
+legend right
+  Source basis:
+  * THE_FIRM_CLIENT_ENGAGEMENT_MODEL.md
+  * THE_FIRM_WORKFLOW_ARCHITECTURE.md
+  * THE_FIRM_OPERATING_MODEL.md
+  * THE_FIRM_CONTROL_PLANE.md
+endlegend
+
+actor Client as client
+participant "client_partner" as client_partner
+participant "intake_orchestrator" as intake_orchestrator
+participant "engagement_manager" as engagement_manager
+participant "Product Office" as product
+participant "Architecture Office" as architecture
+participant "Engineering Office" as engineering
+participant "QA & Reliability" as qa
+participant "Workflow Operations" as workflow
+participant "Control Plane" as control_plane
+participant "Beads" as beads
+participant "Repository Artifacts" as repo
+participant "Dolt" as dolt
+
+client -> client_partner : brings request / objective
+client_partner -> intake_orchestrator : carry intent + context
+intake_orchestrator -> beads : open intake / initiative item
+intake_orchestrator -> repo : write intake artifact
+intake_orchestrator -> engagement_manager : qualified request + first staffing shape
+engagement_manager -> product : start framing phase
+engagement_manager -> control_plane : initialize governed run-state
+
+product -> repo : write vision.md
+product -> repo : write product-brief.md
+product -> repo : write acceptance.md
+product -> beads : mark framing ready
+control_plane -> architecture : dispatch discovery unit
+
+architecture -> repo : write technical-discovery.md
+architecture -> repo : write callsite + state-flow notes
+architecture -> repo : write technical-design.md
+architecture -> repo : write verification mapping + wave plan
+architecture -> beads : mark design lock ready
+control_plane -> engineering : dispatch build unit
+
+engineering -> repo : write code + tests + implementation notes
+engineering -> beads : mark QA entry ready
+workflow -> repo : record cross-office handoff
+control_plane -> qa : dispatch verification unit
+
+qa -> repo : write qa-verdict.md
+qa -> repo : write propagation / E2E notes
+qa -> repo : write residual risk notes
+qa -> beads : mark verified or reopened
+
+alt Evidence sufficient
+  control_plane -> workflow : prepare closure validation
+  workflow -> repo : record closure and traceability links
+  qa -> repo : write release-readiness.md
+  qa -> beads : close verified work
+  repo -> dolt : preserve decisions + evidence references
+  client_partner -> client : communicate outcome, risks, and closure
+else Evidence insufficient
+  qa -> engineering : reject claims / request more evidence
+  workflow -> beads : reopen or block item
+  control_plane -> engineering : resume next legal build unit
+end
+
+note over control_plane
+  The control plane dispatches the next governed step
+  from persisted run-state and repository evidence,
+  instead of relying on chat continuity.
+end note
+
+note over workflow
+  Workflow Operations validates handoffs,
+  state transitions, and closure legality.
+end note
+@enduml

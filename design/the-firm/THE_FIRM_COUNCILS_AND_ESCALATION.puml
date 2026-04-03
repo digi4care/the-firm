@@ -1,0 +1,97 @@
+@startuml
+
+title The Firm — Councils, Escalation Paths, and Self-Correction
+left to right direction
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam defaultTextAlignment center
+skinparam ArrowColor #4B5563
+skinparam RectangleBorderColor #374151
+skinparam RectangleBackgroundColor #FFFFFF
+skinparam PackageBorderColor #374151
+skinparam PackageBackgroundColor #F8FAFC
+skinparam NoteBackgroundColor #FFF7D6
+skinparam NoteBorderColor #D6B656
+skinparam roundcorner 12
+
+legend right
+  Source basis:
+  * THE_FIRM_GOVERNANCE_AND_COUNCIL_MODEL.md
+  * THE_FIRM_NORMALIZATION_DECISIONS.md
+endlegend
+
+package "Escalation sources" {
+  rectangle "Task-level correction\nlocal execution mistakes\nweak artifacts\nbad handoffs\nmissing evidence" as task_level
+  rectangle "Workflow-level correction\nphase friction\npoor sequencing\nhandoff instability\nstaffing mismatch" as workflow_level
+  rectangle "Engagement-level correction\nwrong mode\nmis-scoped work\nchanged client objective\ninvalid staffing assumptions" as engagement_level
+  rectangle "Governance-level correction\ndoctrine gaps\nstructural failures\nbad defaults\nunstable council patterns" as governance_level
+}
+
+package "Office leads" {
+  rectangle "product_lead" as product_lead
+  rectangle "architecture_lead" as architecture_lead
+  rectangle "engineering_lead" as engineering_lead
+  rectangle "qa_lead" as qa_lead
+  rectangle "workflow_governor" as workflow_governor
+  rectangle "client_partner" as client_partner
+  rectangle "engagement_manager" as engagement_manager
+  rectangle "firm_director" as firm_director
+}
+
+package "Councils" {
+  rectangle "architecture_council\nDesign disputes\nCross-boundary tradeoffs\nRepeated design-package rejection" as architecture_council
+  rectangle "quality_council\nProof disputes\nRepeated verification failure\nResidual-risk decisions" as quality_council
+  rectangle "engagement_council\nScope/tradeoff conflict\nMajor change request\nMaterial staffing change" as engagement_council
+  rectangle "firm_council\nDoctrine exceptions\nCross-engagement breakdowns\nHigh-risk governance decisions" as firm_council
+}
+
+task_level --> architecture_lead : if design truth fails
+task_level --> engineering_lead : if delivery truth fails
+task_level --> qa_lead : if evidence truth fails
+task_level --> workflow_governor : if handoff/state truth fails
+
+workflow_level --> workflow_governor
+workflow_level --> architecture_council : if cross-office design conflict
+workflow_level --> quality_council : if QA/reopen loop persists
+
+engagement_level --> client_partner
+engagement_level --> engagement_manager
+engagement_level --> engagement_council : if delivery mode or staffing changes materially
+
+governance_level --> firm_director
+governance_level --> firm_council
+
+architecture_lead --> architecture_council
+engineering_lead --> architecture_council
+qa_lead --> architecture_council
+
+qa_lead --> quality_council
+engineering_lead --> quality_council
+workflow_governor --> quality_council
+
+client_partner --> engagement_council
+engagement_manager --> engagement_council
+product_lead --> engagement_council
+architecture_lead --> engagement_council
+
+firm_director --> firm_council
+workflow_governor --> firm_council
+product_lead --> firm_council
+architecture_lead --> firm_council
+engineering_lead --> firm_council
+qa_lead --> firm_council
+
+note bottom of quality_council
+  Trigger examples:
+  repeated reopen on high-risk work,
+  unresolved proof sufficiency disputes,
+  release with unresolved material residual risk.
+end note
+
+note bottom of firm_council
+  Council mode is exceptional.
+  If ordinary work requires councils continuously,
+  ownership or doctrine is broken.
+end note
+@enduml
