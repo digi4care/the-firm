@@ -14,7 +14,8 @@
 				"noUnusedImports": "error"
 			},
 			"suspicious": {
-				"noConsole": "warn"
+				"noConsole": "warn",
+				"noControlCharactersInRegex": "off"
 			},
 			"style": {
 				"useConst": "error"

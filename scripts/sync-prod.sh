@@ -6,7 +6,7 @@ set -euo pipefail
 
 mkdir -p .pi
 
-RUNTIME_DIRS=("extensions" "schemas" "lib" "skills")
+RUNTIME_DIRS=("extensions" "prompts" "lib" "skills")
 
 for dir in "${RUNTIME_DIRS[@]}"; do
   if [ -d "src/$dir" ]; then

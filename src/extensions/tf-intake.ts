@@ -10,8 +10,8 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { ClientDossierSchema } from "../schemas/client-dossier.js";
-import { ProjectConfigSchema } from "../schemas/project.js";
+import { ClientDossierSchema } from "../lib/schemas/client-dossier.js";
+import { ProjectConfigSchema } from "../lib/schemas/project.js";
 
 interface ClientInfo {
 	id: string;

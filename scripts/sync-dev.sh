@@ -9,7 +9,7 @@ mkdir -p .pi
 cp src/APPEND_SYSTEM.md .pi/APPEND_SYSTEM.md
 
 # Kopieer runtime dirs
-RUNTIME_DIRS=("extensions" "schemas" "lib" "skills")
+RUNTIME_DIRS=("extensions" "prompts" "lib" "skills")
 
 for dir in "${RUNTIME_DIRS[@]}"; do
   if [ -d "src/$dir" ]; then
