@@ -34,7 +34,7 @@ Na classificatie: check of alle verplichte info aanwezig is.
 - Client display name
 - Project naam
 - Project beschrijving
-- Stack (minimaal 1 item)
+- Stack (optioneel — kan leeg zijn)
 - Engagement type
 
 ### Soms nodig (afhankelijk van type)

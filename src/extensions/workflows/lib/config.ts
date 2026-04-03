@@ -34,7 +34,7 @@ export const ClientConfigSchema = z.object({
 export const ProjectConfigSchema = z.object({
 	name: z.string().min(1, "Project name is required"),
 	description: z.string().default(""),
-	stack: z.array(z.string()).min(1, "At least one stack item is required"),
+	stack: z.array(z.string()).default([]),
 	created: z.string().date(),
 	status: z.enum(["active", "paused", "completed", "archived"]).default("active"),
 });

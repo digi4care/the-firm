@@ -27,16 +27,17 @@ De intake Lead voert een gesprek met de klant. Dit is geen formulier — het is 
    - Auto-detect: uit package.json "description" veld
    - Accepteer rommelige antwoorden — je schoont het zelf op
 
-5. **"Welke technologie gebruik je?"**
+5. **"Heb je al een idee van welke technologie je wilt gebruiken?"**
    - Doel: project.stack
    - Auto-detect: uit package.json dependencies, presence of bepaalde files
-   - Laat de klant bevestigen wat je hebt gedetecteerd
-   - Voorbeeld: "Ik zie TypeScript, Bun en Svelte — klopt dat, of is er meer?"
+   - **ALTIJD optioneel** — als de klant het niet weet, is dat prima. Stack is een beslissing voor de architecture office.
+   - Als auto-detect lukt: "Ik zie TypeScript en Bun — klopt dat, of is er meer?"
+   - Als de klant het niet weet: "Geen probleem, dat bepalen we later samen."
 
 ### Afronding Fase 1
 
 6. **Samenvatting voorleggen:**
-   - "Dus als ik het goed begrijp: je bent [naam], we bouwen aan [project], wat [beschrijving] is, met [stack]. Klopt dat?"
+   - "Dus als ik het goed begrijp: je bent [naam], we bouwen aan [project], wat [beschrijving] is. Klopt dat?"
    - Wacht op bevestiging voordat je doorgaat
 
 ## Fase 2: Classificeren (Request Analyst)
@@ -89,7 +90,7 @@ De Brief Writer stelt GEEN vragen aan de klant. Hij schrijft de config en bevest
 
 - **Project:** [naam]
 - **Beschrijving:** [beschrijving]
-- **Stack:** [stack]
+- **Stack:** [stack, of "nog te bepalen"]
 - **Engagement:** [type]
 - **Volgende stap:** [volgende office]
 

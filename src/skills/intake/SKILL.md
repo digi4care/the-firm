@@ -28,7 +28,7 @@ De intake kent drie fases. **Je voert ze altijd in volgorde uit.** Je slaat niet
 ```
 Fase 1: Verwelkomen en Verzamelen (Lead)
   → klant praat, jij luistert en vraagt door
-  → verzamelt: naam, taal, project info, stack
+  → verzamelt: naam, taal, project info
   ↓
 Fase 2: Classificeren (Analyst)
   → jij analyseert wat je hebt verzameld
@@ -60,7 +60,7 @@ Voordat je vragen stelt, check je wat je al weet:
 1. **Lees `package.json`** als die bestaat in de werkdirectory
    - `name` → project.name
    - `description` → project.description
-   - `dependencies` + `devDependencies` → project.stack
+   - `dependencies` + `devDependencies` → project.stack (optioneel, alleen als het project al code heeft)
 2. **Lees `.pi/firm/config.json`** als die bestaat
    - Als die al gevuld is: toon status en vraag of klant iets wil bijwerken
    - Als die leeg is of niet bestaat: doorgaan met intake
@@ -78,7 +78,7 @@ Stel vragen **één voor één**. Niet allemaal tegelijk. Gebruik wat je al hebt
 | client.language | Standaard "nl" als de klant Nederlands spreekt. Vraag alleen als het onduidelijk is. |
 | project.name | "Hoe heet je project?" of "Ik zie [naam] in je package.json — klopt dat?" |
 | project.description | "Kun je in een paar zinnen beschrijven wat je project doet?" |
-| project.stack | "Welke technologie gebruik je?" of "Ik zie [stack] — klopt dat?" |
+| project.stack | Alleen vragen als het al duidelijk is. Niet forceren — stack is een beslissing voor later. |
 
 **Optioneel (alleen vragen als het relevant is):**
 - "Wat is je achtergrond? (beginner, gevorderd, expert)" — alleen bij idea-shaping
@@ -94,7 +94,7 @@ Stel vragen **één voor één**. Niet allemaal tegelijk. Gebruik wat je al hebt
 
 Voordat je naar Fase 2 gaat, leg je een samenvatting voor:
 
-> "Dus als ik het goed begrijp: je bent [naam], we werken aan [project], wat [beschrijving] is, gebouwd met [stack]. Klopt dat?"
+> "Dus als ik het goed begrijp: je bent [naam], we werken aan [project], wat [beschrijving] is. Klopt dat?"
 
 **Wacht op bevestiging.** Pas dan ga je naar Fase 2.
 
@@ -138,7 +138,7 @@ Lees de info uit Fase 1 en bepaal het engagement type. Gebruik de tabel hieronde
 - [ ] client.display_name is gevuld
 - [ ] project.name is gevuld
 - [ ] project.description is gevuld
-- [ ] project.stack heeft minimaal 1 item
+- [ ] project.stack gevuld (optioneel — kan leeg zijn als de klant het nog niet weet)
 - [ ] engagement type is bepaald
 
 **Extra per type:**
@@ -173,7 +173,7 @@ Maak een `.pi/firm/config.json` met deze structuur. Zie `references/config-templ
   "project": {
     "name": "[project naam]",
     "description": "[beschrijving]",
-    "stack": ["[tech 1]", "[tech 2]"],
+    "stack": [],
     "created": "[datum vandaag, YYYY-MM-DD]",
     "status": "active"
   },
@@ -193,7 +193,7 @@ Controleer dat ALLE verplichte velden zijn ingevuld:
 - `client.display_name` ≠ leeg
 - `client.language` ≠ leeg
 - `project.name` ≠ leeg
-- `project.stack` heeft ≥ 1 item
+- `project.stack` is ingevuld (mag leeg zijn als klant het nog niet weet)
 - `intake.engagement_type` is ingevuld
 - `intake.classified` = true
 - `intake.next_office` is ingevuld
@@ -215,7 +215,7 @@ Bevestig aan de klant wat is opgeslagen:
 > - **Naam:** [display_name]
 > - **Project:** [name]
 > - **Beschrijving:** [description]
-> - **Stack:** [stack]
+> - **Stack:** [stack, of "nog te bepalen"]
 > - **Engagement:** [engagement_type]
 > - **Volgende stap:** [next_office] neemt het over
 >
