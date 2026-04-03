@@ -1,0 +1,14 @@
+{
+	"references": [
+		{
+			"path": "../assets/report_template.md",
+			"title": "Report Template",
+			"summary": "Canonical markdown structure for deep-research reports."
+		},
+		{
+			"path": "../scripts/github_api.py",
+			"title": "GitHub API Script",
+			"summary": "Repository data collection entry point for summary, tree, README, releases, issues, PRs, and commits."
+		}
+	]
+}

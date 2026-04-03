@@ -1,0 +1,19 @@
+{
+	"references": [
+		{
+			"path": "verification-methodology.md",
+			"title": "Verification Methodology",
+			"summary": "Five-phase factual verification process for JavaScript educational content."
+		},
+		{
+			"path": "primary-sources-and-tests.md",
+			"title": "Primary Sources and Tests",
+			"summary": "Source hierarchy, test expectations, and external resource verification guidance."
+		},
+		{
+			"path": "report-template.md",
+			"title": "Report Template",
+			"summary": "Structured reporting format for fact-check findings and recommendations."
+		}
+	]
+}

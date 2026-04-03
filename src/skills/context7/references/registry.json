@@ -1,0 +1,36 @@
+{
+	"version": "1.0.0",
+	"created": "2026-03-02T07:00:00+01:00",
+	"last_updated": "2026-03-02T07:00:00+01:00",
+	"registry_type": "reference_documents",
+	"entries": [
+		{
+			"id": "library-registry",
+			"title": "External Library Registry",
+			"filename": "library-registry.md",
+			"category": "reference",
+			"description": "Supported libraries, aliases, and optimized query patterns for Context7 API",
+			"keywords": [
+				"library",
+				"registry",
+				"aliases",
+				"query patterns",
+				"drizzle",
+				"nextjs",
+				"react"
+			],
+			"topics": ["supported-libraries", "detection-patterns", "query-optimization"],
+			"language": "en"
+		},
+		{
+			"id": "navigation",
+			"title": "Context7 Navigation Guide",
+			"filename": "navigation.md",
+			"category": "navigation",
+			"description": "Quick routes to content in the skill directory",
+			"keywords": ["navigation", "routes", "structure"],
+			"topics": ["file-structure", "quick-routes"],
+			"language": "en"
+		}
+	]
+}
