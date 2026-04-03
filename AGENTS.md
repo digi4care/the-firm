@@ -159,10 +159,22 @@ Meerdere agents kunnen tegelijk aan verschillende bestanden werken.
 
 ### Elk werk begint met een ticket
 
-Fix, debug, feature, refactoring, test — **altijd** eerst `bd create`.
+**ALLES** wat gepland, onderzocht, ontworpen, geschreven of geïmplementeerd moet worden — **altijd** eerst `bd create`.
 
-- Geen ticket = geen code.
-- Geen "ik fix het even zonder ticket".
+Dit geldt voor:
+- Features, bugs, fixes, refactoring, tests
+- Design docs schrijven of bijwerken
+- Research en analyse
+- Architectuur beslissingen
+- Herontwerpen van bestaande code
+- Elke actie die meer dan 5 minuten duurt
+
+**Geen uitzonderingen.**
+
+- Geen ticket = niet beginnen.
+- Geen "ik maak het even zonder ticket".
+- Geen "dit is te klein voor een ticket".
+- Zie je werk dat nog geen ticket heeft? Maak er een.
 
 ### Nooit verwijderen zonder bevestiging
 

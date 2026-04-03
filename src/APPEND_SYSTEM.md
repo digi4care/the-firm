@@ -38,3 +38,20 @@ Deze programma's gebruiken we via bash:
 | `bun` | Runtime + package manager | Pi draait hierop. Gebruik `bun` i.p.v. `npm` of `node` |
 | `gh` | GitHub CLI | Issues, PRs, CI, releases |
 | `git` | Versiebeheer | Alleen via bash, niet via een ingebouwde tool |
+| `bd` | Issue tracker (Beads) | ALTIJD `bd create` voordat je aan werk begint. Geen uitzonderingen. |
+
+---
+
+## Beads -- harde regel
+
+**Elk werk begint met `bd create`.** Dit is niet optioneel.
+
+Dit geldt voor alles: code, design docs, research, analyse, refactoring, tests.
+
+- Zie je werk dat moet gebeuren? `bd create` eerst.
+- Gebruiker vraagt iets te onderzoeken? `bd create` eerst.
+- Je wilt een design doc schrijven? `bd create` eerst.
+- Geen ticket = niet beginnen.
+- Geen "dit is te klein voor een ticket".
+
+**Waarom:** The Firm is een tech bedrijf. Een tech bedrijf logt en trackt zijn werk. Zonder tickets is er geen overzicht, geen afbakening, geen afronding.
