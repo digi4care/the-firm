@@ -1,2 +1,19 @@
-export { FirmConfigSchema, ClientConfigSchema, ProjectConfigSchema, IntakeConfigSchema } from "./config.js";
-export type { FirmConfig, ClientConfig, ProjectConfig, IntakeConfig } from "./config.js";
+export {
+	FirmConfigSchema,
+	ClientSchema,
+	ProjectSchema,
+	EngagementSchema,
+	EngagementType,
+	EngagementStatus,
+	ProjectStatus,
+	SkillLevel,
+	CommunicationStyle,
+	QualityBar,
+} from "./config.js";
+
+export type {
+	FirmConfig,
+	ClientConfig,
+	ProjectConfig,
+	EngagementConfig,
+} from "./config.js";
