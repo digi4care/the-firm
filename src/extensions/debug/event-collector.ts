@@ -100,12 +100,6 @@ export class EventCollector {
 	private trackAgentEvents(): void {
 		this.pi.on("before_agent_start", (event) => {
 			this.setPhase("starting");
-			// Clear done tools from previous run
-			for (const [id, tool] of this.state.activeTools) {
-				if (tool.status !== "running") {
-					this.state.activeTools.delete(id);
-				}
-			}
 			this.state.agent.currentPrompt = event.prompt;
 			this.state.agent.turnIndex = 0;
 			this.state.agent.totalTurns = 0;
@@ -213,47 +207,25 @@ export class EventCollector {
 
 	// ── Hook Events ───────────────────────────────────────────────────────
 
+	// Hook events — geregistreerde hook event namen
+	// Pi API vereist expliciete event namen, maar dit is makkelijk uit te breiden
 	private trackHookEvents(): void {
-		this.pi.on("context", (event) => {
-			const msgCount = event.messages?.length ?? 0;
+		this.registerHook("context");
+		this.registerHook("before_provider_request");
+	}
+
+	private registerHook(eventName: string): void {
+		this.pi.on(eventName as any, (event: any) => {
 			const hook: HookState = {
-				name: "context",
+				name: eventName,
 				startedAt: Date.now(),
-				details: { messageCount: msgCount },
 			};
 			this.state.activeHook = hook;
-			this.recordEvent("hook", "context", `Context hook (${msgCount} msgs)`, {
-				messageCount: msgCount,
-			});
-		});
-
-		this.pi.on("before_provider_request", (event) => {
-			const payloadKeys = event.payload ? Object.keys(event.payload) : [];
-			const model = event.payload?.model ?? "unknown";
-			const hook: HookState = {
-				name: "before_provider_request",
-				startedAt: Date.now(),
-				details: { model, payloadKeys },
-			};
-			this.state.activeHook = hook;
-			this.recordEvent("hook", "before_provider_request", `Provider request (${model})`, {
-				model,
-				payloadKeys,
-			});
-		});
-
-		// Clear active hook after hooks resolve (next tick)
-		this.pi.on("turn_start", () => {
-			this.state.activeHook = null;
-		});
-		this.pi.on("turn_end", () => {
-			this.state.activeHook = null;
-		});
-		this.pi.on("tool_execution_start", () => {
-			this.state.activeHook = null;
-		});
-		this.pi.on("message_start", () => {
-			this.state.activeHook = null;
+			this.state.hookHistory.push(hook);
+			if (this.state.hookHistory.length > 20) {
+				this.state.hookHistory.shift();
+			}
+			this.recordEvent("hook", eventName, eventName, {});
 		});
 	}
 
@@ -291,6 +263,7 @@ export class EventCollector {
 			events: [],
 			activeTools: new Map(),
 			toolHistory: [],
+			hookHistory: [],
 			activeHook: null,
 			agent: {
 				phase: "idle",

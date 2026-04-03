@@ -98,6 +98,8 @@ export interface DashboardState {
 	activeTools: Map<string, ToolCall>;
 	/** Persistent tool history — never cleared, always shows names */
 	toolHistory: ToolCall[];
+	/** Persistent hook history — never cleared */
+	hookHistory: HookState[];
 	/** Currently active hook, if any */
 	activeHook: HookState | null;
 	/** Agent state */

@@ -14,6 +14,7 @@ function createState(overrides?: Partial<DashboardState>): DashboardState {
 		activeTools: new Map(),
 		toolHistory: [],
 		activeHook: null,
+		hookHistory: [],
 		agent: {
 			phase: "idle",
 			model: undefined,
@@ -255,7 +256,7 @@ describe("CompactWidget", () => {
 						totalTurns: 5,
 						startedAt: Date.now(),
 					},
-					activeHook: { name: "context", startedAt: Date.now() },
+					hookHistory: [{ name: "context", startedAt: Date.now() }],
 					activeTools: new Map([
 						["c1", { id: "c1", name: "read", status: "running" as const, startedAt: Date.now() }],
 						["c2", { id: "c2", name: "bash", status: "running" as const, startedAt: Date.now() }],

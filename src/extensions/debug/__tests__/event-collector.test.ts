@@ -276,15 +276,15 @@ describe("EventCollector", () => {
 			expect(collector.state.agent.currentPrompt).toBe("fix the bug");
 		});
 
-		it("clears done tools when a new agent run starts", () => {
+		it("keeps done tools when a new agent run starts", () => {
 			const { collector, pi } = collectorWithEvents(3);
 
 			// 3 done tools from run 1
 			expect(collector.state.activeTools.size).toBe(3);
 
-			// New agent run clears done tools
+			// New agent run keeps tools visible
 			pi.emit("before_agent_start", { type: "before_agent_start", prompt: "run 2" });
-			expect(collector.state.activeTools.size).toBe(0);
+			expect(collector.state.activeTools.size).toBe(3);
 		});
 	});
 
@@ -331,7 +331,7 @@ describe("EventCollector", () => {
 			expect(collector.state.activeHook!.name).toBe("context");
 		});
 
-		it("clears active hook on turn_start", () => {
+		it("keeps active hook on turn_start", () => {
 			const pi = createMockPi();
 			const collector = new EventCollector(pi as any);
 			collector.start();
@@ -340,7 +340,7 @@ describe("EventCollector", () => {
 			expect(collector.state.activeHook).not.toBeNull();
 
 			pi.emit("turn_start", { type: "turn_start", turnIndex: 0, timestamp: Date.now() });
-			expect(collector.state.activeHook).toBeNull();
+			expect(collector.state.activeHook).not.toBeNull();
 		});
 	});
 
