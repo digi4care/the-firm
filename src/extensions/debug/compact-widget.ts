@@ -2,7 +2,7 @@
  * compact-widget.ts — Always-visible status widget above the editor
  *
  * Shows a compact single-line summary:
- *   ● agent-phase | model | turn N | tools | events: N
+ *   ● agent-phase | model | turn N | tools | evt: N
  *
  * Uses raw ANSI colors from debug-theme so it's theme-independent.
  */
@@ -13,52 +13,43 @@ import type { DashboardState } from "./lib/types.ts";
 export class CompactWidget {
 	constructor(private readonly getState: () => DashboardState) {}
 
-	/** Render the widget lines */
-	public render(width: number): string[] {
+	/** Render the widget lines — always fresh, no cache */
+	public render(_width: number): string[] {
 		const state = this.getState();
 		const P = DEBUG_PALETTE;
-
 		const parts: string[] = [];
 
-		// Phase icon
+		// Phase
 		parts.push(statusIcon(state.agent.phase));
-
-		// Phase label
 		parts.push(fg(P.text, this.phaseLabel(state.agent.phase)));
-
-		// Separator
 		parts.push(fg(P.dim, "│"));
 
 		// Model
 		if (state.agent.model) {
-			const shortModel = state.agent.model.split("/").pop() ?? state.agent.model;
-			parts.push(fg(P.agent, shortModel));
+			parts.push(fg(P.agent, state.agent.model.split("/").pop()!));
 		}
 
-		// Turn info
+		// Turn
 		if (state.agent.totalTurns > 0) {
 			parts.push(fg(P.dim, "turn"));
 			parts.push(fg(P.turn, `${state.agent.turnIndex + 1}/${state.agent.totalTurns}`));
 		}
 
-		// Active hook
+		// Hook
 		if (state.activeHook) {
-			const hookDur = formatDuration(Date.now() - state.activeHook.startedAt);
-			parts.push(fg(P.dim, "hook"));
+			parts.push(fg(P.dim, "hook:"));
 			parts.push(fg(P.hook, state.activeHook.name));
-			parts.push(fg(P.dim, hookDur));
+			parts.push(fg(P.dim, formatDuration(Date.now() - state.activeHook.startedAt)));
 		}
 
-		// Tools — ALWAYS show names from persistent history
-		const tools = state.toolHistory ?? [];
-		if (tools.length > 0) {
-			for (const tool of tools) {
-				parts.push(statusIcon(tool.status));
-				parts.push(fg(P.tool, tool.name));
-			}
+		// Tools — altijd namen tonen uit toolHistory
+		const tools = state.toolHistory ?? [...state.activeTools.values()];
+		for (const tool of tools) {
+			parts.push(fg(P.dim, "tool:"));
+			parts.push(fg(P.tool, tool.name));
 		}
 
-		// Events counter
+		// Events
 		parts.push(fg(P.dim, "evt"));
 		parts.push(fg(P.text, `${state.totalEventCount}`));
 
@@ -70,25 +61,17 @@ export class CompactWidget {
 		return [parts.join(" ")];
 	}
 
-	/** Invalidate cached render (no-op now, kept for API compat) */
+	/** No-op, kept for API compat */
 	public invalidate(): void {}
-
-	// ── Helpers ───────────────────────────────────────────────────────────
 
 	private phaseLabel(phase: string): string {
 		switch (phase) {
-			case "idle":
-				return "idle";
-			case "starting":
-				return "starting";
-			case "running":
-				return "running";
-			case "turn":
-				return "in turn";
-			case "ending":
-				return "ending";
-			default:
-				return phase;
+			case "idle": return "idle";
+			case "starting": return "starting";
+			case "running": return "running";
+			case "turn": return "in turn";
+			case "ending": return "ending";
+			default: return phase;
 		}
 	}
 }
