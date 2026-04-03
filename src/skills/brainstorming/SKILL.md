@@ -1,12 +1,14 @@
 ---
 name: brainstorming
 description: "Turn ideas into fully formed designs through collaborative dialogue. Explores intent, requirements, constraints, and proposes approaches before any implementation. Use when starting a new feature, designing a component, or any creative work that needs structure before building. Keywords - brainstorm, design, idea, approach, spec, explore, creative."
-allowed-tools: Bash Read
+allowed-tools: Bash Read Write
 ---
 
 # Brainstorming Ideas Into Designs
 
-Turn ideas into fully formed designs through collaborative dialogue. Ask questions one at a time, propose approaches, present design, get approval — then hand off to planning. This skill does NOT write or mutate files — it only reads context and talks.
+Turn ideas into fully formed designs through collaborative dialogue. Ask questions one at a time, propose approaches, present design, get approval — then hand off to planning.
+
+This skill reads context and facilitates conversation. It ONLY writes to `.pi/firm/sessions/` for persistence between sessions (see Persisting State below).
 
 <HARD-GATE>
 Do NOT write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
@@ -76,7 +78,7 @@ After approval, the design is ready to be documented and planned. Hand off to:
 - `writing-plans` — to create an implementation plan
 - Or the user writes the design doc themselves
 
-This skill does NOT write files. It only reads context and facilitates the conversation.
+This skill does NOT write production code, config, or project files. It only persists session state to `.pi/firm/sessions/` (see below).
 
 ## Key Principles
 
@@ -88,6 +90,61 @@ This skill does NOT write files. It only reads context and facilitates the conve
 | Explore alternatives | Always propose 2-3 approaches before settling |
 | Incremental validation | Present design section by section, get approval per section |
 | Be flexible | Go back and clarify when something doesn't make sense |
+
+## Persisting State
+
+During long brainstorm sessions or when context needs to survive conversation compaction, save intermediate state to disk.
+
+### When to persist
+
+- The session has produced significant design decisions that would be costly to lose
+- The conversation is getting long and compaction might drop context
+- The user asks to save progress for later
+- You've finished a brainstorm and want to hand off the result
+
+### Where to persist
+
+`.pi/firm/sessions/YYYY-MM-DD-<topic>-brainstorm.md`
+
+Example: `.pi/firm/sessions/2026-04-03-auth-redesign-brainstorm.md`
+
+### What to persist
+
+```markdown
+# Brainstorm: <topic>
+Date: YYYY-MM-DD
+Status: in-progress | approved | handed-off
+
+## Context
+<what prompted this brainstorm>
+
+## Decisions
+- <decision 1>
+- <decision 2>
+
+## Open questions
+- <unresolved question>
+
+## Approved design
+<the design as approved, or "pending" if still in progress>
+
+## Next step
+<what happens next — usually handoff to writing-plans>
+```
+
+### Rules
+
+- ONLY write to `.pi/firm/sessions/` — never to `src/`, `design/`, or other project locations
+- Create the directory if it doesn't exist
+- Update the file as the session progresses (don't wait until the end)
+- When re-entering a brainstorm, read existing session files first
+
+### Re-entry
+
+When starting a new session and a brainstorm file exists:
+1. Read the existing file
+2. Summarize where you left off
+3. Ask the user: "Shall we continue from here, or start fresh?"
 
 ## Error Handling
 
