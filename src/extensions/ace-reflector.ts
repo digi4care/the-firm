@@ -14,6 +14,7 @@ import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
+import { getSetting } from "./settings/lib/settings-store";
 
 interface SessionEntry {
 	id: string;
@@ -247,6 +248,17 @@ function generateReflectionReport(
 // ── Extension ─────────────────────────────────────────────
 
 export default async function aceReflector(pi: ExtensionAPI) {
+
+	function isEnabled(): boolean {
+		const val = getSetting("theFirm.aceReflection");
+		return val === true; // default false
+	}
+
+	// Skip registration entirely if disabled
+	if (!isEnabled()) {
+		return;
+	}
+
 	// ── pi-ace-analyze Tool ───────────────────────────────
 	pi.registerTool({
 		name: "pi-ace-analyze",

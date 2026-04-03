@@ -17,6 +17,7 @@ import {
 	type SettingTab,
 	TAB_METADATA,
 } from "./settings-schema";
+import { getTabIcons } from "../../../shared/symbols";
 
 // ═══════════════════════════════════════════════════════════════
 // Types
@@ -44,13 +45,15 @@ export interface SettingsSelectorOptions {
 
 function renderTabBar(theme: ThemeLike, activeIndex: number, width: number): string[] {
 	const chunks: string[] = [theme.fg("muted", "Settings:"), "  "];
+	const icons = getTabIcons();
 
 	for (let i = 0; i < SETTING_TABS.length; i++) {
 		const meta = TAB_METADATA[SETTING_TABS[i]!];
+		const icon = icons[SETTING_TABS[i]!] ?? meta.icon;
 		if (i === activeIndex) {
-			chunks.push(theme.fg("accent", theme.bold(` ${meta.icon} ${meta.label} `)));
+			chunks.push(theme.fg("accent", theme.bold(` ${icon} ${meta.label} `)));
 		} else {
-			chunks.push(theme.fg("dim", ` ${meta.icon} ${meta.label} `));
+			chunks.push(theme.fg("dim", ` ${icon} ${meta.label} `));
 		}
 		if (i < SETTING_TABS.length - 1) {
 			chunks.push("  ");

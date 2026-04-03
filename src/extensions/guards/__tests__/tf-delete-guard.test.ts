@@ -1,8 +1,9 @@
 /**
- * tf-delete-guard.test.ts — Tests for the delete guard extension
+ * tf-delete-guard.test.ts — Tests for the guards extension
  *
  * Verifies that destructive bash commands are intercepted
- * when requireConfirmationBeforeDelete is enabled.
+ * when requireConfirmationBeforeDelete is enabled,
+ * and that other guards work correctly.
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "bun:test";
@@ -13,12 +14,24 @@ import { join } from "node:path";
 // --- Mock helpers ---
 
 function createMockPi() {
-	const handlers: Record<string, Function> = {};
+	const handlers: Record<string, Function[]> = {};
 	return {
 		on: vi.fn((event: string, handler: Function) => {
-			handlers[event] = handler;
+			if (!handlers[event]) handlers[event] = [];
+			handlers[event].push(handler);
 		}),
-		getHandler: (event: string) => handlers[event],
+		getHandlers: (event: string) => handlers[event] ?? [],
+		getHandler: (event: string) => {
+			// Return a combined handler that runs all handlers in sequence
+			const fns = handlers[event] ?? [];
+			return async (event: any, ctx: any) => {
+				for (const fn of fns) {
+					const result = await fn(event, ctx);
+					if (result) return result;
+				}
+				return undefined;
+			};
+		},
 	};
 }
 
@@ -31,28 +44,27 @@ function createMockCtx(hasUI: boolean, confirmResult?: boolean) {
 	};
 }
 
-function createToolCallEvent(command: string) {
+function createToolCallEvent(toolName: string, input: Record<string, unknown>) {
 	return {
-		toolName: "bash",
+		toolName,
 		toolCallId: "test-call-1",
-		input: { command },
+		input,
 	};
 }
 
 // --- Settings temp dir helper ---
 
-const TMP_DIR = join(tmpdir(), "tf-delete-guard-test");
+const TMP_DIR = join(tmpdir(), "tf-guards-test");
 
-function writeSettings(content: Record<string, unknown>) {
-	mkdirSync(join(TMP_DIR, "src"), { recursive: true });
-	writeFileSync(join(TMP_DIR, "src", "settings.json"), JSON.stringify(content), "utf-8");
+function writePiSettings(content: Record<string, unknown>) {
+	mkdirSync(join(TMP_DIR, ".pi"), { recursive: true });
+	writeFileSync(join(TMP_DIR, ".pi", "settings.json"), JSON.stringify(content), "utf-8");
 }
 
 function cleanupSettings() {
 	rmSync(TMP_DIR, { recursive: true, force: true });
 }
 
-// We need to stub process.cwd to point to our temp dir
 const originalCwd = process.cwd;
 
 // --- Tests ---
@@ -71,96 +83,121 @@ describe("tf-delete-guard", () => {
 		cleanupSettings();
 	});
 
-	it("registers a tool_call handler", async () => {
+	it("registers tool_call handlers", async () => {
 		const { default: register } = await import("../index.ts");
 		register(mockPi as any);
 		expect(mockPi.on).toHaveBeenCalledWith("tool_call", expect.any(Function));
 	});
 
 	it("passes through non-bash tools", async () => {
-		writeSettings({ theFirm: { requireConfirmationBeforeDelete: true } });
+		writePiSettings({ theFirm: { requireConfirmationBeforeDelete: true } });
 		const { default: register } = await import("../index.ts");
 		register(mockPi as any);
 
 		const handler = mockPi.getHandler("tool_call");
 		const result = await handler(
-			{ toolName: "read", input: { path: "/some/file" } },
+			createToolCallEvent("read", { path: "/some/file" }),
 			createMockCtx(true),
 		);
 		expect(result).toBeUndefined();
 	});
 
 	it("passes through non-delete bash commands", async () => {
-		writeSettings({ theFirm: { requireConfirmationBeforeDelete: true } });
+		writePiSettings({ theFirm: { requireConfirmationBeforeDelete: true } });
 		const { default: register } = await import("../index.ts");
 		register(mockPi as any);
 
 		const handler = mockPi.getHandler("tool_call");
-		const result = await handler(createToolCallEvent("ls -la"), createMockCtx(true));
+		const result = await handler(
+			createToolCallEvent("bash", { command: "ls -la" }),
+			createMockCtx(true),
+		);
 		expect(result).toBeUndefined();
 	});
 
 	it("passes through when guard is disabled", async () => {
-		writeSettings({ theFirm: { requireConfirmationBeforeDelete: false } });
+		writePiSettings({ theFirm: { requireConfirmationBeforeDelete: false } });
 		const { default: register } = await import("../index.ts");
 		register(mockPi as any);
 
 		const handler = mockPi.getHandler("tool_call");
-		const result = await handler(createToolCallEvent("rm -rf /tmp/something"), createMockCtx(true));
+		const result = await handler(
+			createToolCallEvent("bash", { command: "rm -rf /tmp/something" }),
+			createMockCtx(true),
+		);
 		expect(result).toBeUndefined();
 	});
 
 	it("passes through when settings have no theFirm key", async () => {
-		writeSettings({});
+		writePiSettings({});
 		const { default: register } = await import("../index.ts");
 		register(mockPi as any);
 
-		const handler = mockPi.getHandler("tool_call");
-		const result = await handler(createToolCallEvent("rm file.txt"), createMockCtx(true));
-		expect(result).toBeUndefined();
-	});
-
-	it("passes through when no settings.json exists", async () => {
-		// No settings file
-		const { default: register } = await import("../index.ts");
-		register(mockPi as any);
-
-		const handler = mockPi.getHandler("tool_call");
-		const result = await handler(createToolCallEvent("rm file.txt"), createMockCtx(true));
-		expect(result).toBeUndefined();
-	});
-
-	it("blocks delete command when user declines", async () => {
-		writeSettings({ theFirm: { requireConfirmationBeforeDelete: true } });
-		const { default: register } = await import("../index.ts");
-		register(mockPi as any);
-
+		// Default is true, but with empty settings the guard reads undefined -> default true
+		// So with empty settings the guard IS enabled (default true)
 		const handler = mockPi.getHandler("tool_call");
 		const ctx = createMockCtx(true, false);
-		const result = await handler(createToolCallEvent("rm file.txt"), ctx);
-
+		const result = await handler(
+			createToolCallEvent("bash", { command: "rm file.txt" }),
+			ctx,
+		);
 		expect(result).toEqual({ block: true, reason: "Blocked by user (delete guard)" });
 	});
 
-	it("allows delete command when user confirms", async () => {
-		writeSettings({ theFirm: { requireConfirmationBeforeDelete: true } });
+	it("passes through when no settings.json exists", async () => {
+		// No settings file — default is true, so guard IS enabled
 		const { default: register } = await import("../index.ts");
 		register(mockPi as any);
 
 		const handler = mockPi.getHandler("tool_call");
 		const ctx = createMockCtx(true, true);
-		const result = await handler(createToolCallEvent("rm file.txt"), ctx);
+		const result = await handler(
+			createToolCallEvent("bash", { command: "rm file.txt" }),
+			ctx,
+		);
+		expect(result).toBeUndefined(); // confirmed = allowed
+	});
+
+	it("blocks delete command when user declines", async () => {
+		writePiSettings({ theFirm: { requireConfirmationBeforeDelete: true } });
+		const { default: register } = await import("../index.ts");
+		register(mockPi as any);
+
+		const handler = mockPi.getHandler("tool_call");
+		const ctx = createMockCtx(true, false);
+		const result = await handler(
+			createToolCallEvent("bash", { command: "rm file.txt" }),
+			ctx,
+		);
+
+		expect(result).toEqual({ block: true, reason: "Blocked by user (delete guard)" });
+	});
+
+	it("allows delete command when user confirms", async () => {
+		writePiSettings({ theFirm: { requireConfirmationBeforeDelete: true } });
+		const { default: register } = await import("../index.ts");
+		register(mockPi as any);
+
+		const handler = mockPi.getHandler("tool_call");
+		const ctx = createMockCtx(true, true);
+		const result = await handler(
+			createToolCallEvent("bash", { command: "rm file.txt" }),
+			ctx,
+		);
 
 		expect(result).toBeUndefined();
 	});
 
 	it("blocks delete command in non-interactive mode", async () => {
-		writeSettings({ theFirm: { requireConfirmationBeforeDelete: true } });
+		writePiSettings({ theFirm: { requireConfirmationBeforeDelete: true } });
 		const { default: register } = await import("../index.ts");
 		register(mockPi as any);
 
 		const handler = mockPi.getHandler("tool_call");
-		const result = await handler(createToolCallEvent("rm file.txt"), createMockCtx(false));
+		const result = await handler(
+			createToolCallEvent("bash", { command: "rm file.txt" }),
+			createMockCtx(false),
+		);
 
 		expect(result).toEqual({
 			block: true,
@@ -169,7 +206,7 @@ describe("tf-delete-guard", () => {
 	});
 
 	it("catches various delete patterns", async () => {
-		writeSettings({ theFirm: { requireConfirmationBeforeDelete: true } });
+		writePiSettings({ theFirm: { requireConfirmationBeforeDelete: true } });
 		const { default: register } = await import("../index.ts");
 		register(mockPi as any);
 
@@ -187,7 +224,10 @@ describe("tf-delete-guard", () => {
 
 		for (const cmd of deleteCommands) {
 			const ctx = createMockCtx(true, false);
-			const result = await handler(createToolCallEvent(cmd), ctx);
+			const result = await handler(
+				createToolCallEvent("bash", { command: cmd }),
+				ctx,
+			);
 			expect(result).toEqual(
 				{ block: true, reason: "Blocked by user (delete guard)" },
 				`Expected "${cmd}" to be blocked`,
@@ -196,15 +236,19 @@ describe("tf-delete-guard", () => {
 	});
 
 	it("handles malformed settings.json gracefully", async () => {
-		mkdirSync(join(TMP_DIR, "src"), { recursive: true });
-		writeFileSync(join(TMP_DIR, "src", "settings.json"), "NOT VALID JSON{{{", "utf-8");
+		mkdirSync(join(TMP_DIR, ".pi"), { recursive: true });
+		writeFileSync(join(TMP_DIR, ".pi", "settings.json"), "NOT VALID JSON{{{", "utf-8");
 
 		const { default: register } = await import("../index.ts");
 		register(mockPi as any);
 
 		const handler = mockPi.getHandler("tool_call");
-		const result = await handler(createToolCallEvent("rm file.txt"), createMockCtx(true));
-		// Should not block — fail open
-		expect(result).toBeUndefined();
+		const ctx = createMockCtx(true, false);
+		const result = await handler(
+			createToolCallEvent("bash", { command: "rm file.txt" }),
+			ctx,
+		);
+		// Malformed JSON -> getSetting returns undefined -> default true -> guard active
+		expect(result).toEqual({ block: true, reason: "Blocked by user (delete guard)" });
 	});
 });

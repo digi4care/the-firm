@@ -1,10 +1,10 @@
 /**
  * The Firm Settings Extension
  *
- * Registers /settings command with a tabbed TUI settings panel.
+ * Registers /firm command with a tabbed TUI settings panel.
  * Restores The Firm settings from .pi/settings.json on session start.
  *
- * Usage: /settings
+ * Usage: /firm
  */
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
@@ -18,9 +18,9 @@ export default function registerSettingsExtension(pi: ExtensionAPI) {
 		// This hook is here for future use (e.g., migrating old settings)
 	});
 
-	// Register /settings command
-	pi.registerCommand("settings", {
-		description: "Open The Firm settings panel",
+	// Register /firm command
+	pi.registerCommand("firm", {
+		description: "Open The Firm settings panel (tabs: general, guards, workflows, session)",
 		handler: async (_args, ctx) => {
 			if (!ctx.hasUI) {
 				ctx.ui.notify("Settings requires interactive mode", "warning");

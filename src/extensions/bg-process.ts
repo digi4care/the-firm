@@ -11,6 +11,7 @@ import { appendFileSync, existsSync, readFileSync, writeFileSync } from "node:fs
 import { StringEnum } from "@mariozechner/pi-ai";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
+import { getSetting } from "./settings/lib/settings-store";
 
 /** Default timeout before auto-backgrounding (milliseconds) */
 const DEFAULT_BG_TIMEOUT_MS = 10_000;
@@ -36,6 +37,11 @@ function isAlive(pid: number): boolean {
 export default function (pi: ExtensionAPI) {
 	const bgProcesses = new Map<number, BgProcess>();
 
+	function isEnabled(): boolean {
+		const val = getSetting("theFirm.bgProcessTracking");
+		return val === false ? false : true; // default true
+	}
+
 	// Override built-in bash tool with auto-backgrounding
 	pi.registerTool({
 		name: "bash",
@@ -50,6 +56,30 @@ export default function (pi: ExtensionAPI) {
 			),
 		}),
 		async execute(toolCallId, params, signal) {
+			// If bg tracking disabled, run command directly without auto-backgrounding
+			if (!isEnabled()) {
+				const { command } = params;
+				return new Promise<Result>((resolve) => {
+					let stdout = "";
+					let stderr = "";
+					const child = spawn("bash", ["-c", command], {
+						cwd: process.cwd(),
+						env: { ...process.env },
+						stdio: ["ignore", "pipe", "pipe"],
+					});
+					child.stdout?.on("data", (d: Buffer) => { stdout += d.toString(); });
+					child.stderr?.on("data", (d: Buffer) => { stderr += d.toString(); });
+					child.on("close", (code) => {
+						const output = (stdout + stderr).trim();
+						const exitInfo = code !== 0 ? `\n[Exit code: ${code}]` : "";
+						resolve({ content: [{ type: "text", text: output + exitInfo }], details: {} });
+					});
+					child.on("error", (err) => {
+						resolve({ content: [{ type: "text", text: `Error: ${err.message}` }], details: {}, isError: true });
+					});
+				});
+			}
+
 			const { command } = params;
 			const userTimeout = params.timeout ? params.timeout * 1000 : undefined;
 			const effectiveTimeout = userTimeout ?? DEFAULT_BG_TIMEOUT_MS;

@@ -2,7 +2,7 @@
  * index.test.ts — Tests for the settings extension entry point
  *
  * Tests that the extension registers correctly with the Pi SDK
- * and that the /settings command is wired up properly.
+ * and that the /firm command is wired up properly.
  * Uses mock Pi and mock ctx like the delete guard tests.
  */
 
@@ -48,7 +48,7 @@ describe("settings extension entry point", () => {
 		register(mockPi as any);
 
 		expect(mockPi.registerCommand).toHaveBeenCalledWith(
-			"settings",
+			"firm",
 			expect.objectContaining({
 				description: expect.any(String),
 				handler: expect.any(Function),
@@ -64,12 +64,12 @@ describe("settings extension entry point", () => {
 		expect(mockPi.on).toHaveBeenCalledWith("session_start", expect.any(Function));
 	});
 
-	it("/settings command handler uses ctx.ui.custom to show the selector", async () => {
+	it("/firm command handler uses ctx.ui.custom to show the selector", async () => {
 		const mockPi = createMockPi();
 		const { default: register } = await import("../index.ts");
 		register(mockPi as any);
 
-		const cmd = mockPi.getCommand("settings");
+		const cmd = mockPi.getCommand("firm");
 		expect(cmd).toBeDefined();
 
 		let customCalled = false;

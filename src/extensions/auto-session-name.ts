@@ -6,9 +6,15 @@
  */
 
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import { getSetting } from "./settings/lib/settings-store";
 
 export default function (pi: ExtensionAPI) {
 	let named = false;
+
+	function isEnabled(): boolean {
+		const val = getSetting("theFirm.autoSessionName");
+		return val === false ? false : true; // default true
+	}
 
 	pi.on("session_start", async (_event, _ctx) => {
 		// Check if session already has a name
@@ -16,7 +22,8 @@ export default function (pi: ExtensionAPI) {
 	});
 
 	pi.on("agent_end", async (event) => {
-		// Skip if already named
+		// Skip if feature disabled or already named
+		if (!isEnabled()) return;
 		if (named) return;
 
 		// Find the first user message
