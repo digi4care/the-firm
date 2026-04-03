@@ -4,7 +4,7 @@
  * Generates structured handoff summaries from session entries using LLM.
  * Used by both automatic (session_shutdown, compaction) and manual (/handoff) flows.
  *
- * Based on OMP's handoff.ts + custom-compaction.ts patterns.
+ * Prompts overgenomen van OMP's handoff-document.md
  */
 
 import { complete, type Message } from "@mariozechner/pi-ai";
@@ -24,7 +24,7 @@ export interface HandoffResult {
 }
 
 export interface HandoffOptions {
-	/** Extra instructions for the summary (e.g., focus area) */
+	/** Extra focus instructions (OMP-style additionalFocus) */
 	customInstructions?: string;
 	/** Abort signal */
 	signal?: AbortSignal;
@@ -33,53 +33,54 @@ export interface HandoffOptions {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// System prompts
+// System prompts — OMP's handoff-document.md
 // ═══════════════════════════════════════════════════════════════
 
-const HANDOFF_SYSTEM_PROMPT = `You are a context transfer assistant for a software engineering session.
+const HANDOFF_SYSTEM_PROMPT = `<critical>
+Write a comprehensive handoff document for another instance of yourself.
+The handoff **MUST** be sufficient for seamless continuation without access to this conversation.
+Output ONLY the handoff document. No preamble, no commentary, no wrapper text.
+</critical>
 
-Given a conversation history, generate a structured handoff summary that a NEW session can use to continue work seamlessly.
+<instruction>
+Capture exact technical state, not abstractions.
+Include concrete file paths, symbol names, commands run, test results, observed failures, decisions made, and any partial work that materially affects the next step.
+</instruction>
 
-You MUST output in this exact format:
+<output>
+Use exactly this structure:
 
 ## Goal
-[What the user is trying to accomplish — the overarching objective]
+[What the user is trying to accomplish]
 
 ## Constraints & Preferences
-- [Requirements, coding standards, tool preferences mentioned by user]
+- [Any constraints, preferences, or requirements mentioned]
 
 ## Progress
 ### Done
-- [x] [Completed tasks with brief details]
+- [x] [Completed tasks with specifics]
 
 ### In Progress
-- [ ] [Current work that was being done when session ended]
+- [ ] [Current work if any]
 
-### Blocked
-- [Issues, open questions, or blockers]
+### Pending
+- [ ] [Tasks mentioned but not started]
 
 ## Key Decisions
-- **[Decision]**: [Why this choice was made]
-
-## Next Steps
-1. [Concrete next action to take]
-2. [Follow-up action]
+- **[Decision]**: [Rationale]
 
 ## Critical Context
-- [Any data, variables, configs, or knowledge needed to continue]
-- [Important nuances that aren't obvious from code alone]
+- [Code snippets, file paths, function/type names, error messages, or data essential to continue]
+- [Repository state if relevant]
 
-## Files
-- **Read**: [list of files that were read/examined]
-- **Modified**: [list of files that were changed]
+## Next Steps
+1. [What should happen next]
+</output>`;
 
-Rules:
-- Be specific: include file paths, function names, variable names
-- Be concise: no filler, no repetition
-- Include WHY decisions were made, not just WHAT was decided
-- If work was interrupted mid-task, describe exactly where it stopped
-- The new session should be able to continue WITHOUT the old conversation`;
+/** OMP's auto-handoff threshold focus prompt */
+const AUTO_HANDOFF_FOCUS = "Threshold-triggered maintenance: preserve critical implementation state and immediate next actions.";
 
+/** Focused handoff for manual /handoff command */
 const FOCUSED_HANDOFF_PROMPT = `You are a context transfer assistant.
 
 Given a conversation history and the user's goal for a new thread, generate a focused prompt that:
@@ -120,20 +121,16 @@ function extractFileOps(entries: SessionEntry[]): { readFiles: string[]; modifie
 		for (const block of msg.content) {
 			if (block.type !== "toolCall") continue;
 
-			// Read tool
 			if (block.name === "read" && block.arguments?.path) {
 				readFiles.add(block.arguments.path);
 			}
 
-			// Write/Edit tools
 			if ((block.name === "write" || block.name === "edit") && block.arguments?.path) {
 				modifiedFiles.add(block.arguments.path);
 			}
 
-			// Bash commands that modify files
 			if (block.name === "bash" && typeof block.arguments?.command === "string") {
 				const cmd = block.arguments.command;
-				// Detect common file-writing commands
 				const writePatterns = [/>\s*(\S+)/, /tee\s+(\S+)/, /cp\s+(\S+)\s+(\S+)/, /mv\s+(\S+)\s+(\S+)/];
 				for (const pattern of writePatterns) {
 					const match = cmd.match(pattern);
@@ -158,6 +155,12 @@ function filterMessageEntries(entries: SessionEntry[]): SessionEntry[] {
 	});
 }
 
+/** Render handoff system prompt with optional additionalFocus (OMP-style) */
+function renderHandoffPrompt(focus?: string): string {
+	if (!focus) return HANDOFF_SYSTEM_PROMPT;
+	return `${HANDOFF_SYSTEM_PROMPT}\n<instruction>\nAdditional focus: ${focus}\n</instruction>`;
+}
+
 // ═══════════════════════════════════════════════════════════════
 // Core generation functions
 // ═══════════════════════════════════════════════════════════════
@@ -167,14 +170,11 @@ async function resolveModelAuth(
 	modelRegistry: ModelRegistry,
 	preferredModel?: Model,
 ): Promise<{ model: Model; apiKey: string; headers: Record<string, string> } | null> {
-	// Try preferred model first
 	const candidates: (Model | undefined)[] = [preferredModel];
 
-	// Fallback to flash models for cheaper summarization
 	const flashModel = modelRegistry.find("google", "gemini-2.5-flash");
 	if (flashModel) candidates.push(flashModel);
 
-	// Last resort: current model from registry
 	const sonnetModel = modelRegistry.find("anthropic", "claude-sonnet-4-20250514");
 	if (sonnetModel) candidates.push(sonnetModel);
 
@@ -192,7 +192,7 @@ async function resolveModelAuth(
 
 /**
  * Generate a full handoff summary from session entries.
- * Used for automatic handoff (session_shutdown, compaction).
+ * Used for automatic handoff (session_shutdown, compaction, auto-trigger).
  */
 export async function generateHandoffSummary(
 	entries: SessionEntry[],
@@ -206,11 +206,9 @@ export async function generateHandoffSummary(
 	const auth = await resolveModelAuth(modelRegistry, options?.model ?? preferredModel);
 	if (!auth) return null;
 
-	// Serialize conversation
 	const messages = messageEntries.map((e) => (e as any).message);
 	const conversationText = serializeConversation(convertToLlm(messages));
 
-	// Extract file operations
 	const fileOps = extractFileOps(entries);
 
 	// Check for existing compaction summaries
@@ -221,12 +219,11 @@ export async function generateHandoffSummary(
 		}
 	}
 
-	const extraInstructions = options?.customInstructions
-		? `\n\nExtra focus: ${options.customInstructions}`
-		: "";
+	// OMP-style: render prompt with optional additionalFocus
+	const systemPrompt = renderHandoffPrompt(options?.customInstructions);
 
 	const contextBlock = previousContext
-		? `\n\n<previous-summary>\n${previousContext}\n</previous-summary>`
+		? `\n<previous-summary>\n${previousContext}\n</previous-summary>\n\n`
 		: "";
 
 	const userMessage: Message = {
@@ -234,7 +231,7 @@ export async function generateHandoffSummary(
 		content: [
 			{
 				type: "text",
-				text: `Summarize this conversation for handoff to a new session.${extraInstructions}${contextBlock}\n\n<conversation>\n${conversationText}\n</conversation>`,
+				text: `${contextBlock}<conversation>\n${conversationText}\n</conversation>`,
 			},
 		],
 		timestamp: Date.now(),
@@ -243,7 +240,7 @@ export async function generateHandoffSummary(
 	try {
 		const response = await complete(
 			auth.model,
-			{ systemPrompt: HANDOFF_SYSTEM_PROMPT, messages: [userMessage] },
+			{ systemPrompt, messages: [userMessage] },
 			{
 				apiKey: auth.apiKey,
 				headers: auth.headers,
@@ -340,7 +337,6 @@ export function generateBasicHandoff(entries: SessionEntry[]): string {
 	const fileOps = extractFileOps(entries);
 	const messageEntries = filterMessageEntries(entries);
 
-	// Get last user messages as context
 	const recentUserMessages: string[] = [];
 	for (const entry of messageEntries.slice(-20).reverse()) {
 		const msg = (entry as any).message;
@@ -389,3 +385,6 @@ export function generateBasicHandoff(entries: SessionEntry[]): string {
 
 	return lines.join("\n");
 }
+
+/** Export the auto-handoff focus prompt for use in workflow-settings */
+export { AUTO_HANDOFF_FOCUS };

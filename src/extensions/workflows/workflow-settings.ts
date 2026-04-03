@@ -3,10 +3,9 @@
  *
  * Links workflow settings to Pi lifecycle events:
  *   - Compaction strategy (context-full / handoff / off)
- *   - Compaction thresholds (percentage, tokens)
  *   - Handoff: LLM-powered summary generation on shutdown
- *   - Handoff: automatic context injection on session start
- *   - Auto-continue after compaction
+ *   - Handoff: automatic context injection on session start (OMP-style wrapper)
+ *   - Auto-trigger: handoff on threshold via session_before_compact
  *   - Reserve tokens / keep recent tokens
  *   - Auto-compact on/off
  *   - Save state on exit
@@ -22,6 +21,7 @@ import { getSetting } from "../settings/lib/settings-store";
 import {
 	generateHandoffSummary,
 	generateBasicHandoff,
+	AUTO_HANDOFF_FOCUS,
 	type HandoffResult,
 } from "./lib/handoff-generator";
 
@@ -89,7 +89,6 @@ function syncCompactionSettingsToPi(): void {
 		}
 	}
 
-	// Build compaction object — only sync Pi-native settings
 	const compaction: Record<string, unknown> = {
 		enabled: isAutoCompact(),
 		reserveTokens: getReserveTokens(),
@@ -177,34 +176,60 @@ function clearHandoffDoc(): void {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// Shared: generate + save handoff from entries
+// ═══════════════════════════════════════════════════════════════
+
+async function generateAndSaveHandoff(
+	entries: any[],
+	modelRegistry: any,
+	model: any,
+	label: string,
+): Promise<void> {
+	if (!entries || entries.length < 2) return;
+
+	try {
+		const result = await generateHandoffSummary(entries, modelRegistry, model);
+
+		if (result) {
+			saveHandoffDoc(
+				`# Handoff — ${label}\n\nGenerated: ${new Date().toISOString()}\n\n${result.summary}`,
+			);
+		} else {
+			const basicHandoff = generateBasicHandoff(entries);
+			saveHandoffDoc(
+				`# Handoff — ${label} (basic)\n\nGenerated: ${new Date().toISOString()}\n\n${basicHandoff}`,
+			);
+		}
+	} catch {
+		const basicHandoff = generateBasicHandoff(entries);
+		saveHandoffDoc(
+			`# Handoff — ${label} (fallback)\n\nGenerated: ${new Date().toISOString()}\n\n${basicHandoff}`,
+		);
+	}
+}
+
+// ═══════════════════════════════════════════════════════════════
 // Extension
 // ═══════════════════════════════════════════════════════════════
 
 export default function registerWorkflowSettings(pi: ExtensionAPI) {
-	// Track whether we've injected handoff already
 	let handoffInjected = false;
 
-	// ── Session start: sync settings + inject handoff context ──
-	pi.on("session_start", async (event, ctx) => {
-		// Sync The Firm settings to Pi compaction config
+	// ── Session start: sync settings + flag handoff ────────
+	pi.on("session_start", async (event, _ctx) => {
 		syncCompactionSettingsToPi();
 
-		// Only inject handoff context on fresh startup (not resume/fork)
 		if (event.reason !== "startup") return;
 
-		// Check for existing handoff document
 		const handoffDoc = readHandoffDoc();
 		if (!handoffDoc) return;
 
-		// Mark that we have handoff to inject
 		handoffInjected = false;
 	});
 
-	// ── Inject handoff into first agent turn ───────────────
-	// Leest HANDOFF.md altijd (als het bestaat) en injecteert in de eerste turn.
-	// handoffSaveToDisk bepaalt of het bestand bewaard blijft of wordt opgeruimd.
+	// ── Inject handoff into first agent turn (OMP-style) ──
+	// Gebruikt OMP's <handoff-context> wrapper voor herkenbaarheid
 	pi.on("before_agent_start", async (event, _ctx) => {
-		// Only inject once
 		if (handoffInjected) return;
 
 		const handoffDoc = readHandoffDoc();
@@ -212,16 +237,12 @@ export default function registerWorkflowSettings(pi: ExtensionAPI) {
 
 		handoffInjected = true;
 
-		const contextMessage = [
-			"## 🔄 Handoff from Previous Session",
-			"",
-			"De vorige sessie heeft context achtergelaten. Lees deze voordat je begint:",
-			"",
-			handoffDoc,
-			"",
-			"---",
-			"",
-		].join("\n");
+		// OMP-style wrapper — zelfde formaat als Pi's core handoff
+		const contextMessage = `<handoff-context>
+${handoffDoc}
+</handoff-context>
+
+The above is a handoff document from a previous session. Use this context to continue the work seamlessly.`;
 
 		// Clear the handoff doc only if user doesn't want it saved to disk
 		if (!isHandoffSaveToDisk()) {
@@ -234,7 +255,10 @@ export default function registerWorkflowSettings(pi: ExtensionAPI) {
 	});
 
 	// ── Compaction control ─────────────────────────────────
-	pi.on("session_before_compact", async (_event, _ctx) => {
+	// Strategy "handoff": intercept compaction, generate handoff instead
+	// Strategy "context-full": let Pi's built-in compaction handle it
+	// Strategy "off": cancel everything
+	pi.on("session_before_compact", async (_event, ctx) => {
 		if (!isAutoCompact()) {
 			return { cancel: true };
 		}
@@ -244,83 +268,58 @@ export default function registerWorkflowSettings(pi: ExtensionAPI) {
 			return { cancel: true };
 		}
 
-		// context-full and handoff both let compaction proceed
+		// Strategy "handoff": generate handoff doc, cancel Pi's compaction
+		// The handoff doc will be picked up on next session start or /handoff
+		if (strategy === "handoff") {
+			const entries = ctx.sessionManager.getEntries();
+			if (entries.length >= 2) {
+				// Generate handoff with OMP's threshold focus prompt
+				await generateAndSaveHandoff(
+					entries,
+					ctx.modelRegistry,
+					ctx.model,
+					"Auto-Handoff (threshold)",
+				);
+			}
+			// Cancel Pi's compaction — we did our own handoff instead
+			return { cancel: true };
+		}
+
+		// Strategy "context-full": let Pi compact normally
 		return undefined;
 	});
 
-	// ── After compaction: save LLM-generated handoff ───────
-	// Altijd handoff opslaan na compaction (context ging verloren, dit is de vangnet)
+	// ── After compaction: save handoff as safety net ───────
 	pi.on("session_compact", async (_event, ctx) => {
-		try {
-			const entries = ctx.sessionManager.getEntries();
-			if (entries.length < 2) return;
+		const entries = ctx.sessionManager.getEntries();
+		if (entries.length < 2) return;
 
-			const result = await generateHandoffSummary(
-				entries,
-				ctx.modelRegistry,
-				ctx.model,
-			);
-
-			if (result) {
-				saveHandoffDoc(
-					`# Handoff — After Compaction\n\nGenerated: ${new Date().toISOString()}\n\n${result.summary}`,
-				);
-			} else {
-				const basicHandoff = generateBasicHandoff(entries);
-				saveHandoffDoc(
-					`# Handoff — After Compaction (basic)\n\nGenerated: ${new Date().toISOString()}\n\n${basicHandoff}`,
-				);
-			}
-		} catch {
-			// Don't break compaction
-		}
+		await generateAndSaveHandoff(
+			entries,
+			ctx.modelRegistry,
+			ctx.model,
+			"After Compaction",
+		);
 	});
 
 	// ── Session shutdown: ALWAYS generate handoff ────────
-	// Handoff wordt ALTIJD gegenereerd bij shutdown.
-	// handoffSaveToDisk bepaalt of het bestand bewaard blijft na consumptie
-	// door de nieuwe sessie (true = bewaren, false = opruimen na inject).
 	pi.on("session_shutdown", async (_event, ctx) => {
 		const entries = ctx.sessionManager?.getEntries?.();
 
 		if (entries && entries.length >= 2) {
-			try {
-				const result = await generateHandoffSummary(
-					entries,
-					ctx.modelRegistry,
-					ctx.model,
-				);
-
-				if (result) {
-					saveHandoffDoc(
-						`# Handoff — Session End\n\nGenerated: ${new Date().toISOString()}\n\n${result.summary}`,
-					);
-					saveSessionMetadata({
-						handoffGenerated: true,
-						tokensUsed: result.tokensUsed,
-						readFiles: result.readFiles.length,
-						modifiedFiles: result.modifiedFiles.length,
-					});
-				} else {
-					const basicHandoff = generateBasicHandoff(entries);
-					saveHandoffDoc(
-						`# Handoff — Session End\n\nGenerated: ${new Date().toISOString()}\n\n${basicHandoff}`,
-					);
-					saveSessionMetadata({ handoffGenerated: true, method: "basic" });
-				}
-			} catch {
-				const basicHandoff = generateBasicHandoff(entries);
-					saveHandoffDoc(
-						`# Handoff — Session End\n\nGenerated: ${new Date().toISOString()}\n\n${basicHandoff}`,
-					);
-			}
+			await generateAndSaveHandoff(
+				entries,
+				ctx.modelRegistry,
+				ctx.model,
+				"Session End",
+			);
+			saveSessionMetadata({ handoffGenerated: true });
 		} else {
 			saveHandoffDoc(
 				`# Handoff — Session End\n\nGenerated: ${new Date().toISOString()}\n\n*Session was empty or had insufficient context for handoff.*`,
 			);
 		}
 
-		// Save session state metadata
 		if (isSaveOnExit()) {
 			saveSessionMetadata();
 		}
