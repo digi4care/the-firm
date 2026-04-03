@@ -18,8 +18,11 @@ Thumbs.db
 .beads/interactions.jsonl
 .beads/dolt-server.port
 
-# Local OMP env
-.omp/.env
+# Local/personal files (handoff, session notes)
+.local/
+
+# Local OMP runtime layer
+.omp/
 
 # Downloaded candidate skill archives
 downloads/
