@@ -1,0 +1,24 @@
+{
+  "version": "1.0.0",
+  "created": "2026-04-03T20:53:55.330Z",
+  "last_updated": "2026-04-03T20:53:55.330Z",
+  "registry_type": "reference_documents",
+  "entries": [
+    {
+      "id": "references-vertical-slicing",
+      "title": "References Vertical Slicing",
+      "filename": "references-vertical-slicing.md",
+      "category": "custom",
+      "description": "Reference for References Vertical Slicing.",
+      "keywords": [
+        "references-vertical-slicing"
+      ],
+      "topics": [
+        "references"
+      ],
+      "language": "en",
+      "created": "2026-04-03T20:53:55.330Z",
+      "last_updated": "2026-04-03T20:53:55.330Z"
+    }
+  ]
+}

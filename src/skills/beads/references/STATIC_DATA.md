@@ -1,0 +1,1 @@
+../resources/STATIC_DATA.md

@@ -1,0 +1,248 @@
+{
+  "version": "1.0.0",
+  "created": "2026-04-03T20:57:06.884Z",
+  "last_updated": "2026-04-03T20:57:06.884Z",
+  "registry_type": "reference_documents",
+  "entries": [
+    {
+      "id": "references-boundaries",
+      "title": "References Boundaries",
+      "filename": "references-boundaries.md",
+      "category": "custom",
+      "description": "Reference for References Boundaries.",
+      "keywords": [
+        "references-boundaries"
+      ],
+      "topics": [
+        "references"
+      ],
+      "language": "en",
+      "created": "2026-04-03T20:57:06.884Z",
+      "last_updated": "2026-04-03T20:57:06.884Z"
+    },
+    {
+      "id": "references-cli-reference",
+      "title": "References Cli Reference",
+      "filename": "references-cli-reference.md",
+      "category": "custom",
+      "description": "Reference for References Cli Reference.",
+      "keywords": [
+        "references-cli-reference"
+      ],
+      "topics": [
+        "references"
+      ],
+      "language": "en",
+      "created": "2026-04-03T20:57:06.884Z",
+      "last_updated": "2026-04-03T20:57:06.884Z"
+    },
+    {
+      "id": "references-workflows",
+      "title": "References Workflows",
+      "filename": "references-workflows.md",
+      "category": "custom",
+      "description": "Reference for References Workflows.",
+      "keywords": [
+        "references-workflows"
+      ],
+      "topics": [
+        "references"
+      ],
+      "language": "en",
+      "created": "2026-04-03T20:57:06.884Z",
+      "last_updated": "2026-04-03T20:57:06.884Z"
+    },
+    {
+      "id": "references-dependencies",
+      "title": "References Dependencies",
+      "filename": "references-dependencies.md",
+      "category": "custom",
+      "description": "Reference for References Dependencies.",
+      "keywords": [
+        "references-dependencies"
+      ],
+      "topics": [
+        "references"
+      ],
+      "language": "en",
+      "created": "2026-04-03T20:57:06.884Z",
+      "last_updated": "2026-04-03T20:57:06.884Z"
+    },
+    {
+      "id": "references-issue-creation",
+      "title": "References Issue Creation",
+      "filename": "references-issue-creation.md",
+      "category": "custom",
+      "description": "Reference for References Issue Creation.",
+      "keywords": [
+        "references-issue-creation"
+      ],
+      "topics": [
+        "references"
+      ],
+      "language": "en",
+      "created": "2026-04-03T20:57:06.884Z",
+      "last_updated": "2026-04-03T20:57:06.884Z"
+    },
+    {
+      "id": "references-patterns",
+      "title": "References Patterns",
+      "filename": "references-patterns.md",
+      "category": "custom",
+      "description": "Reference for References Patterns.",
+      "keywords": [
+        "references-patterns"
+      ],
+      "topics": [
+        "references"
+      ],
+      "language": "en",
+      "created": "2026-04-03T20:57:06.884Z",
+      "last_updated": "2026-04-03T20:57:06.884Z"
+    },
+    {
+      "id": "references-resumability",
+      "title": "References Resumability",
+      "filename": "references-resumability.md",
+      "category": "custom",
+      "description": "Reference for References Resumability.",
+      "keywords": [
+        "references-resumability"
+      ],
+      "topics": [
+        "references"
+      ],
+      "language": "en",
+      "created": "2026-04-03T20:57:06.884Z",
+      "last_updated": "2026-04-03T20:57:06.884Z"
+    },
+    {
+      "id": "references-troubleshooting",
+      "title": "References Troubleshooting",
+      "filename": "references-troubleshooting.md",
+      "category": "custom",
+      "description": "Reference for References Troubleshooting.",
+      "keywords": [
+        "references-troubleshooting"
+      ],
+      "topics": [
+        "references"
+      ],
+      "language": "en",
+      "created": "2026-04-03T20:57:06.884Z",
+      "last_updated": "2026-04-03T20:57:06.884Z"
+    },
+    {
+      "id": "references-molecules",
+      "title": "References Molecules",
+      "filename": "references-molecules.md",
+      "category": "custom",
+      "description": "Reference for References Molecules.",
+      "keywords": [
+        "references-molecules"
+      ],
+      "topics": [
+        "references"
+      ],
+      "language": "en",
+      "created": "2026-04-03T20:57:06.884Z",
+      "last_updated": "2026-04-03T20:57:06.884Z"
+    },
+    {
+      "id": "references-chemistry-patterns",
+      "title": "References Chemistry Patterns",
+      "filename": "references-chemistry-patterns.md",
+      "category": "custom",
+      "description": "Reference for References Chemistry Patterns.",
+      "keywords": [
+        "references-chemistry-patterns"
+      ],
+      "topics": [
+        "references"
+      ],
+      "language": "en",
+      "created": "2026-04-03T20:57:06.884Z",
+      "last_updated": "2026-04-03T20:57:06.884Z"
+    },
+    {
+      "id": "references-agents",
+      "title": "References Agents",
+      "filename": "references-agents.md",
+      "category": "custom",
+      "description": "Reference for References Agents.",
+      "keywords": [
+        "references-agents"
+      ],
+      "topics": [
+        "references"
+      ],
+      "language": "en",
+      "created": "2026-04-03T20:57:06.884Z",
+      "last_updated": "2026-04-03T20:57:06.884Z"
+    },
+    {
+      "id": "references-async-gates",
+      "title": "References Async Gates",
+      "filename": "references-async-gates.md",
+      "category": "custom",
+      "description": "Reference for References Async Gates.",
+      "keywords": [
+        "references-async-gates"
+      ],
+      "topics": [
+        "references"
+      ],
+      "language": "en",
+      "created": "2026-04-03T20:57:06.884Z",
+      "last_updated": "2026-04-03T20:57:06.884Z"
+    },
+    {
+      "id": "references-worktrees",
+      "title": "References Worktrees",
+      "filename": "references-worktrees.md",
+      "category": "custom",
+      "description": "Reference for References Worktrees.",
+      "keywords": [
+        "references-worktrees"
+      ],
+      "topics": [
+        "references"
+      ],
+      "language": "en",
+      "created": "2026-04-03T20:57:06.884Z",
+      "last_updated": "2026-04-03T20:57:06.884Z"
+    },
+    {
+      "id": "references-static-data",
+      "title": "References Static Data",
+      "filename": "references-static-data.md",
+      "category": "custom",
+      "description": "Reference for References Static Data.",
+      "keywords": [
+        "references-static-data"
+      ],
+      "topics": [
+        "references"
+      ],
+      "language": "en",
+      "created": "2026-04-03T20:57:06.884Z",
+      "last_updated": "2026-04-03T20:57:06.884Z"
+    },
+    {
+      "id": "references-integration-patterns",
+      "title": "References Integration Patterns",
+      "filename": "references-integration-patterns.md",
+      "category": "custom",
+      "description": "Reference for References Integration Patterns.",
+      "keywords": [
+        "references-integration-patterns"
+      ],
+      "topics": [
+        "references"
+      ],
+      "language": "en",
+      "created": "2026-04-03T20:57:06.884Z",
+      "last_updated": "2026-04-03T20:57:06.884Z"
+    }
+  ]
+}

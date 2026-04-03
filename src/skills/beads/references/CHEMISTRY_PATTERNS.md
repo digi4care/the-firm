@@ -1,0 +1,1 @@
+../resources/CHEMISTRY_PATTERNS.md

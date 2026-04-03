@@ -1,0 +1,24 @@
+{
+  "version": "1.0.0",
+  "created": "2026-04-03T20:53:12.093Z",
+  "last_updated": "2026-04-03T20:53:12.093Z",
+  "registry_type": "reference_documents",
+  "entries": [
+    {
+      "id": "references-refactor-patterns",
+      "title": "References Refactor Patterns",
+      "filename": "references-refactor-patterns.md",
+      "category": "custom",
+      "description": "Reference for References Refactor Patterns.",
+      "keywords": [
+        "references-refactor-patterns"
+      ],
+      "topics": [
+        "references"
+      ],
+      "language": "en",
+      "created": "2026-04-03T20:53:12.093Z",
+      "last_updated": "2026-04-03T20:53:12.093Z"
+    }
+  ]
+}

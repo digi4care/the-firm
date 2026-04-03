@@ -1,0 +1,1 @@
+../resources/ISSUE_CREATION.md

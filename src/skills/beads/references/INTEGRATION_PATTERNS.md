@@ -1,0 +1,1 @@
+../resources/INTEGRATION_PATTERNS.md
