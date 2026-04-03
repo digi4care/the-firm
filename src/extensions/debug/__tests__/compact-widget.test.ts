@@ -232,9 +232,14 @@ describe("CompactWidget", () => {
 			expect(plain1).toContain("42");
 
 			count = 100;
-			// No cache — immediately reflects new state
+			// Still cached — same width
 			const plain2 = widget.render(120)[0].replace(/\x1b\[[0-9;]*m/g, "");
-			expect(plain2).toContain("100");
+			expect(plain2).toContain("42");
+
+			// Invalidate clears cache
+			widget.invalidate();
+			const plain3 = widget.render(120)[0].replace(/\x1b\[[0-9;]*m/g, "");
+			expect(plain3).toContain("100");
 		});
 	});
 
