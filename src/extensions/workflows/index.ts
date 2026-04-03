@@ -10,30 +10,27 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import { FirmConfigSchema } from "./lib/config.js";
 
 export default function register(pi: ExtensionAPI) {
 	pi.registerCommand("tf-intake", {
 		description: "Start intake for The Firm — initializes your project",
 		handler: async (_args, ctx) => {
 			const cwd = process.cwd();
-			const configPath = join(cwd, ".firm", "config.yml");
+			const configPath = join(cwd, ".pi", "firm", "config.json");
 
 			// Check if already initialized and complete
 			if (existsSync(configPath)) {
 				try {
 					const content = readFileSync(configPath, "utf-8");
 					if (content.trim()) {
-						const nameMatch = content.match(/name:\s*["']?(.+?)["']?\s*$/m);
-						const statusMatch = content.match(/status:\s*(\w+)/m);
-						const classifiedMatch = content.match(/classified:\s*(true|false)/);
-						const projectName = nameMatch?.[1] || "unknown";
-						const status = statusMatch?.[1] || "active";
-						const classified = classifiedMatch?.[1] === "true";
+						const raw = JSON.parse(content);
+						const config = FirmConfigSchema.parse(raw);
 
-						if (classified) {
+						if (config.intake.classified) {
 							// Config is complete — show status
 							ctx.ui.notify(
-								`Project "${projectName}" already initialized (${status}).\nAsk me to update if needed.`,
+								`Project "${config.project.name}" already initialized (${config.project.status}).\nAsk me to update if needed.`,
 								"info",
 							);
 							return;
@@ -41,7 +38,7 @@ export default function register(pi: ExtensionAPI) {
 						// Config exists but incomplete — resume intake
 					}
 				} catch {
-					// Can't read file, fall through to start intake
+					// Can't read or parse — fall through to start intake
 				}
 			}
 
@@ -52,7 +49,7 @@ export default function register(pi: ExtensionAPI) {
 					"Gebruik de intake skill. " +
 					"Lees eerst package.json als die bestaat, " +
 					"voer dan het intake gesprek met de klant. " +
-					"Sla het resultaat op in .firm/config.yml.",
+					"Sla het resultaat op in .pi/firm/config.json.",
 			);
 		},
 	});

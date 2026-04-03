@@ -1,8 +1,9 @@
 /**
- * Simple config schema for .firm/config.yml
+ * Simple config schema for .pi/firm/config.json
  *
  * One client = one project = one config file.
- * No global ~/.firm/ directory. Everything lives in the project.
+ * Lives inside .pi/ (the Pi runtime layer) so it's never deleted.
+ * Everything lives in the project.
  */
 import { z } from "zod";
 
@@ -49,7 +50,7 @@ export const IntakeConfigSchema = z.object({
 });
 
 /**
- * Full config schema for .firm/config.yml
+ * Full config schema for .pi/firm/config.json
  */
 export const FirmConfigSchema = z.object({
 	firm: z.object({

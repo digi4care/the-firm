@@ -78,7 +78,7 @@ De Brief Writer stelt GEEN vragen aan de klant. Hij schrijft de config en bevest
 
 ### Acties
 
-1. Vul alle velden van `.firm/config.yml` in
+1. Vul alle velden van `.pi/firm/config.json` in
 2. Valideer dat alle verplichte velden aanwezig zijn
 3. Schrijf het bestand
 4. Bevestig aan de klant wat is opgeslagen
@@ -93,7 +93,7 @@ De Brief Writer stelt GEEN vragen aan de klant. Hij schrijft de config en bevest
 - **Engagement:** [type]
 - **Volgende stap:** [volgende office]
 
-Alles staat in `.firm/config.yml`. Je kunt het altijd aanpassen."
+Alles staat in `.pi/firm/config.json`. Je kunt het altijd aanpassen."
 
 ## Hoe vragen NIET werken
 

@@ -1,0 +1,23 @@
+{
+	"firm": {
+		"version": 1
+	},
+	"client": {
+		"display_name": "",
+		"language": "nl",
+		"created": ""
+	},
+	"project": {
+		"name": "",
+		"description": "",
+		"stack": [],
+		"created": "",
+		"status": "active"
+	},
+	"intake": {
+		"engagement_type": "",
+		"classified": false,
+		"next_office": "",
+		"completed": ""
+	}
+}

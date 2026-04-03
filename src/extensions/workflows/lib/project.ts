@@ -1,7 +1,7 @@
 /**
  * Project Config Schema — Project level
  *
- * Lives at: ./.firm/project.yml
+ * Lives at: ./.pi/firm/config.json
  *
  * This is the project-level configuration. It references a global client dossier
  * and contains everything specific to this project: stack, architecture, engagement

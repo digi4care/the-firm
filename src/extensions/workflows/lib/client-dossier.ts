@@ -1,12 +1,13 @@
 /**
  * Client Dossier Schema — Global level
  *
- * Lives at: ~/.firm/clients/<client-id>/client-dossier.yml
+ * Lives at: ~/.pi/firm/clients/<client-id>/client-dossier.yml (global)
+ * or .pi/firm/client-dossier.yml (local)
  *
  * This is the CRM-level record for a client. It contains who they are,
  * how to communicate with them, what they expect, and what we've learned.
  * It does NOT contain project-specific technical details — those live in
- * the project config (./.firm/project.yml).
+ * the project config (./.pi/firm/config.json).
  *
  * Relationship: Client 1:N Projects
  */

@@ -1,6 +1,6 @@
 ---
 name: intake
-description: "Voert intake uit voor The Firm. Verwelkomt de klant, stelt vragen één voor één, classificeert het engagement, en slaat de configuratie op in .firm/config.yml. Start met /tf-intake of wanneer een klant een intake wil starten."
+description: "Voert intake uit voor The Firm. Verwelkomt de klant, stelt vragen één voor één, classificeert het engagement, en slaat de configuratie op in .pi/firm/config.json. Start met /tf-intake of wanneer een klant een intake wil starten."
 allowed-tools: Bash Read Write Edit
 ---
 
@@ -13,11 +13,11 @@ De intake skill begeleidt een klant door het intake proces van The Firm. Het is 
 Gebruik deze skill wanneer:
 - De klant `/tf-intake` start
 - De klant aangeeft een nieuw project te willen beginnen met The Firm
-- Er nog geen `.firm/config.yml` bestaat
+- Er nog geen `.pi/firm/config.json` bestaat
 - De klant vraagt "ik wil starten met The Firm"
 
 Gebruik deze skill NIET wanneer:
-- `.firm/config.yml` al bestaat en compleet is → toon status, vraag of klant iets wil bijwerken
+- `.pi/firm/config.json` al bestaat en compleet is → toon status, vraag of klant iets wil bijwerken
 - De klant een specifieke taak wil uitvoeren die al geclassificeerd is → routeer naar juiste office
 - Het gaat om backlog distillation of multi-workstream routing → gebruik `backlog-distillation`
 
@@ -37,7 +37,7 @@ Fase 2: Classificeren (Analyst)
   ↓
 Fase 3: Wegschrijven (Brief Writer)
   → valideert alles
-  → schrijft .firm/config.yml
+  → schrijft .pi/firm/config.json
   → bevestigt aan klant
 ```
 
@@ -61,7 +61,7 @@ Voordat je vragen stelt, check je wat je al weet:
    - `name` → project.name
    - `description` → project.description
    - `dependencies` + `devDependencies` → project.stack
-2. **Lees `.firm/config.yml`** als die bestaat
+2. **Lees `.pi/firm/config.json`** als die bestaat
    - Als die al gevuld is: toon status en vraag of klant iets wil bijwerken
    - Als die leeg is of niet bestaat: doorgaan met intake
 3. **Check git config** voor naam (optioneel)
@@ -160,31 +160,30 @@ Lees de info uit Fase 1 en bepaal het engagement type. Gebruik de tabel hieronde
 
 ### Stap 1: Config samenstellen
 
-Maak een `.firm/config.yml` met deze structuur. Zie `references/config-template.yml` voor het volledige template.
+Maak een `.pi/firm/config.json` met deze structuur. Zie `references/config-template.json` voor het volledige template.
 
-```yaml
-firm:
-  version: 1
-
-client:
-  display_name: "[naam]"
-  language: "[taal]"
-  created: "[datum vandaag, YYYY-MM-DD]"
-
-project:
-  name: "[project naam]"
-  description: "[beschrijving]"
-  stack:
-    - "[tech 1]"
-    - "[tech 2]"
-  created: "[datum vandaag, YYYY-MM-DD]"
-  status: active
-
-intake:
-  engagement_type: "[type]"
-  classified: true
-  next_office: "[office]"
-  completed: "[datum vandaag, YYYY-MM-DD]"
+```json
+{
+  "firm": { "version": 1 },
+  "client": {
+    "display_name": "[naam]",
+    "language": "[taal]",
+    "created": "[datum vandaag, YYYY-MM-DD]"
+  },
+  "project": {
+    "name": "[project naam]",
+    "description": "[beschrijving]",
+    "stack": ["[tech 1]", "[tech 2]"],
+    "created": "[datum vandaag, YYYY-MM-DD]",
+    "status": "active"
+  },
+  "intake": {
+    "engagement_type": "[type]",
+    "classified": true,
+    "next_office": "[office]",
+    "completed": "[datum vandaag, YYYY-MM-DD]"
+  }
+}
 ```
 
 ### Stap 2: Valideren
@@ -203,8 +202,8 @@ Als iets ontbreekt: **niet wegschrijven**, terug naar de juiste fase.
 
 ### Stap 3: Wegschrijven
 
-1. Maak `.firm/` directory aan als die niet bestaat: `mkdir -p .firm`
-2. Schrijf `.firm/config.yml`
+1. Maak `.pi/firm/` directory aan als die niet bestaat: `mkdir -p .pi/firm`
+2. Schrijf `.pi/firm/config.json`
 3. Gebruik de `write` tool, niet `bash echo` of `tee`
 
 ### Stap 4: Bevestigen
@@ -220,13 +219,13 @@ Bevestig aan de klant wat is opgeslagen:
 > - **Engagement:** [engagement_type]
 > - **Volgende stap:** [next_office] neemt het over
 >
-> Alles staat in `.firm/config.yml`. Je kunt het altijd aanpassen."
+> Alles staat in `.pi/firm/config.json`. Je kunt het altijd aanpassen."
 
 ---
 
 ## Randgevallen
 
-### .firm/config.yml bestaat al
+### .pi/firm/config.json bestaat al
 
 1. Lees het bestaande bestand
 2. Toon wat erin staat
@@ -253,6 +252,6 @@ Schakel over naar Engels. Stel `client.language` in op "en".
 
 ## Referenties
 
-- `references/config-template.yml` — volledig template met alle velden
+- `references/config-template.json` — volledig template met alle velden
 - `references/classification-guide.md` — engagement types, routing, compleetheid
 - `references/questions-guide.md` — welke vragen, in welke volgorde, met voorbeelden
