@@ -1,12 +1,12 @@
 ---
 name: brainstorming
 description: "Turn ideas into fully formed designs through collaborative dialogue. Explores intent, requirements, constraints, and proposes approaches before any implementation. Use when starting a new feature, designing a component, or any creative work that needs structure before building. Keywords - brainstorm, design, idea, approach, spec, explore, creative."
-allowed-tools: Bash Read Write Edit
+allowed-tools: Bash Read
 ---
 
 # Brainstorming Ideas Into Designs
 
-Turn ideas into fully formed designs through collaborative dialogue. Ask questions one at a time, propose approaches, present design, get approval — then write spec and hand off to planning.
+Turn ideas into fully formed designs through collaborative dialogue. Ask questions one at a time, propose approaches, present design, get approval — then hand off to planning. This skill does NOT write or mutate files — it only reads context and talks.
 
 <HARD-GATE>
 Do NOT write any code, scaffold any project, or take any implementation action until you have presented a design and the user has approved it. This applies to EVERY project regardless of perceived simplicity.
@@ -62,23 +62,21 @@ Every project goes through this process. A todo list, a single-function utility,
 - Cover: architecture, components, data flow, error handling, testing
 - Design for isolation: break into units with one clear purpose, well-defined interfaces
 
-### Step 5: Write Design Doc
+### Step 5: User Approval Gate
 
-- Save to a location agreed with the user (default: `design/` directory)
-- Commit the design document to git
+Ask the user to approve the design before anything gets written:
 
-### Step 6: User Review Gate
+> "Here's the design. Does this look right? If yes, I'll write it to a design doc."
 
-Ask the user to review the written design before proceeding:
+Wait for approval. If changes requested, update the design and ask again. Only proceed once approved.
 
-> "Design written to `<path>`. Please review and let me know if you want changes before we start the implementation plan."
+### Step 6: Hand Off
 
-Wait for approval. If changes requested, update and ask again. Only proceed once approved.
+After approval, the design is ready to be documented and planned. Hand off to:
+- `writing-plans` — to create an implementation plan
+- Or the user writes the design doc themselves
 
-### Step 7: Hand Off to Planning
-
-- Invoke `writing-plans` skill to create an implementation plan
-- Do NOT invoke any implementation skill directly
+This skill does NOT write files. It only reads context and facilitates the conversation.
 
 ## Key Principles
 
