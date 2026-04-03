@@ -1,6 +1,6 @@
 {
   "name": "@digi4care/the-firm",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Issue-driven, role-specialized engineering operating system for AI-assisted software development -- turns generic AI coding into a governable software organization",
   "keywords": [
     "ai",
@@ -29,12 +29,15 @@
     "format:check": "biome format .",
     "version:patch": "bun scripts/version-bump.js patch",
     "version:minor": "bun scripts/version-bump.js minor",
+    "test": "bun test",
     "version:major": "bun scripts/version-bump.js major"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.10",
-    "npm-check-updates": "^20",
-    "markdownlint-cli2": "^0.22.0"
+    "@mariozechner/pi-coding-agent": "^0.64.0",
+    "@mariozechner/pi-tui": "^0.64.0",
+    "markdownlint-cli2": "^0.22.0",
+    "npm-check-updates": "^20"
   },
   "dependencies": {
     "zod": "^4.3.6"
