@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { ClientDossierSchema } from "../client-dossier.js";
+import { ClientDossierSchema } from "../../client-dossier.js";
 
 describe("ClientDossierSchema", () => {
 	const baseValidDossier = {

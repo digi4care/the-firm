@@ -6,12 +6,19 @@
  * Creates ./.firm/project.yml
  */
 
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { ClientDossierSchema } from "../lib/schemas/client-dossier.js";
-import { ProjectConfigSchema } from "../lib/schemas/project.js";
+import {
+	createTrackedDir,
+	createTrackedFile,
+	isProjectInitialized,
+	rollbackPaths,
+} from "./lib/project-state.js";
+import { formatClientOptions, resolveSelectedClient } from "./lib/select-helpers.js";
+import { ClientDossierSchema } from "./lib/client-dossier.js";
+import { ProjectConfigSchema } from "./lib/project.js";
 
 interface ClientInfo {
 	id: string;
@@ -23,6 +30,8 @@ export default function register(pi: ExtensionAPI) {
 	pi.registerCommand("tf-intake", {
 		description: "Initialize a new client and project intake for The Firm",
 		handler: async (_args, ctx) => {
+			const tracked: string[] = [];
+
 			try {
 				// --- Path setup ---
 				const globalDir = join(homedir(), ".firm");
@@ -30,8 +39,8 @@ export default function register(pi: ExtensionAPI) {
 				const projectDir = join(process.cwd(), ".firm");
 				const projectFile = join(projectDir, "project.yml");
 
-				// --- Check if project already initialized ---
-				if (existsSync(projectFile)) {
+				// --- Check if project already initialized (Bug 3 fix: validates content) ---
+				if (isProjectInitialized(projectFile)) {
 					ctx.ui.notify("Project already initialized. Use /tf-status for info.", "info");
 					return;
 				}
@@ -65,7 +74,7 @@ export default function register(pi: ExtensionAPI) {
 				// --- Create client dossier (if new client) ---
 				if (isNewClient) {
 					const clientDir = join(clientsDir, clientId);
-					mkdirSync(clientDir, { recursive: true });
+					createTrackedDir(clientDir, tracked);
 
 					const dossierData = {
 						dossier: { version: 1 as const },
@@ -117,6 +126,8 @@ export default function register(pi: ExtensionAPI) {
 					// Validate before writing
 					const parseResult = ClientDossierSchema.safeParse(dossierData);
 					if (!parseResult.success) {
+						// Bug 2 fix: rollback on validation failure
+						rollbackPaths(tracked);
 						ctx.ui.notify(
 							`Client dossier validation failed: ${parseResult.error.message}`,
 							"error",
@@ -125,7 +136,81 @@ export default function register(pi: ExtensionAPI) {
 					}
 
 					// Serialize to YAML
-					const dossierYaml = `dossier:
+					const dossierYaml = serializeDossierYaml(clientId, clientName, today, stack);
+					createTrackedFile(join(clientDir, "client-dossier.yml"), dossierYaml, tracked);
+				}
+
+				// --- Create project config ---
+				createTrackedDir(projectDir, tracked);
+
+				const projectData = {
+					project: { version: 1 as const },
+					identity: {
+						id: projectId,
+						name: projectName,
+						description: projectDesc,
+						client_id: clientId,
+						created: today,
+						status: "active" as const,
+					},
+					technical_context: {
+						stack: stack,
+					},
+					current_engagement: null,
+					constraints: {
+						additional: [],
+						excluded: [],
+					},
+				};
+
+				// Validate before writing
+				const projectParseResult = ProjectConfigSchema.safeParse(projectData);
+				if (!projectParseResult.success) {
+					// Bug 2 fix: rollback on validation failure
+					rollbackPaths(tracked);
+					ctx.ui.notify(
+						`Project config validation failed: ${projectParseResult.error.message}`,
+						"error",
+					);
+					return;
+				}
+
+				// Serialize to YAML
+				const projectYaml = serializeProjectYaml(
+					projectId,
+					projectName,
+					projectDesc,
+					clientId,
+					today,
+					stack,
+				);
+				createTrackedFile(projectFile, projectYaml, tracked);
+
+				// --- Success notification ---
+				ctx.ui.notify(
+					`Intake initialized!\nClient: ${clientName}\nProject: ${projectName}`,
+					"info",
+				);
+			} catch (error) {
+				// Bug 2 fix: rollback on any uncaught error
+				rollbackPaths(tracked);
+				const message = error instanceof Error ? error.message : String(error);
+				ctx.ui.notify(`Intake failed: ${message}`, "error");
+			}
+		},
+	});
+}
+
+/**
+ * Serialize client dossier to YAML string.
+ */
+function serializeDossierYaml(
+	clientId: string,
+	clientName: string,
+	today: string,
+	stack: string[],
+): string {
+	return `dossier:
   version: 1
 identity:
   id: ${clientId}
@@ -165,45 +250,20 @@ patterns:
   watch_outs: []
   distilled: []
 `;
+}
 
-					writeFileSync(join(clientDir, "client-dossier.yml"), dossierYaml, "utf-8");
-				}
-
-				// --- Create project config ---
-				mkdirSync(projectDir, { recursive: true });
-
-				const projectData = {
-					project: { version: 1 as const },
-					identity: {
-						id: projectId,
-						name: projectName,
-						description: projectDesc,
-						client_id: clientId,
-						created: today,
-						status: "active" as const,
-					},
-					technical_context: {
-						stack: stack,
-					},
-					current_engagement: null,
-					constraints: {
-						additional: [],
-						excluded: [],
-					},
-				};
-
-				// Validate before writing
-				const projectParseResult = ProjectConfigSchema.safeParse(projectData);
-				if (!projectParseResult.success) {
-					ctx.ui.notify(
-						`Project config validation failed: ${projectParseResult.error.message}`,
-						"error",
-					);
-					return;
-				}
-
-				// Serialize to YAML
-				const projectYaml = `project:
+/**
+ * Serialize project config to YAML string.
+ */
+function serializeProjectYaml(
+	projectId: string,
+	projectName: string,
+	projectDesc: string,
+	clientId: string,
+	today: string,
+	stack: string[],
+): string {
+	return `project:
   version: 1
 identity:
   id: ${projectId}
@@ -220,33 +280,19 @@ constraints:
   additional: []
   excluded: []
 `;
-
-				writeFileSync(projectFile, projectYaml, "utf-8");
-
-				// --- Success notification ---
-				ctx.ui.notify(
-					`Intake initialized!\nClient: ${clientName}\nProject: ${projectName}`,
-					"info",
-				);
-			} catch (error) {
-				const message = error instanceof Error ? error.message : String(error);
-				ctx.ui.notify(`Intake failed: ${message}`, "error");
-			}
-		},
-	});
 }
 
 /**
- * Get client info - either select existing or create new
+ * Get client info - either select existing or create new.
+ *
+ * Bug 1 fix: Uses formatClientOptions() to pass string[] to ctx.ui.select()
+ * instead of {value, label} objects that render as "[object Object]".
  */
 async function getClientInfo(
 	ctx: {
 		ui: {
 			input: (prompt: string, placeholder: string) => Promise<string | undefined>;
-			select: (
-				prompt: string,
-				options: Array<{ value: string; label: string }>,
-			) => Promise<string | undefined>;
+			select: (prompt: string, options: string[]) => Promise<string | undefined>;
 			notify: (msg: string, level: "info" | "warning" | "error") => void;
 		};
 	},
@@ -261,33 +307,33 @@ async function getClientInfo(
 			.filter((name) => /^firm-client-[a-z0-9]+$/.test(name));
 
 		if (clientDirs.length > 0) {
-			// Try to read display names from existing dossiers
-			const clientOptions = clientDirs.map((id) => {
+			// Read display names from existing dossiers
+			const clients = clientDirs.map((id) => {
 				const dossierPath = join(clientsDir, id, "client-dossier.yml");
 				let displayName = id;
 				try {
 					const content = readFileSync(dossierPath, "utf-8");
-					// Simple extraction - look for display_name: value
 					const match = content.match(/display_name:\s*(.+)/);
 					if (match) displayName = match[1].trim();
 				} catch {
 					// Fallback to ID if can't read
 				}
-				return { value: id, label: displayName };
+				return { id, name: displayName };
 			});
 
-			const options = [{ value: "__new__", label: "+ Create new client" }, ...clientOptions];
-
+			// Bug 1 fix: format as string[] for Pi's select API
+			const options = formatClientOptions(clients);
 			const selected = await ctx.ui.select("Select client:", options);
 
-			if (selected === undefined) return null; // Cancelled
+			// Resolve selected string back to client info
+			const resolved = resolveSelectedClient(selected, clients);
+			if (!resolved) return null; // Cancelled
 
-			if (selected !== "__new__") {
-				// Existing client
-				const clientName = clientOptions.find((c) => c.value === selected)?.label || selected;
-				return { id: selected, name: clientName, isNew: false };
+			if (resolved.isNew) {
+				// Fall through to new client flow
+			} else {
+				return { id: resolved.id, name: resolved.name, isNew: false };
 			}
-			// Fall through to new client flow
 		}
 	}
 

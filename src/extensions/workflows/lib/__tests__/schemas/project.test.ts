@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { ProjectConfigSchema } from "../project.js";
+import { ProjectConfigSchema } from "../../project.js";
 
 describe("ProjectConfigSchema", () => {
 	const baseValidProject = {
