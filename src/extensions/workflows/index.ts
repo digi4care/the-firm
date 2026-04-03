@@ -1,10 +1,9 @@
 /**
- * Pi Extension: /tf-intake
+ * Pi Extension: /tf-intake + workflow settings + /handoff
  *
- * Triggers the Intake Office conversation using the intake skill.
- * - If no config exists: starts intake via agent conversation
- * - If config exists and complete: shows project status
- * - If config exists but incomplete: resumes intake
+ * - /tf-intake: Triggers the Intake Office conversation using the intake skill.
+ * - /handoff: Transfer context to a new focused session.
+ * - Workflow settings: compaction, handoff, session lifecycle hooks.
  */
 
 import { existsSync, readFileSync } from "node:fs";
@@ -12,10 +11,14 @@ import { join } from "node:path";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { FirmConfigSchema } from "./lib/config.js";
 import registerWorkflowSettings from "./workflow-settings.js";
+import registerHandoffCommand from "./lib/handoff-command.js";
 
 export default function register(pi: ExtensionAPI) {
 	// Register workflow settings (autoSaveHandoff, compactionStrategy, autoCompact, saveOnExit)
 	registerWorkflowSettings(pi);
+
+	// Register /handoff command
+	registerHandoffCommand(pi);
 
 	pi.registerCommand("tf-intake", {
 		description: "Start intake for The Firm — initializes your project",

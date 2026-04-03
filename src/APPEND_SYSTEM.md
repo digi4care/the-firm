@@ -6,6 +6,8 @@ Lees bij sessie-start de volgende bestanden:
 
 - `.personal/PERSONA.md` -- wie de gebruiker is en hoe je communiceert
 - `.personal/TERMS.md` -- gedeelde woordenlijst (bijwerken bij nieuwe termen)
+- `.local/HANDOFF.md` -- context van vorige sessie (als het bestaat)
+- `bd ready` -- openstaand werk ophalen
 
 ---
 
