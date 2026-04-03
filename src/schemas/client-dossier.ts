@@ -48,7 +48,7 @@ export const IdentitySchema = z.object({
  * What kind of developer they are and when they work.
  */
 export const ProfileSchema = z.object({
-	background: z.string().min(1),
+	background: z.string().optional().default(""),
 	skill_level: SkillLevel,
 	known_stack: z.array(z.string()).min(1),
 	availability: Availability,
