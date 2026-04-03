@@ -72,14 +72,14 @@ describe("tf-delete-guard", () => {
 	});
 
 	it("registers a tool_call handler", async () => {
-		const { default: register } = await import("../tf-delete-guard.ts");
+		const { default: register } = await import("../delete-guard.ts");
 		register(mockPi as any);
 		expect(mockPi.on).toHaveBeenCalledWith("tool_call", expect.any(Function));
 	});
 
 	it("passes through non-bash tools", async () => {
 		writeSettings({ theFirm: { requireConfirmationBeforeDelete: true } });
-		const { default: register } = await import("../tf-delete-guard.ts");
+		const { default: register } = await import("../delete-guard.ts");
 		register(mockPi as any);
 
 		const handler = mockPi.getHandler("tool_call");
@@ -92,7 +92,7 @@ describe("tf-delete-guard", () => {
 
 	it("passes through non-delete bash commands", async () => {
 		writeSettings({ theFirm: { requireConfirmationBeforeDelete: true } });
-		const { default: register } = await import("../tf-delete-guard.ts");
+		const { default: register } = await import("../delete-guard.ts");
 		register(mockPi as any);
 
 		const handler = mockPi.getHandler("tool_call");
@@ -102,7 +102,7 @@ describe("tf-delete-guard", () => {
 
 	it("passes through when guard is disabled", async () => {
 		writeSettings({ theFirm: { requireConfirmationBeforeDelete: false } });
-		const { default: register } = await import("../tf-delete-guard.ts");
+		const { default: register } = await import("../delete-guard.ts");
 		register(mockPi as any);
 
 		const handler = mockPi.getHandler("tool_call");
@@ -112,7 +112,7 @@ describe("tf-delete-guard", () => {
 
 	it("passes through when settings have no theFirm key", async () => {
 		writeSettings({});
-		const { default: register } = await import("../tf-delete-guard.ts");
+		const { default: register } = await import("../delete-guard.ts");
 		register(mockPi as any);
 
 		const handler = mockPi.getHandler("tool_call");
@@ -122,7 +122,7 @@ describe("tf-delete-guard", () => {
 
 	it("passes through when no settings.json exists", async () => {
 		// No settings file
-		const { default: register } = await import("../tf-delete-guard.ts");
+		const { default: register } = await import("../delete-guard.ts");
 		register(mockPi as any);
 
 		const handler = mockPi.getHandler("tool_call");
@@ -132,7 +132,7 @@ describe("tf-delete-guard", () => {
 
 	it("blocks delete command when user declines", async () => {
 		writeSettings({ theFirm: { requireConfirmationBeforeDelete: true } });
-		const { default: register } = await import("../tf-delete-guard.ts");
+		const { default: register } = await import("../delete-guard.ts");
 		register(mockPi as any);
 
 		const handler = mockPi.getHandler("tool_call");
@@ -144,7 +144,7 @@ describe("tf-delete-guard", () => {
 
 	it("allows delete command when user confirms", async () => {
 		writeSettings({ theFirm: { requireConfirmationBeforeDelete: true } });
-		const { default: register } = await import("../tf-delete-guard.ts");
+		const { default: register } = await import("../delete-guard.ts");
 		register(mockPi as any);
 
 		const handler = mockPi.getHandler("tool_call");
@@ -156,7 +156,7 @@ describe("tf-delete-guard", () => {
 
 	it("blocks delete command in non-interactive mode", async () => {
 		writeSettings({ theFirm: { requireConfirmationBeforeDelete: true } });
-		const { default: register } = await import("../tf-delete-guard.ts");
+		const { default: register } = await import("../delete-guard.ts");
 		register(mockPi as any);
 
 		const handler = mockPi.getHandler("tool_call");
@@ -170,7 +170,7 @@ describe("tf-delete-guard", () => {
 
 	it("catches various delete patterns", async () => {
 		writeSettings({ theFirm: { requireConfirmationBeforeDelete: true } });
-		const { default: register } = await import("../tf-delete-guard.ts");
+		const { default: register } = await import("../delete-guard.ts");
 		register(mockPi as any);
 
 		const handler = mockPi.getHandler("tool_call");
@@ -199,7 +199,7 @@ describe("tf-delete-guard", () => {
 		mkdirSync(join(TMP_DIR, "src"), { recursive: true });
 		writeFileSync(join(TMP_DIR, "src", "settings.json"), "NOT VALID JSON{{{", "utf-8");
 
-		const { default: register } = await import("../tf-delete-guard.ts");
+		const { default: register } = await import("../delete-guard.ts");
 		register(mockPi as any);
 
 		const handler = mockPi.getHandler("tool_call");
