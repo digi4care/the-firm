@@ -164,6 +164,12 @@ Fix, debug, feature, refactoring, test — **altijd** eerst `bd create`.
 - Geen ticket = geen code.
 - Geen "ik fix het even zonder ticket".
 
+### Nooit verwijderen zonder bevestiging
+
+`src/settings.json` → `theFirm.requireConfirmationBeforeDelete`
+
+Als deze op `true` staat: **altijd** de gebruiker vragen voordat een bestand wordt verwijderd (`rm`, unlink, rmdir, rsync --delete, enz.). Geen uitzonderingen.
+
 ---
 
 ## Project Commands

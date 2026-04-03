@@ -6,6 +6,11 @@ set -euo pipefail
 
 mkdir -p .pi
 
+# Kopieer settings.json
+if [ -f "src/settings.json" ]; then
+  cp src/settings.json .pi/settings.json
+fi
+
 RUNTIME_DIRS=("extensions" "prompts" "lib" "skills")
 
 for dir in "${RUNTIME_DIRS[@]}"; do
