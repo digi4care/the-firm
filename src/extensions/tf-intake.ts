@@ -60,6 +60,7 @@ export default function register(pi: ExtensionAPI) {
 					.split(",")
 					.map((s) => s.trim())
 					.filter((s) => s.length > 0);
+				if (stack.length === 0) stack.push("unknown");
 
 				// --- Create client dossier (if new client) ---
 				if (isNewClient) {
