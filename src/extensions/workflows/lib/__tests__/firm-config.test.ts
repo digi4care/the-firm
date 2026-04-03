@@ -97,10 +97,10 @@ describe("FirmConfigSchema", () => {
 		expect(result.project.description).toBe("");
 	});
 
-	test("defaults spoken_language and preferred_language to en", () => {
+	test("defaults spoken_language and preferred_language to nl", () => {
 		const result = FirmConfigSchema.parse(minimalConfig);
-		expect(result.client.spoken_language).toBe("en");
-		expect(result.client.preferred_language).toBe("en");
+		expect(result.client.spoken_language).toBe("nl");
+		expect(result.client.preferred_language).toBe("nl");
 	});
 
 	test("rejects missing client name", () => {
@@ -188,8 +188,8 @@ describe("Progressive disclosure", () => {
 		expect(client.communication).toBeUndefined();
 		expect(client.preferences).toBeUndefined();
 		expect(client.patterns).toBeUndefined();
-		expect(client.spoken_language).toBe("en");
-		expect(client.preferred_language).toBe("en");
+		expect(client.spoken_language).toBe("nl");
+		expect(client.preferred_language).toBe("nl");
 	});
 
 	test("client with profile added later", () => {

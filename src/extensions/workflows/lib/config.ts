@@ -92,8 +92,8 @@ export const ClientSchema = z.object({
 }).transform((data) => {
 	// Backward compat: migreer oud 'language' veld
 	const hasLegacyLanguage = !!data.language;
-	const spoken = data.spoken_language ?? (hasLegacyLanguage ? data.language : undefined) ?? "en";
-	const preferred = data.preferred_language ?? (hasLegacyLanguage ? data.language : undefined) ?? "en";
+	const spoken = data.spoken_language ?? (hasLegacyLanguage ? data.language : undefined) ?? "nl";
+	const preferred = data.preferred_language ?? (hasLegacyLanguage ? data.language : undefined) ?? "nl";
 	// Verwijder legacy veld
 	const { language, ...rest } = data;
 	return { ...rest, spoken_language: spoken, preferred_language: preferred };
