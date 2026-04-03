@@ -1,6 +1,5 @@
 ---
 description: Generate a project-specific AGENTS.md file based on the project's stack, conventions, and requirements. Analyzes project structure and creates timeless guidelines for AI agents.
-agent: general
 ---
 
 # /generate-agents-md

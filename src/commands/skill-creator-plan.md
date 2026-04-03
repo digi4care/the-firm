@@ -1,6 +1,5 @@
 ---
 description: Draft a skill plan without writing files
-agent: general
 ---
 
 # Skill Creator: Plan

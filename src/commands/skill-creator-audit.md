@@ -1,6 +1,5 @@
 ---
 description: Audit a SKILL.md for best-practice signals
-agent: general
 ---
 
 # Skill Creator: Audit

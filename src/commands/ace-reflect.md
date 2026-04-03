@@ -1,6 +1,5 @@
 ---
 description: Analyze sessions and generate improvement suggestions using ACE framework. Uses Pi's built-in session system.
-agent: general
 ---
 
 # /ace-reflect

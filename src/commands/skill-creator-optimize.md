@@ -1,6 +1,5 @@
 ---
 description: Optimize an existing skill with structured updates
-agent: general
 ---
 
 # Skill Creator: Optimize

@@ -1,6 +1,5 @@
 ---
 description: Create a new skill skeleton with dry-run support
-agent: general
 ---
 
 # Skill Creator: Create
