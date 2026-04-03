@@ -172,19 +172,6 @@ export class DebugOverlay {
 			}
 			container.addChild(new Text(toolParts.join(" "), 0, 0));
 		}
-		if (this.detailMode) {
-			container.addChild(
-				new Text(
-					fg(
-						P.warning,
-						` ${event.eventType.padEnd(32)}${fg(P.dim, JSON.stringify(event.details ?? {}))}`,
-					),
-					0,
-					0,
-				),
-			);
-		}
-
 		container.addChild(new Text(fg(P.border, "-".repeat(width)), 0, 0));
 
 		// Event timeline
@@ -198,10 +185,20 @@ export class DebugOverlay {
 		}
 
 		const visible = events.slice(start, end);
+		let selectedEvent: TrackedEvent | undefined;
 		for (let i = 0; i < visible.length; i++) {
 			const event = visible[i];
 			const isSelected = start + i === this.selectedIndex;
+			if (isSelected) selectedEvent = event;
 			container.addChild(new Text(this.renderEventRow(event, isSelected, width), 0, 0));
+		}
+
+		// Detail panel: show details of selected event
+		if (this.detailMode && selectedEvent) {
+			container.addChild(new Text(fg(P.border, "-".repeat(width)), 0, 0));
+			const detailEventType = fg(P.warning, selectedEvent.eventType.padEnd(32));
+			const detailJson = fg(P.dim, JSON.stringify(selectedEvent.details ?? {}));
+			container.addChild(new Text(` ${detailEventType}${detailJson}`, 0, 0));
 		}
 
 		if (events.length === 0) {

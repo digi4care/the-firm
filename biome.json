@@ -39,6 +39,19 @@
 	},
 	"overrides": [
 		{
+			"includes": ["**/__tests__/**"],
+			"linter": {
+				"rules": {
+					"suspicious": {
+						"noExplicitAny": "off"
+					},
+					"style": {
+						"noNonNullAssertion": "off"
+					}
+				}
+			}
+		},
+		{
 			"includes": ["scripts/**"],
 			"linter": {
 				"rules": {
