@@ -112,6 +112,28 @@ Use `todo_write`, not Beads, for a one-off single-session review with no persist
 - `references/review-template.mdx` — Reporting format for findings
 - [Google Engineering Practices: Code Review](https://google.github.io/eng-practices/review/) — Review heuristics
 
+## Decision Gate
+
+**After presenting findings, ALWAYS offer these options:**
+
+```
+─────────────────────────────────────────
+REVIEW COMPLETE
+
+What would you like to do?
+
+1. **Fix issues** — Address findings starting with must-fix
+2. **Save review** — Export findings to a markdown file
+3. **Review again** — Re-review with different scope or focus
+4. **Discuss a finding** — Ask questions about a specific issue
+5. **Other** — Tell me what you need
+─────────────────────────────────────────
+```
+
+**Wait for user response before taking any action.**
+
+This gate is MANDATORY. Never skip it. Never auto-implement fixes based on your own findings.
+
 ## Related Skills
 
 | Skill | Purpose | When to use |

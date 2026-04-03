@@ -1213,7 +1213,4 @@ export default async function skillCreator(pi: ExtensionAPI) {
 		},
 	});
 
-	console.log(
-		"[skill-creator] Loaded: skill-creator-plan, skill-creator-audit, skill-creator-create, skill-creator-optimize",
-	);
 }
