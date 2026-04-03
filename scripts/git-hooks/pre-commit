@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# pre-commit hook — runs tests and lint before every commit
+#
+# Installed via: bun run hooks:install
+# Bypass with: git commit --no-verify (BLOCKED by AGENTS.md — never use)
+
+set -euo pipefail
+
+echo "🔍 Running pre-commit checks..."
+
+# 1. Tests
+echo "  → bun test"
+if ! bun test 2>&1; then
+	echo ""
+	echo "❌ PRE-COMMIT BLOCKED: Tests failed"
+	echo "   Fix the failing tests before committing."
+	echo "   NEVER use --no-verify to bypass this."
+	exit 1
+fi
+
+# 2. Lint
+echo "  → bun run lint"
+if ! bun run lint 2>&1; then
+	echo ""
+	echo "❌ PRE-COMMIT BLOCKED: Lint failed"
+	echo "   Run 'bun run lint:fix' to auto-fix, then commit again."
+	echo "   NEVER use --no-verify to bypass this."
+	exit 1
+fi
+
+echo "✅ Pre-commit checks passed"
