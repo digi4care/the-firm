@@ -11,7 +11,7 @@ if [ -f "src/settings.json" ]; then
   cp src/settings.json .pi/settings.json
 fi
 
-RUNTIME_DIRS=("extensions" "prompts" "lib" "skills")
+RUNTIME_DIRS=("extensions" "prompts" "lib" "skills" "commands" "shared")
 
 for dir in "${RUNTIME_DIRS[@]}"; do
   if [ -d "src/$dir" ]; then

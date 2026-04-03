@@ -11,8 +11,12 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { FirmConfigSchema } from "./lib/config.js";
+import registerWorkflowSettings from "./workflow-settings.js";
 
 export default function register(pi: ExtensionAPI) {
+	// Register workflow settings (autoSaveHandoff, compactionStrategy, autoCompact, saveOnExit)
+	registerWorkflowSettings(pi);
+
 	pi.registerCommand("tf-intake", {
 		description: "Start intake for The Firm — initializes your project",
 		handler: async (_args, ctx) => {

@@ -14,7 +14,7 @@ if [ -f "src/settings.json" ]; then
 fi
 
 # Kopieer runtime dirs
-RUNTIME_DIRS=("extensions" "prompts" "lib" "skills" "commands")
+RUNTIME_DIRS=("extensions" "prompts" "lib" "skills" "commands" "shared")
 
 for dir in "${RUNTIME_DIRS[@]}"; do
   if [ -d "src/$dir" ]; then
