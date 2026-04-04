@@ -4,15 +4,18 @@
  * Links workflow settings to Pi lifecycle events:
  *   - Compaction settings sync (reserveTokens, keepRecentTokens, enabled)
  *   - Handoff: inject context from previous session on startup
- *   - Session shutdown: save basic handoff as safety net
- *   - session_before_compact: DO NOT cancel — let Pi's compaction handle it
+ *   - After compaction: save Pi's compaction summary as handoff
+ *   - Session shutdown: save handoff doc for next session
  *
- * Key principle: we use session_before_compact only for custom compaction
- * summaries (like OMP's custom-compaction.ts example). We NEVER cancel
- * compaction without providing an alternative — that blocks the session.
+ * Key principle: Pi's own compaction generates excellent structured
+ * summaries. We reuse those summaries as handoff documents rather than
+ * generating our own from raw session entries.
  *
- * For handoff at threshold: OMP handles this via its core handoff() method
- * in agent-session.ts. Extensions should NOT try to replicate that.
+ * Note on "handoff" strategy: Pi's extension API does not expose
+ * newSession() on ExtensionContext (only on ExtensionCommandContext).
+ * So we cannot auto-start a new session from compaction events.
+ * Instead, the handoff strategy saves Pi's compaction summary and
+ * notifies the user to start a new session manually.
  */
 
 import { existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
@@ -198,19 +201,31 @@ export default function registerWorkflowSettings(pi: ExtensionAPI) {
 	let handoffInjected = false;
 
 	// ── Session start: sync settings + prepare handoff injection ──
-	pi.on("session_start", async (event, _ctx) => {
+	// Note: SessionStartEvent has no `reason` field in Pi's types.
+	// The handler always runs; handoff injection is gated by handoffInjected flag.
+	let pendingNotifyStrategy = false;
+
+	pi.on("session_start", async (_event, ctx) => {
 		// Sync The Firm settings to Pi compaction config
 		syncCompactionSettingsToPi();
 
-		// Only inject handoff context on fresh startup (not resume/fork)
-		if (event.reason !== "startup") return;
-
 		// Check for existing handoff document
 		const handoffDoc = readHandoffDoc();
-		if (!handoffDoc) return;
+		if (handoffDoc) {
+			// Mark that we have handoff to inject on first agent turn
+			handoffInjected = false;
+		}
 
-		// Mark that we have handoff to inject
-		handoffInjected = false;
+		// If the handoff strategy was triggered last session, notify user
+		if (pendingNotifyStrategy) {
+			pendingNotifyStrategy = false;
+			setTimeout(() => {
+				ctx.ui.notify(
+					"📋 Handoff context loaded from previous session. Continue where you left off.",
+					"info",
+				);
+			}, 1000);
+		}
 	});
 
 	// ── Inject handoff into first agent turn ───────────────
@@ -235,41 +250,71 @@ export default function registerWorkflowSettings(pi: ExtensionAPI) {
 		};
 	});
 
-	// ── Compaction: let Pi handle it, save basic handoff after ──
-	// We do NOT cancel compaction. We do NOT try to replace it with
-	// our own LLM call (that's what caused the blocking bug).
-	// Instead, we save a basic handoff doc as a safety net.
+	// ── Compaction: let Pi handle it ──
+	// We never cancel compaction. Pi's own summarizer generates excellent
+	// structured summaries. We save those as handoff docs after compaction.
 	pi.on("session_before_compact", async (_event, _ctx) => {
 		// Always let Pi's compaction run. Return undefined = no override.
 		return undefined;
 	});
 
-	// ── After compaction: save basic handoff as safety net ──
-	pi.on("session_compact", async (_event, ctx) => {
+	// ── After compaction: save Pi's compaction summary as handoff ──
+	// Pi's own compaction generates a structured summary — that's exactly
+	// what we want as a handoff document. Much better than our basic handoff
+	// which dumps raw session entries.
+	pi.on("session_compact", async (event, ctx) => {
 		try {
-			const entries = ctx.sessionManager.getEntries();
-			if (entries.length < 2) return;
-
 			const sessionId = ctx.sessionManager?.getSessionId?.() || "unknown";
 
-			// Save basic handoff (no LLM call — just file ops + recent messages)
-			const basicHandoff = generateBasicHandoff(entries);
-			saveHandoffDoc(
-				`# Handoff — After Compaction (basic)\n\nSession: ${sessionId}\nGenerated: ${new Date().toISOString()}\n\n${basicHandoff}`,
-				sessionId,
-			);
+			// Use Pi's own compaction summary (structured, readable)
+			// Fallback to basic handoff only if no summary available
+			const compactionSummary = event.compactionEntry?.summary;
+			const entries = ctx.sessionManager.getEntries();
+
+			let handoffContent: string;
+			let method: string;
+
+			if (compactionSummary) {
+				handoffContent = `# Handoff — After Compaction\n\nSession: ${sessionId}\nGenerated: ${new Date().toISOString()}\n\n${compactionSummary}`;
+				method = "compaction-summary";
+			} else if (entries.length >= 2) {
+				handoffContent = `# Handoff — After Compaction (fallback)\n\nSession: ${sessionId}\nGenerated: ${new Date().toISOString()}\n\n${generateBasicHandoff(entries)}`;
+				method = "basic-fallback";
+			} else {
+				return; // Nothing useful to save
+			}
+
+			saveHandoffDoc(handoffContent, sessionId);
+
+			// If compactionStrategy is "handoff", notify user
+			const strategy = getSetting("theFirm.workflows.compactionStrategy");
+			if (strategy === "handoff" && ctx.hasUI) {
+				ctx.ui.notify(
+					"📋 Context threshold bereikt. Handoff opgeslagen. " +
+						"Start een nieuwe sessie (/handoff of Ctrl+D) om verder te gaan met schone context.",
+					"info",
+				);
+			}
 		} catch {
 			// Don't break compaction
 		}
 	});
 
-	// ── Session shutdown: save basic handoff ───────────────
+	// ── Session shutdown: save handoff for next session ──
+	// Only save if there isn't already a good handoff doc from compaction.
+	// Avoids overwriting a structured compaction summary with raw basic handoff.
 	pi.on("session_shutdown", async (_event, ctx) => {
 		const entries = ctx.sessionManager?.getEntries?.();
 		const sessionId = ctx.sessionManager?.getSessionId?.() || "unknown";
 
-		// Always generate and save a basic handoff doc
-		if (entries && entries.length >= 2) {
+		// Check if a handoff was already saved (e.g. by session_compact)
+		const existingHandoff = readHandoffDoc();
+
+		if (existingHandoff) {
+			// Already have a good handoff — just save metadata
+			saveSessionMetadata({ handoffGenerated: true, method: "existing", sessionId });
+		} else if (entries && entries.length >= 2) {
+			// No handoff yet — generate one as safety net
 			try {
 				const basicHandoff = generateBasicHandoff(entries);
 				saveHandoffDoc(

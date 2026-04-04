@@ -281,11 +281,11 @@ describe("session_before_compact — blocking logic", () => {
 });
 
 // ================================================================
-// session_compact: generates handoff as safety net
+// session_compact: saves Pi's compaction summary as handoff
 // ================================================================
 
-describe("session_compact — handoff safety net", () => {
-	it("generates handoff after compaction when entries >= 2", async () => {
+describe("session_compact — handoff from compaction summary", () => {
+	it("uses compaction summary when available", async () => {
 		writeSettings({});
 
 		const mockPi = createMockPi();
@@ -300,15 +300,45 @@ describe("session_compact — handoff safety net", () => {
 			sessionManager: { getEntries: () => entries },
 		});
 
-		await mockPi.getHandler("session_compact")({}, mockCtx);
+		// Pi provides a structured compaction summary
+		const compactionEvent = {
+			compactionEntry: {
+				summary: "## Goal\nBuild a feature\n\n## Progress\n- Done: setup\n- Next: implement",
+			},
+		};
 
-		// Should have written a handoff doc (fallback since no LLM in test)
+		await mockPi.getHandler("session_compact")(compactionEvent, mockCtx);
+
 		const handoff = readHandoffDoc();
 		expect(handoff).not.toBeNull();
-		expect(handoff).toContain("Handoff");
+		expect(handoff).toContain("Build a feature");
+		expect(handoff).toContain("## Progress");
 	});
 
-	it("skips handoff when fewer than 2 entries", async () => {
+	it("falls back to basic handoff when no compaction summary", async () => {
+		writeSettings({});
+
+		const mockPi = createMockPi();
+		const { default: register } = await import("../workflow-settings.ts");
+		register(mockPi as any);
+
+		const entries = [
+			{ type: "message", message: { role: "user", content: "Hallo" } },
+			{ type: "message", message: { role: "assistant", content: "Hoi!" } },
+		];
+		const mockCtx = createMockCtx({
+			sessionManager: { getEntries: () => entries },
+		});
+
+		// No compaction summary
+		await mockPi.getHandler("session_compact")({ compactionEntry: {} }, mockCtx);
+
+		const handoff = readHandoffDoc();
+		expect(handoff).not.toBeNull();
+		expect(handoff).toContain("fallback");
+	});
+
+	it("skips handoff when fewer than 2 entries and no summary", async () => {
 		writeSettings({});
 
 		const mockPi = createMockPi();
@@ -319,33 +349,68 @@ describe("session_compact — handoff safety net", () => {
 			sessionManager: { getEntries: () => [] },
 		});
 
-		await mockPi.getHandler("session_compact")({}, mockCtx);
+		await mockPi.getHandler("session_compact")({ compactionEntry: {} }, mockCtx);
 
 		expect(readHandoffDoc()).toBeNull();
+	});
+
+	it("notifies user when handoff strategy is set", async () => {
+		writeSettings({ theFirm: { workflows: { compactionStrategy: "handoff" } } });
+
+		const mockPi = createMockPi();
+		const { default: register } = await import("../workflow-settings.ts");
+		register(mockPi as any);
+
+		const entries = [
+			{ type: "message", message: { role: "user", content: "Hallo" } },
+		];
+		const notify = vi.fn();
+		const mockCtx = createMockCtx({
+			sessionManager: { getEntries: () => entries },
+			hasUI: true,
+			ui: { notify },
+		});
+
+		await mockPi.getHandler("session_compact")(
+			{ compactionEntry: { summary: "## Goal\nTest" } },
+			mockCtx,
+		);
+
+		expect(notify).toHaveBeenCalledWith(
+			expect.stringContaining("Handoff opgeslagen"),
+			"info",
+		);
 	});
 });
 
 // ================================================================
-// session_shutdown: always generates handoff + saves metadata
+// session_shutdown: saves handoff if not already saved
 // ================================================================
 
 describe("session_shutdown — save on exit", () => {
-	it("always generates handoff even with no settings", async () => {
+	it("generates handoff when no existing handoff doc", async () => {
 		writeSettings({});
 
 		const mockPi = createMockPi();
 		const { default: register } = await import("../workflow-settings.ts");
 		register(mockPi as any);
 
+		// No existing handoff doc — should generate one
 		await mockPi.getHandler("session_shutdown")({}, createMockCtx());
 
-		// Should always generate handoff on shutdown
 		const handoff = readHandoffDoc();
 		expect(handoff).not.toBeNull();
 	});
 
-	it("generates handoff from entries when available", async () => {
+	it("does not overwrite existing compaction handoff", async () => {
 		writeSettings({});
+
+		// Pre-existing compaction handoff (handoff- prefix so findLatestHandoffDoc picks it up)
+		writeFileSync(
+			join(TMP_DIR, ".pi", "firm", "handoffs", "handoff-existing-2026-04-04.md"),
+			"# Handoff — After Compaction\n\n## Goal\nImportant stuff",
+			"utf-8",
+		);
 
 		const mockPi = createMockPi();
 		const { default: register } = await import("../workflow-settings.ts");
@@ -361,8 +426,9 @@ describe("session_shutdown — save on exit", () => {
 
 		await mockPi.getHandler("session_shutdown")({}, mockCtx);
 
+		// Should NOT overwrite the good handoff with basic
 		const handoff = readHandoffDoc();
-		expect(handoff).not.toBeNull();
+		expect(handoff).toContain("Important stuff");
 	});
 
 	it("saves last-session.json when saveOnExit is true", async () => {

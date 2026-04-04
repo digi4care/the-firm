@@ -76,14 +76,14 @@ const OPTION_PROVIDERS: Partial<Record<SettingPath, OptionProvider>> = {
 		{
 			value: "context-full",
 			label: "Context-full",
-			description: "Summarize in-place, keep current session",
+			description: "Samenvatten in huidige sessie, doorgaan in dezelfde context",
 		},
 		{
 			value: "handoff",
 			label: "Handoff",
-			description: "Generate handoff doc, continue in new session",
+			description: "Samenvatting opslaan + notificatie. Start zelf een nieuwe sessie om verder te gaan",
 		},
-		{ value: "off", label: "Off", description: "Disable automatic compaction" },
+		{ value: "off", label: "Off", description: "Geen automatische compaction" },
 	],
 	"theFirm.compaction.thresholdPercent": [
 		{ value: "-1", label: "Default", description: "Use Pi's built-in threshold" },
