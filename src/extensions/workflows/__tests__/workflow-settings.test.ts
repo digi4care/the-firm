@@ -187,11 +187,11 @@ describe("session_start — sync compaction settings", () => {
 });
 
 // ================================================================
-// session_start: sync The Firm compaction settings (theFirmCompaction)
+// session_start: sync ALL compaction settings to Pi's native compaction block
 // ================================================================
 
-describe("session_start — sync The Firm compaction settings (theFirmCompaction block)", () => {
-	it("writes theFirmCompaction block with default values", async () => {
+describe("session_start — sync all compaction settings to Pi's compaction block", () => {
+	it("writes all 8 settings to compaction block with defaults", async () => {
 		writeSettings({});
 
 		const mockPi = createMockPi();
@@ -201,15 +201,18 @@ describe("session_start — sync The Firm compaction settings (theFirmCompaction
 		await mockPi.getHandler("session_start")({ reason: "startup" }, createMockCtx());
 
 		const settings = readSettings();
-		expect(settings.theFirmCompaction).toBeDefined();
-		expect((settings.theFirmCompaction as any).strategy).toBe("context-full");
-		expect((settings.theFirmCompaction as any).thresholdPercent).toBe(-1);
-		expect((settings.theFirmCompaction as any).thresholdTokens).toBe(-1);
-		expect((settings.theFirmCompaction as any).handoffStorage).toBe("inmemory");
-		expect((settings.theFirmCompaction as any).autoContinue).toBe(true);
+		expect(settings.compaction).toBeDefined();
+		expect((settings.compaction as any).enabled).toBe(true);
+		expect((settings.compaction as any).strategy).toBe("context-full");
+		expect((settings.compaction as any).thresholdPercent).toBe(-1);
+		expect((settings.compaction as any).thresholdTokens).toBe(-1);
+		expect((settings.compaction as any).reserveTokens).toBe(16384);
+		expect((settings.compaction as any).keepRecentTokens).toBe(20000);
+		expect((settings.compaction as any).handoffSaveToDisk).toBe(false);
+		expect((settings.compaction as any).autoContinue).toBe(true);
 	});
 
-	it("syncs custom The Firm compaction values", async () => {
+	it("syncs custom compaction values to compaction block", async () => {
 		writeSettings({
 			theFirm: {
 				workflows: { compactionStrategy: "handoff" },
@@ -231,17 +234,15 @@ describe("session_start — sync The Firm compaction settings (theFirmCompaction
 		await mockPi.getHandler("session_start")({ reason: "startup" }, createMockCtx());
 
 		const settings = readSettings();
-		// Pi-native block
+		// ALL settings in the compaction block (Pi reads from here)
 		expect((settings.compaction as any).enabled).toBe(true);
+		expect((settings.compaction as any).strategy).toBe("handoff");
+		expect((settings.compaction as any).thresholdPercent).toBe(60);
+		expect((settings.compaction as any).thresholdTokens).toBe(100000);
 		expect((settings.compaction as any).reserveTokens).toBe(8192);
 		expect((settings.compaction as any).keepRecentTokens).toBe(10000);
-
-		// The Firm block
-		expect((settings.theFirmCompaction as any).strategy).toBe("handoff");
-		expect((settings.theFirmCompaction as any).thresholdPercent).toBe(60);
-		expect((settings.theFirmCompaction as any).thresholdTokens).toBe(100000);
-		expect((settings.theFirmCompaction as any).handoffStorage).toBe("file");
-		expect((settings.theFirmCompaction as any).autoContinue).toBe(false);
+		expect((settings.compaction as any).handoffSaveToDisk).toBe(true);
+		expect((settings.compaction as any).autoContinue).toBe(false);
 	});
 
 	it("handles string values in settings (defensive parsing)", async () => {
@@ -262,11 +263,11 @@ describe("session_start — sync The Firm compaction settings (theFirmCompaction
 		await mockPi.getHandler("session_start")({ reason: "startup" }, createMockCtx());
 
 		const settings = readSettings();
-		expect((settings.theFirmCompaction as any).thresholdPercent).toBe(70);
-		expect((settings.theFirmCompaction as any).thresholdTokens).toBe(50000);
+		expect((settings.compaction as any).thresholdPercent).toBe(70);
+		expect((settings.compaction as any).thresholdTokens).toBe(50000);
 	});
 
-	it("does not affect the compaction block (Pi-native)", async () => {
+	it("compaction block has all 8 Pi-native keys", async () => {
 		writeSettings({});
 
 		const mockPi = createMockPi();
@@ -276,11 +277,15 @@ describe("session_start — sync The Firm compaction settings (theFirmCompaction
 		await mockPi.getHandler("session_start")({ reason: "startup" }, createMockCtx());
 
 		const settings = readSettings();
-		// compaction block has only Pi-native fields
 		expect(Object.keys(settings.compaction as any).sort()).toEqual([
+			"autoContinue",
 			"enabled",
+			"handoffSaveToDisk",
 			"keepRecentTokens",
 			"reserveTokens",
+			"strategy",
+			"thresholdPercent",
+			"thresholdTokens",
 		]);
 	});
 });

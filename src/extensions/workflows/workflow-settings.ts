@@ -100,25 +100,21 @@ function syncCompactionSettingsToPi(): void {
 		}
 	}
 
-	// Build compaction object — only sync Pi-native settings
+	// Build compaction object — sync ALL settings to Pi's native compaction block.
+	// Pi's core reads strategy, thresholdPercent, thresholdTokens etc. directly from
+	// the compaction block in settings.json. Without these, Pi never triggers auto-handoff.
 	const compaction: Record<string, unknown> = {
 		enabled: isAutoCompact(),
-		reserveTokens: getReserveTokens(),
-		keepRecentTokens: getKeepRecentTokens(),
-	};
-
-	piSettings.compaction = compaction;
-
-	// Build The Firm compaction object — custom settings Pi doesn't natively support
-	const theFirmCompaction: Record<string, unknown> = {
 		strategy: getCompactionStrategy(),
 		thresholdPercent: getThresholdPercent(),
 		thresholdTokens: getThresholdTokens(),
-		handoffStorage: isHandoffSaveToDisk() ? "file" : "inmemory",
+		reserveTokens: getReserveTokens(),
+		keepRecentTokens: getKeepRecentTokens(),
+		handoffSaveToDisk: isHandoffSaveToDisk(),
 		autoContinue: isAutoContinue(),
 	};
 
-	piSettings.theFirmCompaction = theFirmCompaction;
+	piSettings.compaction = compaction;
 
 	try {
 		mkdirSync(join(process.cwd(), ".pi"), { recursive: true });
