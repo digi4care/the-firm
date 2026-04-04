@@ -62,7 +62,7 @@ digraph process {
     "Read plan, extract all tasks, create bd tracking issues" [shape=box];
     "More tasks remain?" [shape=diamond];
     "Dispatch final code reviewer subagent for entire implementation" [shape=box];
-    "Use finishing-a-development-branch" [shape=box style=filled fillcolor=lightgreen];
+    "Wrap up: bd close, git push" [shape=box style=filled fillcolor=lightgreen];
 
     "Read plan, extract all tasks, create bd tracking issues" -> "Dispatch implementer subagent (./implementer-prompt.md)";
     "Dispatch implementer subagent (./implementer-prompt.md)" -> "Implementer subagent asks questions?";
@@ -78,10 +78,10 @@ digraph process {
     "Code quality reviewer subagent approves?" -> "Implementer subagent fixes quality issues" [label="no"];
     "Implementer subagent fixes quality issues" -> "Dispatch code quality reviewer subagent (./code-quality-reviewer-prompt.md)" [label="re-review"];
     "Code quality reviewer subagent approves?" -> "Mark task complete via bd" [label="yes"];
-    "Mark task complete in TodoWrite" -> "More tasks remain?";
+    "Mark task complete via bd" -> "More tasks remain?";
     "More tasks remain?" -> "Dispatch implementer subagent (./implementer-prompt.md)" [label="yes"];
     "More tasks remain?" -> "Dispatch final code reviewer subagent for entire implementation" [label="no"];
-    "Dispatch final code reviewer subagent for entire implementation" -> "Use finishing-a-development-branch";
+    "Dispatch final code reviewer subagent for entire implementation" -> "Wrap up: bd close, git push";
 }
 ```
 
@@ -278,10 +278,8 @@ Done!
 
 **Required workflow skills:**
 
-- **using-git-worktrees** - REQUIRED: Set up isolated workspace before starting
 - **writing-plans** - Creates the plan this skill executes
-- **requesting-code-review** - Code review template for reviewer subagents
-- **finishing-a-development-branch** - Complete development after all tasks
+- **review** - Code review for reviewer subagents
 
 **Subagents should use:**
 

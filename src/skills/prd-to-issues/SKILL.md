@@ -1,19 +1,21 @@
 ---
 name: prd-to-issues
-description: Break a PRD into independently-grabbable GitHub issues using tracer-bullet vertical slices. Use when user wants to convert a PRD to issues, create implementation tickets, or break down a PRD into work items. Keywords - PRD, issues, tracer bullet, vertical slice, breakdown, GitHub.
+description: Break a PRD into independently-grabbable Beads issues using tracer-bullet vertical slices. Use when user wants to convert a PRD to issues, create implementation tickets, or break down a PRD into work items. Keywords - PRD, issues, tracer bullet, vertical slice, breakdown, beads.
 ---
 
 # PRD to Issues
 
-Break a PRD into independently-grabbable GitHub issues using vertical slices (tracer bullets).
+Break a PRD into independently-grabbable Beads issues using vertical slices (tracer bullets).
 
 ## Process
 
 ### 1. Locate the PRD
 
-Ask the user for the PRD GitHub issue number (or URL).
-
-If the PRD is not already in your context window, fetch it with `gh issue view <number>` (with comments).
+Ask the user for the PRD. It may be:
+- A Beads issue: `bd show <id>`
+- A file in the project: read it directly
+- A GitHub issue: `gh issue view <number>`
+- In the current conversation context
 
 ### 2. Explore the codebase (optional)
 
@@ -49,16 +51,16 @@ Ask the user:
 
 Iterate until the user approves the breakdown.
 
-### 5. Create the GitHub issues
+### 5. Create the Beads issues
 
-For each approved slice, create a GitHub issue using `gh issue create`. Use the issue body template below.
+For each approved slice, create a Beads issue using `bd create`. Use the issue body template below.
 
 Create issues in dependency order (blockers first) so you can reference real issue numbers in the "Blocked by" field.
 
 <issue-template>
 ## Parent PRD
 
-Issue #<prd-issue-number>
+Beads issue: `the-firm-xxx` (or file path)
 
 ## What to build
 
@@ -108,12 +110,12 @@ Do not use me for:
 
 ## Workflow
 
-1. Locate PRD via GitHub issue number or URL
+1. Locate PRD via Beads issue, file, or conversation context
 2. Explore codebase (optional) to understand current state
 3. Draft vertical slices (tracer bullets) - each slice cuts through ALL layers
 4. Present breakdown with title, type (HITL/AFK), blockers, user stories
 5. Quiz user on granularity and dependencies, iterate until approved
-6. Create GitHub issues in dependency order
+6. Create Beads issues in dependency order
 7. Draft vertical slices — each slice cuts through ALL layers (see references/vertical-slicing.md)
 8. Classify each slice as HITL or AFK — prefer AFK
 9. Present breakdown with title, type, blockers, user stories
@@ -145,7 +147,7 @@ Should not trigger:
 
 Functional:
 
-- Break PRD #42 into GitHub issues with vertical slices
+- Break PRD #42 into Beads issues with vertical slices
 
 ## References
 

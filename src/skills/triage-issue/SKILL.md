@@ -1,11 +1,11 @@
 ---
 name: triage-issue
-description: Triage a bug or issue by exploring the codebase to find root cause, then create a GitHub issue with a TDD-based fix plan. Use when user reports a bug, wants to file an issue, mentions "triage", or wants to investigate and plan a fix for a problem. Use when user reports a bug, wants to file an issue, mentions triage, or wants to investigate and plan a fix. Keywords - triage, bug, root cause, TDD, fix plan, investigate, GitHub issue.
+description: Triage a bug or issue by exploring the codebase to find root cause, then create a Beads issue with a TDD-based fix plan. Use when user reports a bug, wants to file an issue, mentions "triage", or wants to investigate and plan a fix for a problem. Keywords - triage, bug, root cause, TDD, fix plan, investigate, beads issue.
 ---
 
 # Triage Issue
 
-Investigate a reported problem, find its root cause, and create a GitHub issue with a TDD fix plan. This is a mostly hands-off workflow - minimize questions to the user.
+Investigate a reported problem, find its root cause, and create a Beads issue with a TDD fix plan. This is a mostly hands-off workflow - minimize questions to the user.
 
 ## Process
 
@@ -56,9 +56,9 @@ Rules:
 - Include a final refactor step if needed
 - **Durability**: Only suggest fixes that would survive radical codebase changes. Describe behaviors and contracts, not internal structure. Tests assert on observable outcomes (API responses, UI state, user-visible effects), not internal state. A good suggestion reads like a spec; a bad one reads like a diff.
 
-### 5. Create the GitHub issue
+### 5. Create the Beads issue
 
-Create a GitHub issue using `gh issue create` with the template below. Do NOT ask the user to review before creating - just create it and share the URL.
+Create a Beads issue using `bd create` with the template below. Do NOT ask the user to review before creating - just create it and share the ID.
 
 <issue-template>
 
@@ -130,7 +130,7 @@ Do not use me for:
 2. Explore and diagnose with subagent - find where, what, why, related code
 3. Identify fix approach - minimal change, affected modules, test needs
 4. Design TDD fix plan - ordered RED-GREEN cycles, one test at a time
-5. Create GitHub issue with problem, root cause, TDD plan, acceptance criteria
+5. Create Beads issue with problem, root cause, TDD plan, acceptance criteria
 6. Capture problem — ask ONE question if needed: 'What is the problem?
 7. Explore and diagnose — trace code path using investigation patterns (see references/investigation-patterns.md)
 8. Classify root cause type (see references/investigation-patterns.md root cause classification)
@@ -143,7 +143,7 @@ Do not use me for:
 - Problem too vague: ask ONE question - 'What is the problem?'
 - Cannot reproduce: document investigation steps, ask for more info
 - Multiple root causes: triage separately as distinct issues
-- GitHub issue fails: provide markdown for manual creation
+- `bd create` fails: provide markdown for manual creation
 
 ## Quick Tests
 

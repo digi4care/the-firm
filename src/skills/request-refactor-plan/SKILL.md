@@ -1,6 +1,6 @@
 ---
 name: request-refactor-plan
-description: Create a detailed refactor plan with tiny commits via user interview, then file it as a GitHub issue. Use when user wants to plan a refactor, create a refactoring RFC, or break a refactor into safe incremental steps. Keywords - refactor, plan, tiny commits, RFC, GitHub issue, incremental.
+description: Create a detailed refactor plan with tiny commits via user interview, then file it as a Beads issue. Use when user wants to plan a refactor, create a refactoring RFC, or break a refactor into safe incremental steps. Keywords - refactor, plan, tiny commits, RFC, beads issue, incremental.
 ---
 
 This skill will be invoked when the user wants to create a refactor request. You should go through the steps below. You may skip steps if you don't consider them necessary.
@@ -19,7 +19,7 @@ This skill will be invoked when the user wants to create a refactor request. You
 
 7. Break the implementation into a plan of tiny commits. Remember Martin Fowler's advice to "make each refactoring step as small as possible, so that you can always see the program working."
 
-8. Create a GitHub issue with the refactor plan. Use the following template for the issue description:
+8. Create a Beads issue with the refactor plan using `bd create`. Use the following template for the issue description:
 
 <refactor-plan-template>
 
@@ -95,7 +95,7 @@ Do not use me for:
 5. Hammer out exact scope - what to change and what NOT to change
 6. Check test coverage, ask about testing plans if insufficient
 7. Break into tiny commits (Fowler: each step keeps code working)
-8. Create GitHub issue with refactor plan
+8. Create Beads issue with refactor plan
 9. Present alternative approaches (see references/refactor-patterns.md)
 10. Interview user about implementation — hammer out scope (see references/refactor-patterns.md scope control)
 11. Check test coverage, assess risk level (see references/refactor-patterns.md test coverage)
@@ -106,7 +106,7 @@ Do not use me for:
 - Problem unclear: ask for detailed description with examples
 - No test coverage: flag risk, ask about testing plans
 - Scope creep: document explicitly what's out of scope
-- GitHub issue fails: provide markdown for manual creation
+- `bd create` fails: provide markdown for manual creation
 
 ## Quick Tests
 

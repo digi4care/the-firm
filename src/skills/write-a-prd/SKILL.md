@@ -1,6 +1,6 @@
 ---
 name: write-a-prd
-description: Create a PRD through user interview, codebase exploration, and module design, then submit as a GitHub issue. Use when user wants to write a PRD, create a product requirements document, or plan a new feature. Keywords - PRD, product requirements, feature spec, GitHub issue, user stories.
+description: Create a PRD through user interview, codebase exploration, and module design, then submit as a Beads issue. Use when user wants to write a PRD, create a product requirements document, or plan a new feature. Keywords - PRD, product requirements, feature spec, beads issue, user stories.
 ---
 
 This skill will be invoked when the user wants to create a PRD. You may skip steps if you don't consider them necessary.
@@ -17,7 +17,7 @@ A deep module (as opposed to a shallow module) is one which encapsulates a lot o
 
 Check with the user that these modules match their expectations. Check with the user which modules they want tests written for.
 
-1. Once you have a complete understanding of the problem and solution, use the template below to write the PRD. The PRD should be submitted as a GitHub issue.
+1. Once you have a complete understanding of the problem and solution, use the template below to write the PRD. The PRD should be submitted as a Beads issue using `bd create`.
 
 <prd-template>
 
@@ -99,7 +99,7 @@ Do not use me for:
 4. Sketch major modules, look for deep module opportunities
 5. Confirm modules with user, identify which need tests
 6. Write PRD with problem, solution, user stories, decisions, testing, scope
-7. Submit as GitHub issue
+7. Submit as Beads issue
 8. Interview user relentlessly through all 4 phases — resolve design tree dependencies
 9. Run PRD quality checklist before submitting (see references/interview-guide.md)
 
@@ -108,7 +108,7 @@ Do not use me for:
 - Problem unclear: ask for detailed description with user perspective
 - No codebase context: proceed with interview-only approach
 - Scope too large: suggest breaking into multiple PRDs
-- GitHub issue fails: provide markdown for manual creation
+- `bd create` fails: provide markdown for manual creation
 
 ## Quick Tests
 
