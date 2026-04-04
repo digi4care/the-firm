@@ -8,10 +8,10 @@ and adheres to [Semantic Versioning](https://semver.org/).
 ## [0.1.14] - 2026-04-04
 
 ### Veranderd
-- **Handoff bestanden per sessie**: bestandsnaam bevat nu session ID + timestamp (`handoff-<sid>-<ts>.md`) in `.pi/firm/`
+- **Handoff bestanden per sessie**: bestandsnaam bevat nu session ID + timestamp (`handoff-<sid>-<ts>.md`) in `.pi/firm/handoffs/`
 - **Multi-instance safe**: meerdere Pi-sessies op hetzelfde project overschrijven elkaars handoff niet meer
-- `findLatestHandoffDoc()` zoekt de nieuwste `handoff-*.md` in `.pi/firm/`, met fallback naar legacy `HANDOFF.md`
-- `clearHandoffDoc()` wist nu alle handoff bestanden in `.pi/firm/` (zowel nieuw formaat als legacy)
+- `findLatestHandoffDoc()` zoekt de nieuwste `handoff-*.md` in `.pi/firm/handoffs/`, met fallback naar legacy `HANDOFF.md`
+- `clearHandoffDoc()` wist nu alle handoff bestanden in `.pi/firm/handoffs/` (zowel nieuw formaat als legacy)
 - **Alle `.local/` referenties verwijderd**: handoff leeft nu volledig in `.pi/firm/`
 - Docs bijgewerkt: AGENTS.md, APPEND_SYSTEM.md, CHANGELOG.md
 

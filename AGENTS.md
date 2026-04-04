@@ -55,6 +55,8 @@ Bij twijfel: vragen.
 ├── .personal/                 ← persona + woordenlijst (gitignored)
 ├── .pi/                       ← runtimelaag (gitignored, gevuld door sync)
 │   └── firm/                  ← The Firm runtime workspace
+│       ├── handoffs/          ← per-sessie handoff documenten
+│       │   └── handoff-<sid>-<ts>.md ← auto-generated per sessie
 │       ├── config.json        ← engagement configuratie
 │       ├── plans/             ← implementatie plans (linked to Beads)
 │       ├── artifacts/         ← gate artifacts (design docs, verification)
@@ -74,7 +76,7 @@ src/     ──────────>    .pi/         (bun run dev / prod)
 
 design/        nooit naar .pi/        design docs, the-firm/
 .personal/     nooit naar .pi/        persona, woordenlijst
-.local/        verwijderd              was handoff, nu .pi/firm/handoff.md
+.local/        nooit naar .pi/        ALLEEN HANDOFF.md (legacy, niet meer gebruikt)
 ```
 
 ---
@@ -99,7 +101,7 @@ Elke nieuwe sessie leest in deze volgorde:
 
 1. `AGENTS.md` -- projectregels en structuur (dit bestand)
 2. `src/APPEND_SYSTEM.md` -- sessie-instructies (persona, context, cli-programma's)
-3. `.pi/firm/handoff.md` -- overdracht van vorige sessie (indien aanwezig)
+3. `.pi/firm/` -- handoff van vorige sessie (nieuwste `handoff-*.md`, indien aanwezig)
 4. `beads list` -- openstaande issues ophalen
 
 ### Werken

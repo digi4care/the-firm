@@ -22,7 +22,7 @@ const originalCwd = process.cwd;
 beforeEach(() => {
 	rmSync(TMP_DIR, { recursive: true, force: true });
 	mkdirSync(join(TMP_DIR, ".pi"), { recursive: true });
-	mkdirSync(join(TMP_DIR, ".local"), { recursive: true });
+	mkdirSync(join(TMP_DIR, ".pi", "firm", "handoffs"), { recursive: true });
 	process.cwd = () => TMP_DIR;
 });
 
@@ -73,13 +73,32 @@ function readSettings(): Record<string, unknown> {
 }
 
 function writeHandoffDoc(content: string) {
-	writeFileSync(join(TMP_DIR, ".local", "HANDOFF.md"), content, "utf-8");
+	writeFileSync(join(TMP_DIR, ".pi", "firm", "handoffs", "HANDOFF.md"), content, "utf-8");
 }
 
+/**
+ * Find the most recent handoff doc in .pi/firm/ — mirrors the production
+ * findLatestHandoffDoc() logic (handoff-*.md first, then legacy HANDOFF.md).
+ */
 function readHandoffDoc(): string | null {
-	const path = join(TMP_DIR, ".local", "HANDOFF.md");
-	if (!existsSync(path)) return null;
-	return readFileSync(path, "utf-8");
+	const firmDir = join(TMP_DIR, ".pi", "firm", "handoffs");
+	if (!existsSync(firmDir)) return null;
+
+	const { readdirSync } = require("node:fs");
+	const entries = readdirSync(firmDir)
+		.filter((f: string) => f.startsWith("handoff-") && f.endsWith(".md"))
+		.sort()
+		.reverse();
+
+	if (entries.length > 0) {
+		return readFileSync(join(firmDir, entries[0]), "utf-8");
+	}
+
+	const legacyPath = join(firmDir, "HANDOFF.md");
+	if (existsSync(legacyPath)) {
+		return readFileSync(legacyPath, "utf-8");
+	}
+	return null;
 }
 
 // ================================================================

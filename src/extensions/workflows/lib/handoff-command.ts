@@ -93,7 +93,7 @@ export default function registerHandoffCommand(pi: ExtensionAPI) {
 			const handoffContent = wrapHandoffContext(basicHandoff);
 
 			// Save to disk if configured
-			saveHandoffToDisk(basicHandoff);
+			saveHandoffToDisk(basicHandoff, ctx.sessionManager?.getSessionId?.());
 
 			// Create new session with parent tracking
 			const result = await ctx.newSession({
@@ -114,16 +114,20 @@ export default function registerHandoffCommand(pi: ExtensionAPI) {
 	});
 }
 
-function saveHandoffToDisk(content: string): void {
+function saveHandoffToDisk(content: string, sessionId?: string): void {
 	if (getSetting("theFirm.compaction.handoffSaveToDisk") !== true) return;
 
 	try {
-		const localDir = join(process.cwd(), ".local");
-		if (!existsSync(localDir)) mkdirSync(localDir, { recursive: true });
+		const handoffDir = join(process.cwd(), ".pi", "firm", "handoffs");
+		if (!existsSync(handoffDir)) mkdirSync(handoffDir, { recursive: true });
+
+		const id = sessionId || "unknown";
+		const ts = new Date().toISOString().replace(/[:.]/g, "-");
+		const filename = `handoff-${id.slice(0, 8)}-${ts}.md`;
 
 		writeFileSync(
-			join(localDir, "HANDOFF.md"),
-			`# Handoff — Manual\n\nGenerated: ${new Date().toISOString()}\n\n${content}`,
+			join(handoffDir, filename),
+			`# Handoff — Manual\n\nSession: ${id}\nGenerated: ${new Date().toISOString()}\n\n${content}`,
 			"utf-8",
 		);
 	} catch {

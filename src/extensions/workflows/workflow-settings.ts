@@ -15,7 +15,7 @@
  * in agent-session.ts. Extensions should NOT try to replicate that.
  */
 
-import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { getSetting } from "../settings/lib/settings-store";
@@ -82,18 +82,23 @@ function syncCompactionSettingsToPi(): void {
 // Handoff I/O helpers
 // ═══════════════════════════════════════════════════════════════
 
-function getHandoffPath(): string {
-	return join(process.cwd(), ".local", "HANDOFF.md");
+function ensureHandoffDir(): string {
+	const dir = join(process.cwd(), ".pi", "firm", "handoffs");
+	if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+	return dir;
+}
+
+function getHandoffPath(sessionId?: string): string {
+	const dir = ensureHandoffDir();
+	if (sessionId) {
+		const ts = new Date().toISOString().replace(/[:.]/g, "-");
+		return join(dir, `handoff-${sessionId.slice(0, 8)}-${ts}.md`);
+	}
+	return join(dir, "HANDOFF.md");
 }
 
 function getLastSessionPath(): string {
 	return join(process.cwd(), ".pi", "firm", "last-session.json");
-}
-
-function ensureLocalDir(): string {
-	const dir = join(process.cwd(), ".local");
-	if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-	return dir;
 }
 
 function ensureFirmDir(): string {
@@ -102,10 +107,9 @@ function ensureFirmDir(): string {
 	return dir;
 }
 
-function saveHandoffDoc(content: string): void {
+function saveHandoffDoc(content: string, sessionId?: string): void {
 	try {
-		ensureLocalDir();
-		writeFileSync(getHandoffPath(), content, "utf-8");
+		writeFileSync(getHandoffPath(sessionId), content, "utf-8");
 	} catch {
 		// Best effort
 	}
@@ -132,21 +136,51 @@ function saveSessionMetadata(extra?: Record<string, unknown>): void {
 	}
 }
 
-function readHandoffDoc(): string | null {
+/**
+ * Find the most recent handoff doc (supports multi-instance naming).
+ * Looks for handoff-*.md files first, falls back to legacy HANDOFF.md.
+ */
+function findLatestHandoffDoc(): string | null {
 	try {
-		const path = getHandoffPath();
-		if (!existsSync(path)) return null;
-		const content = readFileSync(path, "utf-8").trim();
-		return content || null;
+		const handoffDir = ensureHandoffDir();
+
+		const entries = readdirSync(handoffDir)
+			.filter((f: string) => f.startsWith("handoff-") && f.endsWith(".md"))
+			.sort()
+			.reverse(); // newest first (ISO timestamps sort chronologically)
+
+		if (entries.length > 0) {
+			const content = readFileSync(join(handoffDir, entries[0]), "utf-8").trim();
+			return content || null;
+		}
+
+		// Fallback to legacy HANDOFF.md in .pi/firm/
+		const legacyPath = join(ensureFirmDir(), "HANDOFF.md");
+		if (existsSync(legacyPath)) {
+			const content = readFileSync(legacyPath, "utf-8").trim();
+			return content || null;
+		}
+
+		return null;
 	} catch {
 		return null;
 	}
 }
 
+function readHandoffDoc(): string | null {
+	return findLatestHandoffDoc();
+}
+
 function clearHandoffDoc(): void {
 	try {
-		const path = getHandoffPath();
-		if (existsSync(path)) unlinkSync(path);
+		const handoffDir = ensureHandoffDir();
+
+		const files = readdirSync(handoffDir)
+			.filter((f: string) => f.startsWith("handoff-") || f === "HANDOFF.md");
+
+		for (const f of files) {
+			unlinkSync(join(handoffDir, f));
+		}
 	} catch {
 		// Best effort
 	}
@@ -212,10 +246,13 @@ export default function registerWorkflowSettings(pi: ExtensionAPI) {
 			const entries = ctx.sessionManager.getEntries();
 			if (entries.length < 2) return;
 
+			const sessionId = ctx.sessionManager?.getSessionId?.() || "unknown";
+
 			// Save basic handoff (no LLM call — just file ops + recent messages)
 			const basicHandoff = generateBasicHandoff(entries);
 			saveHandoffDoc(
-				`# Handoff — After Compaction (basic)\n\nGenerated: ${new Date().toISOString()}\n\n${basicHandoff}`,
+				`# Handoff — After Compaction (basic)\n\nSession: ${sessionId}\nGenerated: ${new Date().toISOString()}\n\n${basicHandoff}`,
+				sessionId,
 			);
 		} catch {
 			// Don't break compaction
@@ -225,21 +262,24 @@ export default function registerWorkflowSettings(pi: ExtensionAPI) {
 	// ── Session shutdown: save basic handoff ───────────────
 	pi.on("session_shutdown", async (_event, ctx) => {
 		const entries = ctx.sessionManager?.getEntries?.();
+		const sessionId = ctx.sessionManager?.getSessionId?.() || "unknown";
 
 		// Always generate and save a basic handoff doc
 		if (entries && entries.length >= 2) {
 			try {
 				const basicHandoff = generateBasicHandoff(entries);
 				saveHandoffDoc(
-					`# Handoff — Session End\n\nGenerated: ${new Date().toISOString()}\n\n${basicHandoff}`,
+					`# Handoff — Session End\n\nSession: ${sessionId}\nGenerated: ${new Date().toISOString()}\n\n${basicHandoff}`,
+					sessionId,
 				);
-				saveSessionMetadata({ handoffGenerated: true, method: "basic" });
+				saveSessionMetadata({ handoffGenerated: true, method: "basic", sessionId });
 			} catch {
 				// Best effort
 			}
 		} else {
 			saveHandoffDoc(
-				`# Handoff — Session End\n\nGenerated: ${new Date().toISOString()}\n\n*Session was empty or had insufficient context for handoff.*`,
+				`# Handoff — Session End\n\nSession: ${sessionId}\nGenerated: ${new Date().toISOString()}\n\n*Session was empty or had insufficient context for handoff.*`,
+				sessionId,
 			);
 		}
 

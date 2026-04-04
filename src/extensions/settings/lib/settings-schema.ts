@@ -225,7 +225,7 @@ export const SETTINGS_SCHEMA = {
 			tab: "workflows",
 			label: "Keep Handoff on Disk",
 			description:
-				"Keep .local/HANDOFF.md after new session consumes it (handoff is always generated regardless of this setting)",
+				"Keep handoff files in .pi/firm/ after new session consumes them (handoff is always generated regardless of this setting)",
 		},
 	},
 
