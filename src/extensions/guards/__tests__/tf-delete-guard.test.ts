@@ -137,10 +137,7 @@ describe("tf-delete-guard", () => {
 		// So with empty settings the guard IS enabled (default true)
 		const handler = mockPi.getHandler("tool_call");
 		const ctx = createMockCtx(true, false);
-		const result = await handler(
-			createToolCallEvent("bash", { command: "rm file.txt" }),
-			ctx,
-		);
+		const result = await handler(createToolCallEvent("bash", { command: "rm file.txt" }), ctx);
 		expect(result).toEqual({ block: true, reason: "Blocked by user (delete guard)" });
 	});
 
@@ -151,10 +148,7 @@ describe("tf-delete-guard", () => {
 
 		const handler = mockPi.getHandler("tool_call");
 		const ctx = createMockCtx(true, true);
-		const result = await handler(
-			createToolCallEvent("bash", { command: "rm file.txt" }),
-			ctx,
-		);
+		const result = await handler(createToolCallEvent("bash", { command: "rm file.txt" }), ctx);
 		expect(result).toBeUndefined(); // confirmed = allowed
 	});
 
@@ -165,10 +159,7 @@ describe("tf-delete-guard", () => {
 
 		const handler = mockPi.getHandler("tool_call");
 		const ctx = createMockCtx(true, false);
-		const result = await handler(
-			createToolCallEvent("bash", { command: "rm file.txt" }),
-			ctx,
-		);
+		const result = await handler(createToolCallEvent("bash", { command: "rm file.txt" }), ctx);
 
 		expect(result).toEqual({ block: true, reason: "Blocked by user (delete guard)" });
 	});
@@ -180,10 +171,7 @@ describe("tf-delete-guard", () => {
 
 		const handler = mockPi.getHandler("tool_call");
 		const ctx = createMockCtx(true, true);
-		const result = await handler(
-			createToolCallEvent("bash", { command: "rm file.txt" }),
-			ctx,
-		);
+		const result = await handler(createToolCallEvent("bash", { command: "rm file.txt" }), ctx);
 
 		expect(result).toBeUndefined();
 	});
@@ -224,10 +212,7 @@ describe("tf-delete-guard", () => {
 
 		for (const cmd of deleteCommands) {
 			const ctx = createMockCtx(true, false);
-			const result = await handler(
-				createToolCallEvent("bash", { command: cmd }),
-				ctx,
-			);
+			const result = await handler(createToolCallEvent("bash", { command: cmd }), ctx);
 			expect(result).toEqual(
 				{ block: true, reason: "Blocked by user (delete guard)" },
 				`Expected "${cmd}" to be blocked`,
@@ -244,10 +229,7 @@ describe("tf-delete-guard", () => {
 
 		const handler = mockPi.getHandler("tool_call");
 		const ctx = createMockCtx(true, false);
-		const result = await handler(
-			createToolCallEvent("bash", { command: "rm file.txt" }),
-			ctx,
-		);
+		const result = await handler(createToolCallEvent("bash", { command: "rm file.txt" }), ctx);
 		// Malformed JSON -> getSetting returns undefined -> default true -> guard active
 		expect(result).toEqual({ block: true, reason: "Blocked by user (delete guard)" });
 	});

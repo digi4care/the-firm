@@ -116,9 +116,7 @@ function colorDistance(color1, color2) {
 
 	if (!rgb1 || !rgb2) return Infinity;
 
-	return Math.sqrt(
-		Math.pow(rgb1.r - rgb2.r, 2) + Math.pow(rgb1.g - rgb2.g, 2) + Math.pow(rgb1.b - rgb2.b, 2),
-	);
+	return Math.sqrt((rgb1.r - rgb2.r) ** 2 + (rgb1.g - rgb2.g) ** 2 + (rgb1.b - rgb2.b) ** 2);
 }
 
 /**

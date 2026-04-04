@@ -1,24 +1,20 @@
 {
-  "version": "1.0.0",
-  "created": "2026-04-03T20:51:21.698Z",
-  "last_updated": "2026-04-03T20:51:21.698Z",
-  "registry_type": "reference_documents",
-  "entries": [
-    {
-      "id": "references-interview-techniques",
-      "title": "References Interview Techniques",
-      "filename": "references-interview-techniques.md",
-      "category": "custom",
-      "description": "Reference for References Interview Techniques.",
-      "keywords": [
-        "references-interview-techniques"
-      ],
-      "topics": [
-        "references"
-      ],
-      "language": "en",
-      "created": "2026-04-03T20:51:21.698Z",
-      "last_updated": "2026-04-03T20:51:21.698Z"
-    }
-  ]
+	"version": "1.0.0",
+	"created": "2026-04-03T20:51:21.698Z",
+	"last_updated": "2026-04-03T20:51:21.698Z",
+	"registry_type": "reference_documents",
+	"entries": [
+		{
+			"id": "references-interview-techniques",
+			"title": "References Interview Techniques",
+			"filename": "references-interview-techniques.md",
+			"category": "custom",
+			"description": "Reference for References Interview Techniques.",
+			"keywords": ["references-interview-techniques"],
+			"topics": ["references"],
+			"language": "en",
+			"created": "2026-04-03T20:51:21.698Z",
+			"last_updated": "2026-04-03T20:51:21.698Z"
+		}
+	]
 }

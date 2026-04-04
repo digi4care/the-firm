@@ -1,24 +1,20 @@
 {
-  "version": "1.0.0",
-  "created": "2026-04-03T20:52:18.261Z",
-  "last_updated": "2026-04-03T20:52:18.261Z",
-  "registry_type": "reference_documents",
-  "entries": [
-    {
-      "id": "references-interview-guide",
-      "title": "References Interview Guide",
-      "filename": "references-interview-guide.md",
-      "category": "custom",
-      "description": "Reference for References Interview Guide.",
-      "keywords": [
-        "references-interview-guide"
-      ],
-      "topics": [
-        "references"
-      ],
-      "language": "en",
-      "created": "2026-04-03T20:52:18.261Z",
-      "last_updated": "2026-04-03T20:52:18.261Z"
-    }
-  ]
+	"version": "1.0.0",
+	"created": "2026-04-03T20:52:18.261Z",
+	"last_updated": "2026-04-03T20:52:18.261Z",
+	"registry_type": "reference_documents",
+	"entries": [
+		{
+			"id": "references-interview-guide",
+			"title": "References Interview Guide",
+			"filename": "references-interview-guide.md",
+			"category": "custom",
+			"description": "Reference for References Interview Guide.",
+			"keywords": ["references-interview-guide"],
+			"topics": ["references"],
+			"language": "en",
+			"created": "2026-04-03T20:52:18.261Z",
+			"last_updated": "2026-04-03T20:52:18.261Z"
+		}
+	]
 }

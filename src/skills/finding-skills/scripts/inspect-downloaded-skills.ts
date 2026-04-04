@@ -3,10 +3,10 @@ import * as path from "node:path";
 import { $ } from "bun";
 import {
 	exists,
-	findRepoRoot,
 	extractFrontmatterValue,
-	parseEnv,
+	findRepoRoot,
 	generateAdoptionPlan,
+	parseEnv,
 	type SkillCandidate,
 } from "./skill-helpers";
 

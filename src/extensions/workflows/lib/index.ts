@@ -1,19 +1,18 @@
-export {
-	FirmConfigSchema,
-	ClientSchema,
-	ProjectSchema,
-	EngagementSchema,
-	EngagementType,
-	EngagementStatus,
-	ProjectStatus,
-	SkillLevel,
-	CommunicationStyle,
-	QualityBar,
-} from "./config.js";
-
 export type {
-	FirmConfig,
 	ClientConfig,
-	ProjectConfig,
 	EngagementConfig,
+	FirmConfig,
+	ProjectConfig,
+} from "./config.js";
+export {
+	ClientSchema,
+	CommunicationStyle,
+	EngagementSchema,
+	EngagementStatus,
+	EngagementType,
+	FirmConfigSchema,
+	ProjectSchema,
+	ProjectStatus,
+	QualityBar,
+	SkillLevel,
 } from "./config.js";

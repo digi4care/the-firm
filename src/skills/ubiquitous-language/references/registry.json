@@ -1,24 +1,20 @@
 {
-  "version": "1.0.0",
-  "created": "2026-04-03T20:55:36.357Z",
-  "last_updated": "2026-04-03T20:55:36.357Z",
-  "registry_type": "reference_documents",
-  "entries": [
-    {
-      "id": "references-extraction-patterns",
-      "title": "References Extraction Patterns",
-      "filename": "references-extraction-patterns.md",
-      "category": "custom",
-      "description": "Reference for References Extraction Patterns.",
-      "keywords": [
-        "references-extraction-patterns"
-      ],
-      "topics": [
-        "references"
-      ],
-      "language": "en",
-      "created": "2026-04-03T20:55:36.357Z",
-      "last_updated": "2026-04-03T20:55:36.357Z"
-    }
-  ]
+	"version": "1.0.0",
+	"created": "2026-04-03T20:55:36.357Z",
+	"last_updated": "2026-04-03T20:55:36.357Z",
+	"registry_type": "reference_documents",
+	"entries": [
+		{
+			"id": "references-extraction-patterns",
+			"title": "References Extraction Patterns",
+			"filename": "references-extraction-patterns.md",
+			"category": "custom",
+			"description": "Reference for References Extraction Patterns.",
+			"keywords": ["references-extraction-patterns"],
+			"topics": ["references"],
+			"language": "en",
+			"created": "2026-04-03T20:55:36.357Z",
+			"last_updated": "2026-04-03T20:55:36.357Z"
+		}
+	]
 }

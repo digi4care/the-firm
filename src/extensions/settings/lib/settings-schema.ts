@@ -200,7 +200,8 @@ export const SETTINGS_SCHEMA = {
 		ui: {
 			tab: "workflows",
 			label: "Compaction Threshold %",
-			description: "Percentage of context window before auto-compaction triggers (-1 = use Pi default)",
+			description:
+				"Percentage of context window before auto-compaction triggers (-1 = use Pi default)",
 			submenu: true,
 		},
 	},
@@ -211,7 +212,8 @@ export const SETTINGS_SCHEMA = {
 		ui: {
 			tab: "workflows",
 			label: "Compaction Token Limit",
-			description: "Fixed token limit for compaction (-1 = use Pi default, overrides percentage if set)",
+			description:
+				"Fixed token limit for compaction (-1 = use Pi default, overrides percentage if set)",
 			submenu: true,
 		},
 	},
@@ -222,7 +224,8 @@ export const SETTINGS_SCHEMA = {
 		ui: {
 			tab: "workflows",
 			label: "Keep Handoff on Disk",
-			description: "Keep .local/HANDOFF.md after new session consumes it (handoff is always generated regardless of this setting)",
+			description:
+				"Keep .local/HANDOFF.md after new session consumes it (handoff is always generated regardless of this setting)",
 		},
 	},
 

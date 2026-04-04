@@ -67,15 +67,23 @@ export default function (pi: ExtensionAPI) {
 						env: { ...process.env },
 						stdio: ["ignore", "pipe", "pipe"],
 					});
-					child.stdout?.on("data", (d: Buffer) => { stdout += d.toString(); });
-					child.stderr?.on("data", (d: Buffer) => { stderr += d.toString(); });
+					child.stdout?.on("data", (d: Buffer) => {
+						stdout += d.toString();
+					});
+					child.stderr?.on("data", (d: Buffer) => {
+						stderr += d.toString();
+					});
 					child.on("close", (code) => {
 						const output = (stdout + stderr).trim();
 						const exitInfo = code !== 0 ? `\n[Exit code: ${code}]` : "";
 						resolve({ content: [{ type: "text", text: output + exitInfo }], details: {} });
 					});
 					child.on("error", (err) => {
-						resolve({ content: [{ type: "text", text: `Error: ${err.message}` }], details: {}, isError: true });
+						resolve({
+							content: [{ type: "text", text: `Error: ${err.message}` }],
+							details: {},
+							isError: true,
+						});
 					});
 				});
 			}

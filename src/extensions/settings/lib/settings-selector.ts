@@ -11,12 +11,13 @@
 import {
 	matchesKey,
 	type SelectItem,
-	type SelectListTheme,
 	SelectList,
+	type SelectListTheme,
 	type SettingItem,
 	SettingsList,
 	truncateToWidth,
 } from "@mariozechner/pi-tui";
+import { getTabIcons } from "../../../shared/symbols";
 import { getSettingsForTab, type SettingDef, type SubmenuSettingDef } from "./settings-defs";
 import {
 	getDefault,
@@ -25,7 +26,6 @@ import {
 	type SettingTab,
 	TAB_METADATA,
 } from "./settings-schema";
-import { getTabIcons } from "../../../shared/symbols";
 
 // ═══════════════════════════════════════════════════════════════
 // Types

@@ -7,9 +7,12 @@
  */
 
 import { beforeEach, describe, expect, it } from "bun:test";
-import { KeybindingsManager, setKeybindings, TUI_KEYBINDINGS } from "@mariozechner/pi-tui";
-
-import { visibleWidth } from "@mariozechner/pi-tui";
+import {
+	KeybindingsManager,
+	setKeybindings,
+	TUI_KEYBINDINGS,
+	visibleWidth,
+} from "@mariozechner/pi-tui";
 
 describe("settings-selector", () => {
 	beforeEach(() => {
@@ -172,9 +175,7 @@ describe("settings-selector", () => {
 		it("opens submenu on Enter for submenu-type setting", async () => {
 			const { createSettingsSelector } = await getModule();
 			const changes: Array<[string, string]> = [];
-			const settings = new Map<string, string>([
-				["theFirm.symbolPreset", "emoji"],
-			]);
+			const settings = new Map<string, string>([["theFirm.symbolPreset", "emoji"]]);
 
 			const component = createSettingsSelector({
 				settings,
@@ -206,9 +207,7 @@ describe("settings-selector", () => {
 		it("selects a submenu option and calls onChange", async () => {
 			const { createSettingsSelector } = await getModule();
 			const changes: Array<[string, string]> = [];
-			const settings = new Map<string, string>([
-				["theFirm.symbolPreset", "emoji"],
-			]);
+			const settings = new Map<string, string>([["theFirm.symbolPreset", "emoji"]]);
 
 			const component = createSettingsSelector({
 				settings,
@@ -242,9 +241,7 @@ describe("settings-selector", () => {
 		it("cancels submenu on Escape without calling onChange", async () => {
 			const { createSettingsSelector } = await getModule();
 			const changes: Array<[string, string]> = [];
-			const settings = new Map<string, string>([
-				["theFirm.symbolPreset", "emoji"],
-			]);
+			const settings = new Map<string, string>([["theFirm.symbolPreset", "emoji"]]);
 
 			const component = createSettingsSelector({
 				settings,

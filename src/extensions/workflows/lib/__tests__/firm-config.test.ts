@@ -1,11 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import {
-	FirmConfigSchema,
 	ClientSchema,
-	ProjectSchema,
 	EngagementSchema,
-	EngagementType,
 	EngagementStatus,
+	EngagementType,
+	FirmConfigSchema,
+	ProjectSchema,
 } from "../config.js";
 
 // ── Helpers ─────────────────────────────────────────────
@@ -86,7 +86,11 @@ describe("FirmConfigSchema", () => {
 	});
 
 	test("defaults engagement to empty object", () => {
-		const config = { firm: { version: 1 }, client: { display_name: "Test", created: now }, project: { name: "test", created: now } };
+		const config = {
+			firm: { version: 1 },
+			client: { display_name: "Test", created: now },
+			project: { name: "test", created: now },
+		};
 		const result = FirmConfigSchema.parse(config);
 		expect(result.engagement.status).toBe("new");
 		expect(result.engagement.classified).toBe(false);
@@ -146,7 +150,12 @@ describe("FirmConfigSchema", () => {
 	test("spoken and preferred language can differ", () => {
 		const result = FirmConfigSchema.parse({
 			firm: { version: 1 },
-			client: { display_name: "Bilingual", spoken_language: "nl", preferred_language: "en", created: now },
+			client: {
+				display_name: "Bilingual",
+				spoken_language: "nl",
+				preferred_language: "en",
+				created: now,
+			},
 			project: { name: "test", created: now },
 		});
 		expect(result.client.spoken_language).toBe("nl");
@@ -158,7 +167,14 @@ describe("FirmConfigSchema", () => {
 
 describe("EngagementType", () => {
 	test("accepts valid types", () => {
-		for (const type of ["idea-shaping", "plan-review", "greenfield-build", "brownfield-adoption", "scoped-delivery", "rescue"]) {
+		for (const type of [
+			"idea-shaping",
+			"plan-review",
+			"greenfield-build",
+			"brownfield-adoption",
+			"scoped-delivery",
+			"rescue",
+		]) {
 			expect(EngagementType.parse(type)).toBe(type);
 		}
 	});
@@ -172,7 +188,17 @@ describe("EngagementType", () => {
 
 describe("EngagementStatus lifecycle", () => {
 	test("accepts all valid statuses", () => {
-		const statuses = ["new", "clarifying", "classified", "staffing_pending", "approved", "in_delivery", "paused", "completed", "archived"];
+		const statuses = [
+			"new",
+			"clarifying",
+			"classified",
+			"staffing_pending",
+			"approved",
+			"in_delivery",
+			"paused",
+			"completed",
+			"archived",
+		];
 		for (const status of statuses) {
 			expect(EngagementStatus.parse(status)).toBe(status);
 		}

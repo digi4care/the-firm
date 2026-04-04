@@ -1212,5 +1212,4 @@ export default async function skillCreator(pi: ExtensionAPI) {
 			}
 		},
 	});
-
 }

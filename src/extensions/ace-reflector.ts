@@ -248,7 +248,6 @@ function generateReflectionReport(
 // ── Extension ─────────────────────────────────────────────
 
 export default async function aceReflector(pi: ExtensionAPI) {
-
 	function isEnabled(): boolean {
 		const val = getSetting("theFirm.aceReflection");
 		return val === true; // default false

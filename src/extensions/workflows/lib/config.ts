@@ -48,56 +48,59 @@ export const QualityBar = z.enum(["prototype", "professional", "production"]);
 
 // ── Client sectie ────────────────────────────────────────
 
-export const ClientSchema = z.object({
-	// Verplicht bij intake
-	display_name: z.string().min(1, "Client name is required"),
-	spoken_language: z.string().optional(),
-	preferred_language: z.string().optional(),
-	created: z.string().datetime({ offset: true }),
+export const ClientSchema = z
+	.object({
+		// Verplicht bij intake
+		display_name: z.string().min(1, "Client name is required"),
+		spoken_language: z.string().optional(),
+		preferred_language: z.string().optional(),
+		created: z.string().datetime({ offset: true }),
 
-	// Backward compat: oud 'language' veld wordt gemigreerd
-	language: z.string().optional(),
+		// Backward compat: oud 'language' veld wordt gemigreerd
+		language: z.string().optional(),
 
-	// Optioneel — gevuld naarmate we meer leren
-	profile: z
-		.object({
-			background: z.string().default(""),
-			skill_level: SkillLevel.optional(),
-			known_stack: z.array(z.string()).default([]),
-		})
-		.optional(),
+		// Optioneel — gevuld naarmate we meer leren
+		profile: z
+			.object({
+				background: z.string().default(""),
+				skill_level: SkillLevel.optional(),
+				known_stack: z.array(z.string()).default([]),
+			})
+			.optional(),
 
-	communication: z
-		.object({
-			style: CommunicationStyle.default("direct"),
-			accessibility_needs: z.array(z.string()).default([]),
-		})
-		.optional(),
+		communication: z
+			.object({
+				style: CommunicationStyle.default("direct"),
+				accessibility_needs: z.array(z.string()).default([]),
+			})
+			.optional(),
 
-	preferences: z
-		.object({
-			quality_bar: QualityBar.optional(),
-			success_criteria: z.array(z.string()).default([]),
-			constraints: z.array(z.string()).default([]),
-		})
-		.optional(),
+		preferences: z
+			.object({
+				quality_bar: QualityBar.optional(),
+				success_criteria: z.array(z.string()).default([]),
+				constraints: z.array(z.string()).default([]),
+			})
+			.optional(),
 
-	patterns: z
-		.object({
-			strengths: z.array(z.string()).default([]),
-			watch_outs: z.array(z.string()).default([]),
-			learned: z.array(z.string()).default([]),
-		})
-		.optional(),
-}).transform((data) => {
-	// Backward compat: migreer oud 'language' veld
-	const hasLegacyLanguage = !!data.language;
-	const spoken = data.spoken_language ?? (hasLegacyLanguage ? data.language : undefined) ?? "nl";
-	const preferred = data.preferred_language ?? (hasLegacyLanguage ? data.language : undefined) ?? "nl";
-	// Verwijder legacy veld
-	const { language, ...rest } = data;
-	return { ...rest, spoken_language: spoken, preferred_language: preferred };
-});
+		patterns: z
+			.object({
+				strengths: z.array(z.string()).default([]),
+				watch_outs: z.array(z.string()).default([]),
+				learned: z.array(z.string()).default([]),
+			})
+			.optional(),
+	})
+	.transform((data) => {
+		// Backward compat: migreer oud 'language' veld
+		const hasLegacyLanguage = !!data.language;
+		const spoken = data.spoken_language ?? (hasLegacyLanguage ? data.language : undefined) ?? "nl";
+		const preferred =
+			data.preferred_language ?? (hasLegacyLanguage ? data.language : undefined) ?? "nl";
+		// Verwijder legacy veld
+		const { language, ...rest } = data;
+		return { ...rest, spoken_language: spoken, preferred_language: preferred };
+	});
 
 // ── Project sectie ───────────────────────────────────────
 
@@ -125,14 +128,16 @@ export const ProjectSchema = z.object({
 
 // ── Engagement sectie ────────────────────────────────────
 
-export const EngagementSchema = z.object({
-	type: EngagementType.optional(),
-	status: EngagementStatus.default("new"),
-	office: z.string().optional(), // welke office heeft het stokje
-	classified: z.boolean().default(false),
-	started: z.string().datetime({ offset: true }).optional(),
-	completed: z.string().datetime({ offset: true }).optional(),
-}).default({ status: "new", classified: false });
+export const EngagementSchema = z
+	.object({
+		type: EngagementType.optional(),
+		status: EngagementStatus.default("new"),
+		office: z.string().optional(), // welke office heeft het stokje
+		classified: z.boolean().default(false),
+		started: z.string().datetime({ offset: true }).optional(),
+		completed: z.string().datetime({ offset: true }).optional(),
+	})
+	.default({ status: "new", classified: false });
 
 // ── Full schema ──────────────────────────────────────────
 

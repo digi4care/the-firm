@@ -47,7 +47,7 @@ export function extractFrontmatterValue(markdown: string, key: string): string |
 		const keyMatch = line.match(new RegExp(`^${key}:\\s*(.*)$`));
 		if (!keyMatch) continue;
 
-		let value = keyMatch[1].trim();
+		const value = keyMatch[1].trim();
 
 		// Handle explicit multiline indicators (> or |)
 		if (value === ">" || value === "|") {

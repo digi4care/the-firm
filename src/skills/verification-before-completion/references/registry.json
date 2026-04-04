@@ -1,24 +1,20 @@
 {
-  "version": "1.0.0",
-  "created": "2026-04-03T20:56:27.406Z",
-  "last_updated": "2026-04-03T20:56:27.406Z",
-  "registry_type": "reference_documents",
-  "entries": [
-    {
-      "id": "references-verification-commands",
-      "title": "References Verification Commands",
-      "filename": "references-verification-commands.md",
-      "category": "custom",
-      "description": "Reference for References Verification Commands.",
-      "keywords": [
-        "references-verification-commands"
-      ],
-      "topics": [
-        "references"
-      ],
-      "language": "en",
-      "created": "2026-04-03T20:56:27.406Z",
-      "last_updated": "2026-04-03T20:56:27.406Z"
-    }
-  ]
+	"version": "1.0.0",
+	"created": "2026-04-03T20:56:27.406Z",
+	"last_updated": "2026-04-03T20:56:27.406Z",
+	"registry_type": "reference_documents",
+	"entries": [
+		{
+			"id": "references-verification-commands",
+			"title": "References Verification Commands",
+			"filename": "references-verification-commands.md",
+			"category": "custom",
+			"description": "Reference for References Verification Commands.",
+			"keywords": ["references-verification-commands"],
+			"topics": ["references"],
+			"language": "en",
+			"created": "2026-04-03T20:56:27.406Z",
+			"last_updated": "2026-04-03T20:56:27.406Z"
+		}
+	]
 }

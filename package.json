@@ -1,45 +1,45 @@
 {
-  "name": "@digi4care/the-firm",
-  "version": "0.1.11",
-  "description": "Issue-driven, role-specialized engineering operating system for AI-assisted software development -- turns generic AI coding into a governable software organization",
-  "keywords": [
-    "ai",
-    "engineering",
-    "operating-system",
-    "development-workflow"
-  ],
-  "author": "Digi4Care",
-  "license": "MIT",
-  "private": true,
-  "type": "module",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/digi4care/the-firm.git"
-  },
-  "bugs": {
-    "url": "https://github.com/digi4care/the-firm/issues"
-  },
-  "scripts": {
-    "update-deps": "ncu -u && bun install",
-    "dev": "scripts/sync-dev.sh",
-    "prod": "scripts/sync-prod.sh",
-    "lint": "biome check . && markdownlint-cli2 \"*.md\" \"**/*.md\" \"!design\" \"!docs\" \"!.pi\" \"!.local\" \"!.personal\" \"!.beads\" \"!.dolt\" \"!node_modules\"",
-    "lint:fix": "biome check --write . && markdownlint-cli2 --fix \"*.md\" \"**/*.md\" \"!design\" \"!docs\" \"!.pi\" \"!.local\" \"!.personal\" \"!.beads\" \"!.dolt\" \"!node_modules\"",
-    "format": "biome format --write .",
-    "format:check": "biome format .",
-    "version:patch": "bun scripts/version-bump.js patch",
-    "version:minor": "bun scripts/version-bump.js minor",
-    "test": "bun test",
-    "version:major": "bun scripts/version-bump.js major"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "^2.4.10",
-    "@mariozechner/pi-coding-agent": "^0.64.0",
-    "@mariozechner/pi-tui": "^0.64.0",
-    "markdownlint-cli2": "^0.22.0",
-    "npm-check-updates": "^20"
-  },
-  "dependencies": {
-    "zod": "^4.3.6"
-  }
+	"name": "@digi4care/the-firm",
+	"version": "0.1.11",
+	"description": "Issue-driven, role-specialized engineering operating system for AI-assisted software development -- turns generic AI coding into a governable software organization",
+	"keywords": [
+		"ai",
+		"engineering",
+		"operating-system",
+		"development-workflow"
+	],
+	"author": "Digi4Care",
+	"license": "MIT",
+	"private": true,
+	"type": "module",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/digi4care/the-firm.git"
+	},
+	"bugs": {
+		"url": "https://github.com/digi4care/the-firm/issues"
+	},
+	"scripts": {
+		"update-deps": "ncu -u && bun install",
+		"dev": "scripts/sync-dev.sh",
+		"prod": "scripts/sync-prod.sh",
+		"lint": "biome check . && markdownlint-cli2 \"*.md\" \"**/*.md\" \"!design\" \"!docs\" \"!.pi\" \"!.local\" \"!.personal\" \"!.beads\" \"!.dolt\" \"!node_modules\"",
+		"lint:fix": "biome check --write . && markdownlint-cli2 --fix \"*.md\" \"**/*.md\" \"!design\" \"!docs\" \"!.pi\" \"!.local\" \"!.personal\" \"!.beads\" \"!.dolt\" \"!node_modules\"",
+		"format": "biome format --write .",
+		"format:check": "biome format .",
+		"version:patch": "bun scripts/version-bump.js patch",
+		"version:minor": "bun scripts/version-bump.js minor",
+		"test": "bun test",
+		"version:major": "bun scripts/version-bump.js major"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^2.4.10",
+		"@mariozechner/pi-coding-agent": "^0.64.0",
+		"@mariozechner/pi-tui": "^0.64.0",
+		"markdownlint-cli2": "^0.22.0",
+		"npm-check-updates": "^20"
+	},
+	"dependencies": {
+		"zod": "^4.3.6"
+	}
 }
