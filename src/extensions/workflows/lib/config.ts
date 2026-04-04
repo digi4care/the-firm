@@ -128,6 +128,8 @@ export const ProjectSchema = z.object({
 
 // ── Engagement sectie ────────────────────────────────────
 
+export const FirmState = z.enum(["active", "paused"]);
+
 export const EngagementSchema = z
 	.object({
 		type: EngagementType.optional(),
@@ -148,6 +150,7 @@ export const FirmConfigSchema = z.object({
 	client: ClientSchema,
 	project: ProjectSchema,
 	engagement: EngagementSchema,
+	firmState: FirmState.optional(),
 });
 
 // ── Types ────────────────────────────────────────────────
@@ -156,3 +159,4 @@ export type FirmConfig = z.infer<typeof FirmConfigSchema>;
 export type ClientConfig = z.infer<typeof ClientSchema>;
 export type ProjectConfig = z.infer<typeof ProjectSchema>;
 export type EngagementConfig = z.infer<typeof EngagementSchema>;
+export type FirmStateType = z.infer<typeof FirmState>;

@@ -1,10 +1,10 @@
 import { describe, expect, test } from "bun:test";
 import {
 	ClientSchema,
-	EngagementSchema,
 	EngagementStatus,
 	EngagementType,
 	FirmConfigSchema,
+	FirmState,
 	ProjectSchema,
 } from "../config.js";
 
@@ -202,6 +202,43 @@ describe("EngagementStatus lifecycle", () => {
 		for (const status of statuses) {
 			expect(EngagementStatus.parse(status)).toBe(status);
 		}
+	});
+});
+
+// ── FirmState enum ──────────────────────────────────────
+
+describe("FirmState", () => {
+	test("accepts active", () => {
+		expect(FirmState.parse("active")).toBe("active");
+	});
+
+	test("accepts paused", () => {
+		expect(FirmState.parse("paused")).toBe("paused");
+	});
+
+	test("rejects invalid state", () => {
+		expect(() => FirmState.parse("idle")).toThrow();
+	});
+});
+
+describe("FirmConfigSchema firmState", () => {
+	test("defaults to undefined when missing", () => {
+		const result = FirmConfigSchema.parse(minimalConfig);
+		expect(result.firmState).toBeUndefined();
+	});
+
+	test("accepts firmState: active", () => {
+		const result = FirmConfigSchema.parse({ ...minimalConfig, firmState: "active" });
+		expect(result.firmState).toBe("active");
+	});
+
+	test("accepts firmState: paused", () => {
+		const result = FirmConfigSchema.parse({ ...minimalConfig, firmState: "paused" });
+		expect(result.firmState).toBe("paused");
+	});
+
+	test("rejects invalid firmState", () => {
+		expect(() => FirmConfigSchema.parse({ ...minimalConfig, firmState: "idle" })).toThrow();
 	});
 });
 
