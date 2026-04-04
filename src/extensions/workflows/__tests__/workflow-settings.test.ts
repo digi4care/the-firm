@@ -183,26 +183,30 @@ describe("session_before_compact — blocking logic", () => {
 		expect(result).toBeUndefined();
 	});
 
-	it("blocks compaction when autoCompact is false", async () => {
+	it("allows compaction even when autoCompact is false (Pi handles disabled check)", async () => {
 		writeSettings({ theFirm: { session: { autoCompact: false } } });
 
 		const mockPi = createMockPi();
 		const { default: register } = await import("../workflow-settings.ts");
 		register(mockPi as any);
 
+		// New behavior: we never cancel from the extension.
+		// Pi's own compaction settings (synced via syncCompactionSettingsToPi)
+		// handle the enabled/disabled check. The extension should never block.
 		const result = await mockPi.getHandler("session_before_compact")({}, createMockCtx());
-		expect(result).toEqual({ cancel: true });
+		expect(result).toBeUndefined();
 	});
 
-	it("blocks compaction when strategy is off", async () => {
+	it("allows compaction even when strategy is off (Pi handles strategy check)", async () => {
 		writeSettings({ theFirm: { workflows: { compactionStrategy: "off" } } });
 
 		const mockPi = createMockPi();
 		const { default: register } = await import("../workflow-settings.ts");
 		register(mockPi as any);
 
+		// New behavior: we never cancel. Pi handles strategy checks internally.
 		const result = await mockPi.getHandler("session_before_compact")({}, createMockCtx());
-		expect(result).toEqual({ cancel: true });
+		expect(result).toBeUndefined();
 	});
 
 	it("allows compaction when strategy is context-full", async () => {
@@ -216,7 +220,7 @@ describe("session_before_compact — blocking logic", () => {
 		expect(result).toBeUndefined();
 	});
 
-	it("cancels compaction when strategy is handoff (does its own handoff)", async () => {
+	it("allows compaction when strategy is handoff (saves handoff doc as safety net)", async () => {
 		writeSettings({ theFirm: { workflows: { compactionStrategy: "handoff" } } });
 
 		const mockPi = createMockPi();
@@ -231,12 +235,14 @@ describe("session_before_compact — blocking logic", () => {
 			sessionManager: { getEntries: () => entries },
 		});
 
+		// New behavior: handoff strategy does NOT cancel compaction.
+		// The old approach (cancel + LLM call) caused session blocking.
+		// Now we let Pi's compaction run and save a basic handoff after.
 		const result = await mockPi.getHandler("session_before_compact")({}, mockCtx);
-		// handoff strategy cancels Pi's compaction — it does its own
-		expect(result).toEqual({ cancel: true });
+		expect(result).toBeUndefined();
 	});
 
-	it("autoCompact=false overrides strategy", async () => {
+	it("autoCompact=false is synced to Pi settings but does not block from extension", async () => {
 		writeSettings({
 			theFirm: {
 				session: { autoCompact: false },
@@ -248,8 +254,10 @@ describe("session_before_compact — blocking logic", () => {
 		const { default: register } = await import("../workflow-settings.ts");
 		register(mockPi as any);
 
+		// New behavior: extension never blocks. autoCompact=false is synced
+		// to Pi's compaction.enabled via syncCompactionSettingsToPi().
 		const result = await mockPi.getHandler("session_before_compact")({}, createMockCtx());
-		expect(result).toEqual({ cancel: true });
+		expect(result).toBeUndefined();
 	});
 });
 

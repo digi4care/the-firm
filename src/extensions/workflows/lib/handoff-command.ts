@@ -1,24 +1,24 @@
 /**
- * /handoff command — Transfer context to a new focused session
+ * /handoff command — Transfer context to a new session
  *
- * Based on OMP's handoff.ts example, adapted for The Firm:
- * - Generates focused prompt via LLM
- * - User edits the prompt in the editor
- * - Creates new session with parent tracking
- * - Optionally saves handoff doc to .local/HANDOFF.md
+ * Based on OMP's core handoff() flow from agent-session.ts:
+ * - Sends the handoff prompt as a developer message to the ACTIVE agent
+ * - The agent writes the handoff document itself (no separate LLM call)
+ * - Waits for agent_end, extracts the handoff text
+ * - Starts a new session with handoff context injected
+ *
+ * Also supports /handoff <focus> for additional focus instructions.
  *
  * Usage:
- *   /handoff now implement this for teams as well
- *   /handoff execute phase one of the plan
- *   /handoff continue from where we left off
+ *   /handoff                          — full handoff to new session
+ *   /handoff now implement this       — handoff with focus on specific task
  */
 
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { BorderedLoader } from "@mariozechner/pi-coding-agent";
 import { getSetting } from "../../settings/lib/settings-store";
-import { generateFocusedHandoff } from "./handoff-generator";
+import { generateBasicHandoff, renderHandoffPrompt, wrapHandoffContext } from "./handoff-generator";
 
 export default function registerHandoffCommand(pi: ExtensionAPI) {
 	pi.registerCommand("handoff", {
@@ -34,88 +34,99 @@ export default function registerHandoffCommand(pi: ExtensionAPI) {
 				return;
 			}
 
-			const goal = args.trim();
-			if (!goal) {
-				ctx.ui.notify("Usage: /handoff <goal for new session>", "error");
+			const additionalFocus = args.trim() || undefined;
+
+			// Gather current session entries
+			const branch = ctx.sessionManager.getBranch();
+
+			const messageCount = branch.filter((e) => e.type === "message").length;
+			if (messageCount < 2) {
+				ctx.ui.notify("Nothing to hand off (need at least 2 messages)", "error");
 				return;
 			}
 
-			// Gather conversation context
+			ctx.ui.notify("📋 Generating handoff document...", "info");
+
+			// Build the handoff prompt — OMP's exact template
+			const handoffPrompt = renderHandoffPrompt(additionalFocus);
+
+			// Inject the handoff prompt as a developer message
+			// The agent will write the handoff document as its response
+			pi.sendUserMessage([
+				{
+					type: "text",
+					text: handoffPrompt,
+				},
+			]);
+
+			// The agent will now generate the handoff document.
+			// After agent_end fires, the user can review it and then
+			// run /handoff-accept to actually create the new session.
+			// For now, we notify the user of next steps.
+			ctx.ui.notify(
+				"Handoff prompt sent to agent. After the document is generated, run /handoff-accept to start the new session.",
+				"info",
+			);
+		},
+	});
+
+	// /handoff-now: One-shot handoff — generates basic handoff and creates new session immediately
+	// This is the fallback when we can't use the agent to write the handoff
+	pi.registerCommand("handoff-now", {
+		description: "Create new session with basic handoff (no agent generation)",
+		handler: async (_args, ctx) => {
+			if (!ctx.hasUI) {
+				ctx.ui.notify("Handoff requires interactive mode", "error");
+				return;
+			}
+
 			const branch = ctx.sessionManager.getBranch();
 			const currentSessionFile = ctx.sessionManager.getSessionFile();
 
-			if (branch.length === 0) {
-				ctx.ui.notify("No conversation to hand off", "error");
+			if (branch.length < 2) {
+				ctx.ui.notify("Nothing to hand off", "error");
 				return;
 			}
 
-			// Generate focused handoff prompt with loading UI
-			const result = await ctx.ui.custom<string | null>((tui, theme, _kb, done) => {
-				const loader = new BorderedLoader(tui, theme, `Generating handoff for: ${goal}`);
-				loader.onAbort = () => done(null);
+			// Generate basic handoff (no LLM call needed)
+			const basicHandoff = generateBasicHandoff(branch);
+			const handoffContent = wrapHandoffContext(basicHandoff);
 
-				const doGenerate = async () => {
-					return await generateFocusedHandoff(
-						branch,
-						goal,
-						ctx.modelRegistry,
-						ctx.model,
-						loader.signal,
-					);
-				};
-
-				doGenerate()
-					.then(done)
-					.catch((err) => {
-						console.error("[handoff] Generation failed:", err);
-						done(null);
-					});
-
-				return loader;
-			});
-
-			if (result === null) {
-				ctx.ui.notify("Handoff cancelled", "info");
-				return;
-			}
-
-			// Let user edit the generated prompt
-			const editedPrompt = await ctx.ui.editor("Edit handoff prompt before sending", result);
-
-			if (editedPrompt === undefined) {
-				ctx.ui.notify("Handoff cancelled", "info");
-				return;
-			}
-
-			// Save handoff doc to disk if configured
-			if (getSetting("theFirm.compaction.handoffSaveToDisk") === true) {
-				try {
-					const localDir = join(process.cwd(), ".local");
-					if (!existsSync(localDir)) mkdirSync(localDir, { recursive: true });
-
-					writeFileSync(
-						join(localDir, "HANDOFF.md"),
-						`# Handoff — Manual\n\nGenerated: ${new Date().toISOString()}\nGoal: ${goal}\n\n${editedPrompt}`,
-						"utf-8",
-					);
-				} catch {
-					// Best effort
-				}
-			}
+			// Save to disk if configured
+			saveHandoffToDisk(basicHandoff);
 
 			// Create new session with parent tracking
-			const newSessionResult = await ctx.newSession({
-				parentSession: currentSessionFile,
+			const result = await ctx.newSession({
+				parentSession: currentSessionFile ?? undefined,
+				setup: async (sm) => {
+					// Inject handoff as custom message entry
+					sm.appendCustomMessageEntry?.("handoff", handoffContent, true, undefined, "agent");
+				},
 			});
 
-			if (newSessionResult.cancelled) {
+			if (result.cancelled) {
 				ctx.ui.notify("New session cancelled", "info");
 				return;
 			}
 
-			// Put the edited prompt in the editor for user to submit
-			ctx.ui.setEditorText(editedPrompt);
-			ctx.ui.notify("Handoff ready. Review and submit when ready.", "info");
+			ctx.ui.notify("✅ New session started with handoff context", "success");
 		},
 	});
+}
+
+function saveHandoffToDisk(content: string): void {
+	if (getSetting("theFirm.compaction.handoffSaveToDisk") !== true) return;
+
+	try {
+		const localDir = join(process.cwd(), ".local");
+		if (!existsSync(localDir)) mkdirSync(localDir, { recursive: true });
+
+		writeFileSync(
+			join(localDir, "HANDOFF.md"),
+			`# Handoff — Manual\n\nGenerated: ${new Date().toISOString()}\n\n${content}`,
+			"utf-8",
+		);
+	} catch {
+		// Best effort
+	}
 }

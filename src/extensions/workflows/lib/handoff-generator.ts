@@ -1,42 +1,22 @@
 /**
  * handoff-generator.ts — Core handoff summary generation
  *
- * Generates structured handoff summaries from session entries using LLM.
- * Used by both automatic (session_shutdown, compaction) and manual (/handoff) flows.
+ * Generates structured handoff documents from session entries.
+ * Uses OMP's exact handoff-document.md prompt template.
  *
- * Prompts overgenomen van OMP's handoff-document.md
+ * Two modes:
+ * 1. Manual /handoff — agent writes the handoff document itself (OMP-style)
+ * 2. Fallback basic handoff — no LLM needed, extracts file ops + recent messages
  */
 
-import { complete, type Message } from "@mariozechner/pi-ai";
 import type { SessionEntry } from "@mariozechner/pi-coding-agent";
-import { convertToLlm, serializeConversation } from "@mariozechner/pi-coding-agent";
-import type { Model, ModelRegistry } from "@mariozechner/pi-coding-agent";
 
 // ═══════════════════════════════════════════════════════════════
-// Types
+// OMP's exact handoff prompt template
 // ═══════════════════════════════════════════════════════════════
+// Source: oh-my-pi/packages/coding-agent/src/prompts/system/handoff-document.md
 
-export interface HandoffResult {
-	summary: string;
-	readFiles: string[];
-	modifiedFiles: string[];
-	tokensUsed: number;
-}
-
-export interface HandoffOptions {
-	/** Extra focus instructions (OMP-style additionalFocus) */
-	customInstructions?: string;
-	/** Abort signal */
-	signal?: AbortSignal;
-	/** Model override (defaults to current session model) */
-	model?: Model;
-}
-
-// ═══════════════════════════════════════════════════════════════
-// System prompts — OMP's handoff-document.md
-// ═══════════════════════════════════════════════════════════════
-
-const HANDOFF_SYSTEM_PROMPT = `<critical>
+const HANDOFF_DOCUMENT_PROMPT = `<critical>
 Write a comprehensive handoff document for another instance of yourself.
 The handoff **MUST** be sufficient for seamless continuation without access to this conversation.
 Output ONLY the handoff document. No preamble, no commentary, no wrapper text.
@@ -77,35 +57,26 @@ Use exactly this structure:
 1. [What should happen next]
 </output>`;
 
-/** OMP's auto-handoff threshold focus prompt */
-const AUTO_HANDOFF_FOCUS = "Threshold-triggered maintenance: preserve critical implementation state and immediate next actions.";
+/** OMP's auto-handoff threshold focus — for threshold-triggered handoff */
+const AUTO_HANDOFF_THRESHOLD_FOCUS =
+	"Threshold-triggered maintenance: preserve critical implementation state and immediate next actions.";
 
-/** Focused handoff for manual /handoff command */
-const FOCUSED_HANDOFF_PROMPT = `You are a context transfer assistant.
+/**
+ * Render the handoff document prompt with optional additional focus.
+ * OMP uses {{additionalFocus}} template variable — we render it inline.
+ */
+export function renderHandoffPrompt(additionalFocus?: string): string {
+	if (!additionalFocus) return HANDOFF_DOCUMENT_PROMPT;
+	return `${HANDOFF_DOCUMENT_PROMPT}\n<instruction>\nAdditional focus: ${additionalFocus}\n</instruction>`;
+}
 
-Given a conversation history and the user's goal for a new thread, generate a focused prompt that:
-
-1. Summarizes relevant context from the conversation (decisions made, approaches taken, key findings)
-2. Lists any relevant files that were discussed or modified
-3. Clearly states the next task based on the user's goal
-4. Is self-contained — the new thread should be able to proceed without the old conversation
-
-Format your response as a prompt the user can send to start the new thread. Be concise but include all necessary context.
-
-Example output format:
-## Context
-We've been working on X. Key decisions:
-- Decision 1
-- Decision 2
-
-Files involved:
-- path/to/file1.ts
-
-## Task
-[Clear description of what to do next based on user's goal]`;
+/** Get the auto-handoff threshold focus prompt */
+export function getAutoHandoffFocus(): string {
+	return AUTO_HANDOFF_THRESHOLD_FOCUS;
+}
 
 // ═══════════════════════════════════════════════════════════════
-// Helpers
+// File operation extraction (used by basic handoff)
 // ═══════════════════════════════════════════════════════════════
 
 /** Extract file paths from tool calls in session entries */
@@ -131,7 +102,12 @@ function extractFileOps(entries: SessionEntry[]): { readFiles: string[]; modifie
 
 			if (block.name === "bash" && typeof block.arguments?.command === "string") {
 				const cmd = block.arguments.command;
-				const writePatterns = [/>\s*(\S+)/, /tee\s+(\S+)/, /cp\s+(\S+)\s+(\S+)/, /mv\s+(\S+)\s+(\S+)/];
+				const writePatterns = [
+					/>\s*(\S+)/,
+					/tee\s+(\S+)/,
+					/cp\s+(\S+)\s+(\S+)/,
+					/mv\s+(\S+)\s+(\S+)/,
+				];
 				for (const pattern of writePatterns) {
 					const match = cmd.match(pattern);
 					if (match) modifiedFiles.add(match[1]);
@@ -155,200 +131,32 @@ function filterMessageEntries(entries: SessionEntry[]): SessionEntry[] {
 	});
 }
 
-/** Render handoff system prompt with optional additionalFocus (OMP-style) */
-function renderHandoffPrompt(focus?: string): string {
-	if (!focus) return HANDOFF_SYSTEM_PROMPT;
-	return `${HANDOFF_SYSTEM_PROMPT}\n<instruction>\nAdditional focus: ${focus}\n</instruction>`;
-}
-
 // ═══════════════════════════════════════════════════════════════
-// Core generation functions
+// Basic handoff (no LLM — fallback when agent can't write it)
 // ═══════════════════════════════════════════════════════════════
-
-/** Resolve model + auth for summarization */
-async function resolveModelAuth(
-	modelRegistry: ModelRegistry,
-	preferredModel?: Model,
-): Promise<{ model: Model; apiKey: string; headers: Record<string, string> } | null> {
-	const candidates: (Model | undefined)[] = [preferredModel];
-
-	const flashModel = modelRegistry.find("google", "gemini-2.5-flash");
-	if (flashModel) candidates.push(flashModel);
-
-	const sonnetModel = modelRegistry.find("anthropic", "claude-sonnet-4-20250514");
-	if (sonnetModel) candidates.push(sonnetModel);
-
-	for (const model of candidates) {
-		if (!model) continue;
-
-		const auth = await modelRegistry.getApiKeyAndHeaders(model);
-		if (auth.ok && auth.apiKey) {
-			return { model, apiKey: auth.apiKey, headers: auth.headers ?? {} };
-		}
-	}
-
-	return null;
-}
-
-/**
- * Generate a full handoff summary from session entries.
- * Used for automatic handoff (session_shutdown, compaction, auto-trigger).
- */
-export async function generateHandoffSummary(
-	entries: SessionEntry[],
-	modelRegistry: ModelRegistry,
-	preferredModel?: Model,
-	options?: HandoffOptions,
-): Promise<HandoffResult | null> {
-	const messageEntries = filterMessageEntries(entries);
-	if (messageEntries.length === 0) return null;
-
-	const auth = await resolveModelAuth(modelRegistry, options?.model ?? preferredModel);
-	if (!auth) return null;
-
-	const messages = messageEntries.map((e) => (e as any).message);
-	const conversationText = serializeConversation(convertToLlm(messages));
-
-	const fileOps = extractFileOps(entries);
-
-	// Check for existing compaction summaries
-	let previousContext = "";
-	for (const entry of entries) {
-		if (entry.type === "compaction" && (entry as any).summary) {
-			previousContext = (entry as any).summary;
-		}
-	}
-
-	// OMP-style: render prompt with optional additionalFocus
-	const systemPrompt = renderHandoffPrompt(options?.customInstructions);
-
-	const contextBlock = previousContext
-		? `\n<previous-summary>\n${previousContext}\n</previous-summary>\n\n`
-		: "";
-
-	const userMessage: Message = {
-		role: "user",
-		content: [
-			{
-				type: "text",
-				text: `${contextBlock}<conversation>\n${conversationText}\n</conversation>`,
-			},
-		],
-		timestamp: Date.now(),
-	};
-
-	try {
-		const response = await complete(
-			auth.model,
-			{ systemPrompt, messages: [userMessage] },
-			{
-				apiKey: auth.apiKey,
-				headers: auth.headers,
-				maxTokens: 4096,
-				signal: options?.signal,
-			},
-		);
-
-		if (response.stopReason === "aborted") return null;
-
-		const summary = response.content
-			.filter((c): c is { type: "text"; text: string } => c.type === "text")
-			.map((c) => c.text)
-			.join("\n")
-			.trim();
-
-		if (!summary) return null;
-
-		return {
-			summary,
-			readFiles: fileOps.readFiles,
-			modifiedFiles: fileOps.modifiedFiles,
-			tokensUsed: response.usage?.totalTokens ?? 0,
-		};
-	} catch (error) {
-		const msg = error instanceof Error ? error.message : String(error);
-		console.error("[handoff-generator] Summary generation failed:", msg);
-		return null;
-	}
-}
-
-/**
- * Generate a focused handoff prompt for a specific goal.
- * Used for manual /handoff command.
- */
-export async function generateFocusedHandoff(
-	entries: SessionEntry[],
-	goal: string,
-	modelRegistry: ModelRegistry,
-	preferredModel?: Model,
-	signal?: AbortSignal,
-): Promise<string | null> {
-	const messageEntries = filterMessageEntries(entries);
-	if (messageEntries.length === 0) return null;
-
-	const auth = await resolveModelAuth(modelRegistry, preferredModel);
-	if (!auth) return null;
-
-	const messages = messageEntries.map((e) => (e as any).message);
-	const conversationText = serializeConversation(convertToLlm(messages));
-
-	const userMessage: Message = {
-		role: "user",
-		content: [
-			{
-				type: "text",
-				text: `## Conversation History\n\n${conversationText}\n\n## User's Goal for New Thread\n\n${goal}`,
-			},
-		],
-		timestamp: Date.now(),
-	};
-
-	try {
-		const response = await complete(
-			auth.model,
-			{ systemPrompt: FOCUSED_HANDOFF_PROMPT, messages: [userMessage] },
-			{
-				apiKey: auth.apiKey,
-				headers: auth.headers,
-				maxTokens: 4096,
-				signal,
-			},
-		);
-
-		if (response.stopReason === "aborted") return null;
-
-		return response.content
-			.filter((c): c is { type: "text"; text: string } => c.type === "text")
-			.map((c) => c.text)
-			.join("\n")
-			.trim();
-	} catch (error) {
-		const msg = error instanceof Error ? error.message : String(error);
-		console.error("[handoff-generator] Focused handoff failed:", msg);
-		return null;
-	}
-}
 
 /**
  * Build a basic handoff from entries without LLM (fallback).
- * Used when no model/API key is available.
+ * Used when no model is available or as safety net.
  */
 export function generateBasicHandoff(entries: SessionEntry[]): string {
 	const fileOps = extractFileOps(entries);
 	const messageEntries = filterMessageEntries(entries);
 
+	// Get last user messages as context
 	const recentUserMessages: string[] = [];
 	for (const entry of messageEntries.slice(-20).reverse()) {
 		const msg = (entry as any).message;
 		if (msg?.role === "user") {
-			const text = typeof msg.content === "string"
-				? msg.content
-				: Array.isArray(msg.content)
+			const text =
+				typeof msg.content === "string"
 					? msg.content
-							.filter((b: any) => b.type === "text")
-							.map((b: any) => b.text)
-							.join(" ")
-					: "";
+					: Array.isArray(msg.content)
+						? msg.content
+								.filter((b: any) => b.type === "text")
+								.map((b: any) => b.text)
+								.join(" ")
+						: "";
 			if (text) recentUserMessages.push(text.slice(0, 300));
 			if (recentUserMessages.length >= 5) break;
 		}
@@ -386,5 +194,14 @@ export function generateBasicHandoff(entries: SessionEntry[]): string {
 	return lines.join("\n");
 }
 
-/** Export the auto-handoff focus prompt for use in workflow-settings */
-export { AUTO_HANDOFF_FOCUS };
+// ═══════════════════════════════════════════════════════════════
+// Handoff context injection (OMP-style <handoff-context>)
+// ═══════════════════════════════════════════════════════════════
+
+/**
+ * Wrap handoff text in OMP's <handoff-context> format.
+ * This is the same wrapper OMP uses for injecting handoff into new sessions.
+ */
+export function wrapHandoffContext(handoffText: string): string {
+	return `<handoff-context>\n${handoffText}\n</handoff-context>\n\nThe above is a handoff document from a previous session. Use this context to continue the work seamlessly.`;
+}
