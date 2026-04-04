@@ -5,16 +5,23 @@ All notable changes to The Firm are documented here.
 This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and adheres to [Semantic Versioning](https://semver.org/).
 
-## [0.1.14] - 2026-04-04
+## [0.1.16] - 2026-04-04
+
+### Toegevoegd
+- `/firm` subcommands: `settings`, `handoff`, `compaction`, `status`
+- `/firm handoff` — toont handoff bestanden, storage mode, last session info
+- `/firm compaction` — toont The Firm + Pi's synced compaction settings
+- `/firm status` — toont firm overview (initialized, config, settings count)
+- Autocomplete voor subcommands via `getArgumentCompletions`
+
+## [0.1.15] - 2026-04-04
 
 ### Veranderd
-- **Handoff bestanden per sessie**: bestandsnaam bevat nu session ID + timestamp (`handoff-<sid>-<ts>.md`) in `.pi/firm/handoffs/`
-- **Multi-instance safe**: meerdere Pi-sessies op hetzelfde project overschrijven elkaars handoff niet meer
-- `findLatestHandoffDoc()` zoekt de nieuwste `handoff-*.md` in `.pi/firm/handoffs/`, met fallback naar legacy `HANDOFF.md`
-- `clearHandoffDoc()` respecteert nu `handoffStorage` setting: `inmemory` (default) wist na injectie, `file` bewaart
-- **Alle `.local/` referenties verwijderd**: handoff leeft nu volledig in `.pi/firm/`
-- `/handoff` fix: slaat basic handoff op als safety net, stuurt prompt naar agent, geen niet-bestaand `/handoff-accept` meer
-- Docs bijgewerkt: AGENTS.md, APPEND_SYSTEM.md, CHANGELOG.md
+- Handoff bestanden per sessie: `handoff-<sid>-<ts>.md` in `.pi/firm/handoffs/`
+- Multi-instance safe: meerdere Pi-sessies overschrijven elkaars handoff niet meer
+- Alle `.local/` referenties verwijderd: handoff leeft in `.pi/firm/`
+- `/handoff` gefixt: slaat basic handoff op, stuurt prompt naar agent
+- `clearHandoffDoc()` respecteert `handoffStorage` setting
 
 ### Toegevoegd
 - `theFirm.compaction.handoffStorage` setting: `inmemory` (default) of `file`
@@ -24,38 +31,44 @@ and adheres to [Semantic Versioning](https://semver.org/).
 - `saveHandoffToDisk()` functie — samengevoegd in `/handoff` handler
 - `theFirm.compaction.handoffSaveToDisk` setting — vervangen door `handoffStorage`
 
-## [0.1.12] - 2026-04-04
+## [0.1.14] - 2026-04-04
 
 ### Veranderd
-- **Handoff herschreven**: OMP's exacte `handoff-document.md` prompt template gebruikt
-- **Compaction blokkade opgelost**: `session_before_compact` returnt nu altijd `undefined` — Pi's eigen compaction wordt nooit meer geblokkeerd
-- **Geen aparte LLM call meer**: de oude `generateHandoffSummary()` die garbage produceerde en sessies liet hangen is verwijderd
-- Basic handoff (geen LLM nodig) wordt nu als safety net opgeslagen na compaction en bij shutdown
+- Handoff herschreven: OMP's exacte `handoff-document.md` prompt template
+- Compaction blokkade opgelost: `session_before_compact` returnt altijd `undefined`
+- Geen aparte LLM call meer: `generateHandoffSummary()` verwijderd
 
 ### Toegevoegd
-- `/handoff` command: stuurt handoff prompt naar de actieve agent (OMP-stijl)
-- `/handoff-now` command: maakt direct nieuwe sessie met basic handoff (instant fallback)
+- `/handoff` command: stuurt handoff prompt naar actieve agent (OMP-stijl)
 - `renderHandoffPrompt()` met OMP's `{{additionalFocus}}` template variabele
 - `wrapHandoffContext()` met OMP's `<handoff-context>` wrapper
 
 ### Verwijderd
-- `generateHandoffSummary()` — de LLM call die garbage produceerde
+- `generateHandoffSummary()` — LLM call die garbage produceerde
 - `generateFocusedHandoff()` — aparte LLM call voor handoff
 - `resolveModelAuth()` — model resolutie voor aparte LLM call
-- `cancel: true` in `session_before_compact` — de oorzaak van de blokkade
+- `cancel: true` in `session_before_compact` — oorzaak van de blokkade
+
+## [0.1.12] - 2026-04-04
+
+### Veranderd
+- Handoff herschreven: OMP's exacte prompt template gebruikt
+- Compaction blokkade opgelost
+- Geen aparte LLM call meer
+
+### Toegevoegd
+- `/handoff` command (OMP-stijl)
+- `/handoff-now` command (instant fallback)
+- `renderHandoffPrompt()` + `wrapHandoffContext()`
+
+### Verwijderd
+- `generateHandoffSummary()`, `generateFocusedHandoff()`, `resolveModelAuth()`
+- `cancel: true` in `session_before_compact`
 
 ## [0.1.11] - 2026-04-03
 
 ### Toegevoegd
 - Intake office agents + pi-subagents referentie documentatie
-- Design: inter-agent communication protocol (goedgekeurd)
-- `spoken_language` + `preferred_language` gesplitst in client config (was één `language` veld)
-- Backward compat: oud `language` veld wordt automatisch gemigreerd
-
-### Veranderd
-- Fix: runtime `settings.json` wordt niet meer overschreven bij sync
-- Skill-creator console.log verwijderd, decision gate toegevoegd aan review skill
-- Workflow-settings tests gesynchroniseerd met geëvolueerde code (19 tests, allemaal groen)
 
 ## [0.1.10] - 2026-04-03
 
@@ -64,7 +77,6 @@ and adheres to [Semantic Versioning](https://semver.org/).
 
 ### Veranderd
 - Drie config schemas samengevoegd tot één `FirmConfig` (Zod)
-- Fix: submenu crash + regressie tests
 
 ## [0.1.9] - 2026-04-03
 
@@ -79,34 +91,27 @@ and adheres to [Semantic Versioning](https://semver.org/).
 - Brainstorming skill kan state opslaan in `.pi/firm/sessions/`
 - Command-loader extension + sync fix
 
-### Veranderd
-- Fix: workflow-settings laden + shared/ syncen
-
 ## [0.1.7] - 2026-04-03
 
 ### Toegevoegd
 - Utility extensions, shared scripts, slash commands
-- Beads, brainstorming, workflow, developer tooling, discipline, knowledge, research, creative en design skills
+- Beads, brainstorming, workflow, developer tooling skills
 - `/settings` extension met tabbed TUI panel
 
 ### Veranderd
-- Migratie `.firm/` → `.pi/firm/`, `config.yml` → `config.json` met Zod validatie
-- Stack optioneel in config schema en intake flow
-- 8 The Firm skills geaudit en geoptimaliseerd met references
-- Debug extension verwijderd
+- Migratie `.firm/` → `.pi/firm/`, `config.yml` → `config.json` met Zod
+- 8 The Firm skills geaudit en geoptimaliseerd
 
 ## [0.1.6] - 2026-04-03
 
 ### Toegevoegd
-- Pre-commit hook — enforce `bun test` + lint voor elke commit
+- Pre-commit hook — enforce `bun test` + lint
 - Debug widget tests (multi-turn name persistence)
 
 ### Veranderd
-- Fix: debug detailMode crash — event variabele out-of-scope
-- Fix: compact widget toont tool-namen i.p.v. alleen nummers
+- Fix: debug detailMode crash
+- Fix: compact widget toont tool-namen
 - Refactor: extensions naar categorie-dirs (guards/, workflows/)
-- Refactor: debug-dashboard → debug met co-located lib
-- Refactor: delete-guard → guards/, intake → workflows/
 
 ## [0.1.5] - 2026-04-03
 
@@ -116,19 +121,11 @@ and adheres to [Semantic Versioning](https://semver.org/).
 
 ### Veranderd
 - Fix: debug widget — tool names altijd zichtbaar, truncate tot terminal width
-- Fix: verwijder boutique consultancy/agency framing, The Firm is een tech/software bedrijf
-- `bd create` als harde regel toegevoegd aan AGENTS.md en APPEND_SYSTEM.md
-- Fix: invalid bgPanel theme color uit debug widget
+- Fix: verwijder boutique consultancy/agency framing
 
 ## [0.1.4] - 2026-04-03
 
-### Toegevoegd
-- Delete confirmation guard via `settings.json` + AGENTS.md update
-- SOLID/DRY/TDD + ticket-first workflow in AGENTS.md
-- Hook tracking in debug dashboard + `/tf-debug --detail`
-
 ### Veranderd
-- Fix: personal file paths van `src/internal/personal/` naar `.personal/`
 - Fix: three bugs in `/tf-intake` extension
 
 ## [0.1.3] - 2026-04-03
@@ -138,9 +135,8 @@ and adheres to [Semantic Versioning](https://semver.org/).
 - Intake runtime design + `/tf-intake` Pi extension
 
 ### Veranderd
-- Refactor: selective sync scripts — alleen runtime dirs naar `.pi/`
-- Refactor: move schemas into `lib/`, fix tf-intake imports
-- Refactor: rename front-door to intake, update blueprint methodology
+- Refactor: selective sync scripts
+- Refactor: rename front-door to intake
 
 ## [0.1.2] - 2026-04-03
 
@@ -157,24 +153,9 @@ and adheres to [Semantic Versioning](https://semver.org/).
 - Client dossier design + intake department revisie
 - The Firm design documentatie
 
-## [0.1.13] - 2026-04-04
-
-### Toegevoegd
-- (nog in te vullen)
-
-## [0.1.14] - 2026-04-04
-
-### Toegevoegd
-- (nog in te vullen)
-
-## [0.1.15] - 2026-04-04
-
-### Toegevoegd
-- (nog in te vullen)
-
 ## [0.1.0] - 2026-04-03
 
 ### Toegevoegd
 - Project structuur en basisbestanden (AGENTS.md, APPEND_SYSTEM.md)
 - Terminologie en communicatie-afspraken vastgelegd
-- Handoff documentatie in `.pi/firm/handoffs/handoff-<sid>-<ts>.md` (per-sessie, multi-instance safe)
+- Handoff documentatie in `.pi/firm/handoffs/`
