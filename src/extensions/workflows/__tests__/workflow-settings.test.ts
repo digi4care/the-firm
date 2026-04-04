@@ -187,6 +187,105 @@ describe("session_start — sync compaction settings", () => {
 });
 
 // ================================================================
+// session_start: sync The Firm compaction settings (theFirmCompaction)
+// ================================================================
+
+describe("session_start — sync The Firm compaction settings (theFirmCompaction block)", () => {
+	it("writes theFirmCompaction block with default values", async () => {
+		writeSettings({});
+
+		const mockPi = createMockPi();
+		const { default: register } = await import("../workflow-settings.ts");
+		register(mockPi as any);
+
+		await mockPi.getHandler("session_start")({ reason: "startup" }, createMockCtx());
+
+		const settings = readSettings();
+		expect(settings.theFirmCompaction).toBeDefined();
+		expect((settings.theFirmCompaction as any).strategy).toBe("context-full");
+		expect((settings.theFirmCompaction as any).thresholdPercent).toBe(-1);
+		expect((settings.theFirmCompaction as any).thresholdTokens).toBe(-1);
+		expect((settings.theFirmCompaction as any).handoffStorage).toBe("inmemory");
+		expect((settings.theFirmCompaction as any).autoContinue).toBe(true);
+	});
+
+	it("syncs custom The Firm compaction values", async () => {
+		writeSettings({
+			theFirm: {
+				workflows: { compactionStrategy: "handoff" },
+				compaction: {
+					thresholdPercent: 60,
+					thresholdTokens: 100000,
+					handoffStorage: "file",
+					autoContinue: false,
+					reserveTokens: 8192,
+					keepRecentTokens: 10000,
+				},
+			},
+		});
+
+		const mockPi = createMockPi();
+		const { default: register } = await import("../workflow-settings.ts");
+		register(mockPi as any);
+
+		await mockPi.getHandler("session_start")({ reason: "startup" }, createMockCtx());
+
+		const settings = readSettings();
+		// Pi-native block
+		expect((settings.compaction as any).enabled).toBe(true);
+		expect((settings.compaction as any).reserveTokens).toBe(8192);
+		expect((settings.compaction as any).keepRecentTokens).toBe(10000);
+
+		// The Firm block
+		expect((settings.theFirmCompaction as any).strategy).toBe("handoff");
+		expect((settings.theFirmCompaction as any).thresholdPercent).toBe(60);
+		expect((settings.theFirmCompaction as any).thresholdTokens).toBe(100000);
+		expect((settings.theFirmCompaction as any).handoffStorage).toBe("file");
+		expect((settings.theFirmCompaction as any).autoContinue).toBe(false);
+	});
+
+	it("handles string values in settings (defensive parsing)", async () => {
+		writeSettings({
+			theFirm: {
+				workflows: { compactionStrategy: "handoff" },
+				compaction: {
+					thresholdPercent: "70",
+					thresholdTokens: "50000",
+				},
+			},
+		});
+
+		const mockPi = createMockPi();
+		const { default: register } = await import("../workflow-settings.ts");
+		register(mockPi as any);
+
+		await mockPi.getHandler("session_start")({ reason: "startup" }, createMockCtx());
+
+		const settings = readSettings();
+		expect((settings.theFirmCompaction as any).thresholdPercent).toBe(70);
+		expect((settings.theFirmCompaction as any).thresholdTokens).toBe(50000);
+	});
+
+	it("does not affect the compaction block (Pi-native)", async () => {
+		writeSettings({});
+
+		const mockPi = createMockPi();
+		const { default: register } = await import("../workflow-settings.ts");
+		register(mockPi as any);
+
+		await mockPi.getHandler("session_start")({ reason: "startup" }, createMockCtx());
+
+		const settings = readSettings();
+		// compaction block has only Pi-native fields
+		expect(Object.keys(settings.compaction as any).sort()).toEqual([
+			"enabled",
+			"keepRecentTokens",
+			"reserveTokens",
+		]);
+	});
+});
+
+// ================================================================
 // session_before_compact: blocking logic
 // ================================================================
 
@@ -491,5 +590,103 @@ describe("workflow-settings registration", () => {
 		expect(mockPi.on).toHaveBeenCalledWith("session_before_compact", expect.any(Function));
 		expect(mockPi.on).toHaveBeenCalledWith("session_compact", expect.any(Function));
 		expect(mockPi.on).toHaveBeenCalledWith("session_shutdown", expect.any(Function));
+	});
+});
+
+// ================================================================
+// Compaction helper functions — 5 new settings
+// ================================================================
+
+describe("compaction helper functions — getCompactionStrategy", () => {
+	it("returns default 'context-full' when not set", async () => {
+		writeSettings({});
+		const { getCompactionStrategy } = await import("../workflow-settings.ts");
+		expect(getCompactionStrategy()).toBe("context-full");
+	});
+
+	it("returns custom value when set as string", async () => {
+		writeSettings({ theFirm: { workflows: { compactionStrategy: "handoff" } } });
+		const { getCompactionStrategy } = await import("../workflow-settings.ts");
+		expect(getCompactionStrategy()).toBe("handoff");
+	});
+});
+
+describe("compaction helper functions — getThresholdPercent", () => {
+	it("returns default -1 when not set", async () => {
+		writeSettings({});
+		const { getThresholdPercent } = await import("../workflow-settings.ts");
+		expect(getThresholdPercent()).toBe(-1);
+	});
+
+	it("returns number when stored as number", async () => {
+		writeSettings({ theFirm: { compaction: { thresholdPercent: 60 } } });
+		const { getThresholdPercent } = await import("../workflow-settings.ts");
+		expect(getThresholdPercent()).toBe(60);
+	});
+
+	it("returns number when stored as string", async () => {
+		writeSettings({ theFirm: { compaction: { thresholdPercent: "60" } } });
+		const { getThresholdPercent } = await import("../workflow-settings.ts");
+		expect(getThresholdPercent()).toBe(60);
+	});
+});
+
+describe("compaction helper functions — getThresholdTokens", () => {
+	it("returns default -1 when not set", async () => {
+		writeSettings({});
+		const { getThresholdTokens } = await import("../workflow-settings.ts");
+		expect(getThresholdTokens()).toBe(-1);
+	});
+
+	it("returns number when stored as number", async () => {
+		writeSettings({ theFirm: { compaction: { thresholdTokens: 100000 } } });
+		const { getThresholdTokens } = await import("../workflow-settings.ts");
+		expect(getThresholdTokens()).toBe(100000);
+	});
+
+	it("returns number when stored as string", async () => {
+		writeSettings({ theFirm: { compaction: { thresholdTokens: "100000" } } });
+		const { getThresholdTokens } = await import("../workflow-settings.ts");
+		expect(getThresholdTokens()).toBe(100000);
+	});
+});
+
+describe("compaction helper functions — isHandoffSaveToDisk", () => {
+	it("returns default false when not set (storage=inmemory)", async () => {
+		writeSettings({});
+		const { isHandoffSaveToDisk } = await import("../workflow-settings.ts");
+		expect(isHandoffSaveToDisk()).toBe(false);
+	});
+
+	it("returns true when handoffStorage is 'file'", async () => {
+		writeSettings({ theFirm: { compaction: { handoffStorage: "file" } } });
+		const { isHandoffSaveToDisk } = await import("../workflow-settings.ts");
+		expect(isHandoffSaveToDisk()).toBe(true);
+	});
+
+	it("returns false when handoffStorage is 'inmemory'", async () => {
+		writeSettings({ theFirm: { compaction: { handoffStorage: "inmemory" } } });
+		const { isHandoffSaveToDisk } = await import("../workflow-settings.ts");
+		expect(isHandoffSaveToDisk()).toBe(false);
+	});
+});
+
+describe("compaction helper functions — isAutoContinue", () => {
+	it("returns default true when not set", async () => {
+		writeSettings({});
+		const { isAutoContinue } = await import("../workflow-settings.ts");
+		expect(isAutoContinue()).toBe(true);
+	});
+
+	it("returns false when explicitly set to false", async () => {
+		writeSettings({ theFirm: { compaction: { autoContinue: false } } });
+		const { isAutoContinue } = await import("../workflow-settings.ts");
+		expect(isAutoContinue()).toBe(false);
+	});
+
+	it("returns true when explicitly set to true", async () => {
+		writeSettings({ theFirm: { compaction: { autoContinue: true } } });
+		const { isAutoContinue } = await import("../workflow-settings.ts");
+		expect(isAutoContinue()).toBe(true);
 	});
 });

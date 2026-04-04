@@ -100,3 +100,40 @@ describe("settings extension entry point", () => {
 		expect(customCalled).toBe(true);
 	});
 });
+
+// ================================================================
+// parseTypedValue — type conversion in onChange bridge
+// ================================================================
+
+describe("parseTypedValue — converts raw string values to schema-correct types", () => {
+	it("converts number strings to numbers for number-typed settings", async () => {
+		const { parseTypedValue } = await import("../index.ts");
+		expect(parseTypedValue("theFirm.compaction.reserveTokens", "16384")).toBe(16384);
+		expect(parseTypedValue("theFirm.compaction.thresholdPercent", "60")).toBe(60);
+		expect(parseTypedValue("theFirm.compaction.thresholdTokens", "-1")).toBe(-1);
+	});
+
+	it("converts boolean strings to booleans for boolean-typed settings", async () => {
+		const { parseTypedValue } = await import("../index.ts");
+		expect(parseTypedValue("theFirm.session.autoCompact", "true")).toBe(true);
+		expect(parseTypedValue("theFirm.session.autoCompact", "false")).toBe(false);
+	});
+
+	it("keeps string values as strings for string-typed settings", async () => {
+		const { parseTypedValue } = await import("../index.ts");
+		expect(parseTypedValue("theFirm.compaction.handoffStorage", "file")).toBe("file");
+		expect(parseTypedValue("theFirm.compaction.handoffStorage", "inmemory")).toBe("inmemory");
+	});
+
+	it("keeps enum values as strings for enum-typed settings", async () => {
+		const { parseTypedValue } = await import("../index.ts");
+		expect(parseTypedValue("theFirm.workflows.compactionStrategy", "handoff")).toBe("handoff");
+		expect(parseTypedValue("theFirm.symbolPreset", "ascii")).toBe("ascii");
+	});
+
+	it("returns NaN for non-numeric strings on number-typed settings", async () => {
+		const { parseTypedValue } = await import("../index.ts");
+		const result = parseTypedValue("theFirm.compaction.reserveTokens", "not-a-number");
+		expect(Number.isNaN(result)).toBe(true);
+	});
+});

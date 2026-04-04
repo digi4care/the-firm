@@ -13,8 +13,9 @@
 
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import type { AutocompleteItem } from "@mariozechner/pi-tui";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { AutocompleteItem } from "@mariozechner/pi-tui";
+import { getType } from "./lib/settings-schema";
 import { createSettingsSelector } from "./lib/settings-selector";
 import { getSetting, getSettingsMap, setSetting } from "./lib/settings-store";
 
@@ -30,6 +31,24 @@ const SUBCOMMANDS: AutocompleteItem[] = [
 ];
 
 // ═══════════════════════════════════════════════════════════════
+// Type conversion helper
+// ═══════════════════════════════════════════════════════════════
+
+/** Convert a raw string value from the UI to the correct JS type based on schema */
+export function parseTypedValue(path: string, rawValue: string): unknown {
+	const schemaType = getType(path as any);
+
+	switch (schemaType) {
+		case "number":
+			return Number(rawValue);
+		case "boolean":
+			return rawValue === "true";
+		default:
+			return rawValue;
+	}
+}
+
+// ═══════════════════════════════════════════════════════════════
 // Subcommand handlers
 // ═══════════════════════════════════════════════════════════════
 
@@ -41,8 +60,7 @@ function openSettingsPanel(ctx: any): Promise<void> {
 			settings,
 			theme,
 			onChange: (path: string, newValue: string) => {
-				const boolValue = newValue === "true" || newValue === "false";
-				setSetting(path, boolValue ? newValue === "true" : newValue);
+				setSetting(path, parseTypedValue(path, newValue));
 			},
 			onCancel: () => done(undefined),
 		});
@@ -69,10 +87,7 @@ function showHandoffStatus(ctx: any): void {
 
 	const storage = getSetting("theFirm.compaction.handoffStorage") || "inmemory";
 
-	const lines: string[] = [
-		`📋 Handoff files (${files.length}, storage: ${storage})`,
-		"",
-	];
+	const lines: string[] = [`📋 Handoff files (${files.length}, storage: ${storage})`, ""];
 
 	for (const f of files.slice(0, 10)) {
 		const stat = statSync(join(firmDir, f));
@@ -109,6 +124,9 @@ function showCompactionSettings(ctx: any): void {
 	const keepRecentTokens = getSetting("theFirm.compaction.keepRecentTokens");
 	const handoffStorage = getSetting("theFirm.compaction.handoffStorage") || "inmemory";
 	const autoContinue = getSetting("theFirm.compaction.autoContinue");
+	const strategy = getSetting("theFirm.workflows.compactionStrategy") || "context-full";
+	const thresholdPercent = getSetting("theFirm.compaction.thresholdPercent");
+	const thresholdTokens = getSetting("theFirm.compaction.thresholdTokens");
 
 	// Also show Pi's native settings if available
 	const piSettingsPath = join(process.cwd(), ".pi", "settings.json");
@@ -127,6 +145,9 @@ function showCompactionSettings(ctx: any): void {
 		"",
 		"The Firm overrides:",
 		`  autoCompact:       ${autoCompact ?? "true (default)"}`,
+		`  strategy:          ${strategy}`,
+		`  thresholdPercent:  ${thresholdPercent ?? "-1 (default)"}`,
+		`  thresholdTokens:   ${thresholdTokens ?? "-1 (default)"}`,
 		`  reserveTokens:     ${reserveTokens ?? "16384 (default)"}`,
 		`  keepRecentTokens:  ${keepRecentTokens ?? "20000 (default)"}`,
 		`  handoffStorage:    ${handoffStorage}`,
@@ -137,6 +158,20 @@ function showCompactionSettings(ctx: any): void {
 		lines.push("");
 		lines.push("Pi's .pi/settings.json (synced):");
 		lines.push(`  ${JSON.stringify(piCompaction, null, 2).split("\n").join("\n  ")}`);
+	}
+
+	// Also show theFirmCompaction block if available
+	if (existsSync(piSettingsPath)) {
+		try {
+			const raw = JSON.parse(readFileSync(piSettingsPath, "utf-8"));
+			if (raw.theFirmCompaction) {
+				lines.push("");
+				lines.push("The Firm compaction (synced to .pi/settings.json):");
+				lines.push(`  ${JSON.stringify(raw.theFirmCompaction, null, 2).split("\n").join("\n  ")}`);
+			}
+		} catch {
+			// ignore
+		}
 	}
 
 	ctx.ui.notify(lines.join("\n"), "info");

@@ -18,7 +18,14 @@
  * notifies the user to start a new session manually.
  */
 
-import { existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import {
+	existsSync,
+	mkdirSync,
+	readdirSync,
+	readFileSync,
+	unlinkSync,
+	writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { getSetting } from "../settings/lib/settings-store";
@@ -48,6 +55,35 @@ function isSaveOnExit(): boolean {
 	return val !== false;
 }
 
+export function getCompactionStrategy(): string {
+	const val = getSetting("theFirm.workflows.compactionStrategy");
+	return typeof val === "string" ? val : "context-full";
+}
+
+export function getThresholdPercent(): number {
+	const val = getSetting("theFirm.compaction.thresholdPercent");
+	if (typeof val === "number") return val;
+	if (typeof val === "string") return Number(val);
+	return -1;
+}
+
+export function getThresholdTokens(): number {
+	const val = getSetting("theFirm.compaction.thresholdTokens");
+	if (typeof val === "number") return val;
+	if (typeof val === "string") return Number(val);
+	return -1;
+}
+
+export function isHandoffSaveToDisk(): boolean {
+	const val = getSetting("theFirm.compaction.handoffStorage");
+	return val === "file";
+}
+
+export function isAutoContinue(): boolean {
+	const val = getSetting("theFirm.compaction.autoContinue");
+	return val !== false;
+}
+
 // ═══════════════════════════════════════════════════════════════
 // Sync The Firm compaction settings → Pi's compaction settings
 // ═══════════════════════════════════════════════════════════════
@@ -72,6 +108,17 @@ function syncCompactionSettingsToPi(): void {
 	};
 
 	piSettings.compaction = compaction;
+
+	// Build The Firm compaction object — custom settings Pi doesn't natively support
+	const theFirmCompaction: Record<string, unknown> = {
+		strategy: getCompactionStrategy(),
+		thresholdPercent: getThresholdPercent(),
+		thresholdTokens: getThresholdTokens(),
+		handoffStorage: isHandoffSaveToDisk() ? "file" : "inmemory",
+		autoContinue: isAutoContinue(),
+	};
+
+	piSettings.theFirmCompaction = theFirmCompaction;
 
 	try {
 		mkdirSync(join(process.cwd(), ".pi"), { recursive: true });
@@ -182,8 +229,9 @@ function clearHandoffDoc(): void {
 	try {
 		const handoffDir = ensureHandoffDir();
 
-		const files = readdirSync(handoffDir)
-			.filter((f: string) => f.startsWith("handoff-") || f === "HANDOFF.md");
+		const files = readdirSync(handoffDir).filter(
+			(f: string) => f.startsWith("handoff-") || f === "HANDOFF.md",
+		);
 
 		for (const f of files) {
 			unlinkSync(join(handoffDir, f));
