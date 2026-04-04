@@ -424,15 +424,9 @@ export default function registerWorkflowSettings(pi: ExtensionAPI) {
 					saveHandoffDoc(basicHandoff, sessionId);
 				}
 
-				// Send handoff prompt to agent via sendMessage with triggerTurn
-				pi.sendMessage(
-					{
-						customType: "firm-auto-handoff",
-						content: renderHandoffPrompt(getAutoHandoffFocus()),
-						attribution: "agent",
-					},
-					{ triggerTurn: true },
-				);
+				// Send handoff prompt to agent — same as /handoff command
+				// sendUserMessage triggers a new agent turn (always)
+				pi.sendUserMessage(renderHandoffPrompt(getAutoHandoffFocus()));
 
 				ctx.ui?.notify(
 					`📋 Context threshold bereikt (${result.percent}%). Handoff wordt gegenereerd...`,

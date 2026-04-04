@@ -40,6 +40,7 @@ function createMockPi() {
 			handlers[event] = handler;
 		}),
 		sendMessage: vi.fn(),
+		sendUserMessage: vi.fn(),
 		getHandler: (event: string) => handlers[event],
 	};
 }
@@ -756,7 +757,7 @@ describe("agent_end — auto-handoff interception", () => {
 
 		await mockPi.getHandler("agent_end")({}, mockCtx);
 
-		expect(mockPi.sendMessage).not.toHaveBeenCalled();
+		expect(mockPi.sendUserMessage).not.toHaveBeenCalled();
 	});
 
 	it("does not send handoff when strategy is 'context-full'", async () => {
@@ -771,7 +772,7 @@ describe("agent_end — auto-handoff interception", () => {
 
 		await mockPi.getHandler("agent_end")({}, mockCtx);
 
-		expect(mockPi.sendMessage).not.toHaveBeenCalled();
+		expect(mockPi.sendUserMessage).not.toHaveBeenCalled();
 	});
 
 	it("sends handoff when strategy is 'handoff' and percent >= threshold", async () => {
@@ -800,13 +801,8 @@ describe("agent_end — auto-handoff interception", () => {
 
 		await mockPi.getHandler("agent_end")({}, mockCtx);
 
-		expect(mockPi.sendMessage).toHaveBeenCalledWith(
-			expect.objectContaining({
-				customType: "firm-auto-handoff",
-				content: expect.any(String),
-				attribution: "agent",
-			}),
-			{ triggerTurn: true },
+		expect(mockPi.sendUserMessage).toHaveBeenCalledWith(
+			expect.stringContaining("Write a comprehensive handoff document"),
 		);
 		expect(notify).toHaveBeenCalledWith(
 			expect.stringContaining("Context threshold bereikt"),
@@ -831,7 +827,7 @@ describe("agent_end — auto-handoff interception", () => {
 
 		await mockPi.getHandler("agent_end")({}, mockCtx);
 
-		expect(mockPi.sendMessage).not.toHaveBeenCalled();
+		expect(mockPi.sendUserMessage).not.toHaveBeenCalled();
 	});
 
 	it("does not send handoff when thresholdPercent is -1", async () => {
@@ -851,7 +847,7 @@ describe("agent_end — auto-handoff interception", () => {
 
 		await mockPi.getHandler("agent_end")({}, mockCtx);
 
-		expect(mockPi.sendMessage).not.toHaveBeenCalled();
+		expect(mockPi.sendUserMessage).not.toHaveBeenCalled();
 	});
 
 	it("does not send handoff when getContextUsage returns undefined", async () => {
@@ -871,7 +867,7 @@ describe("agent_end — auto-handoff interception", () => {
 
 		await mockPi.getHandler("agent_end")({}, mockCtx);
 
-		expect(mockPi.sendMessage).not.toHaveBeenCalled();
+		expect(mockPi.sendUserMessage).not.toHaveBeenCalled();
 	});
 
 	it("saves basic handoff as safety net when sending handoff", async () => {
