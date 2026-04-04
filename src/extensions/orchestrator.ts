@@ -434,7 +434,7 @@ export default function register(pi: ExtensionAPI) {
 	): Promise<{ output: string; exitCode: number; elapsed: number }> {
 		const model = ctx.model
 			? `${ctx.model.provider}/${ctx.model.id}`
-			: "openrouter/google/gemini-3-flash-preview";
+			: "zai/glm-5.1";
 
 		const agentKey = agentDef.name.toLowerCase().replace(/\s+/g, "-");
 		const agentSessionFile = join(sessionDir, `chain-${agentKey}.json`);
