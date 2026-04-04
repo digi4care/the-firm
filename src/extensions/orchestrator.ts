@@ -12,6 +12,7 @@
  *   /firm-pause     — pause The Firm, Andre takes over with ad-hoc chain
  *   /firm-resume    — resume The Firm, Andre routes to departments again
  *   /chain-status   — show current chain pipeline status
+ *   /chain-widget   — toggle pipeline widget visibility (default: hidden)
  *
  * Based on the agent-chain pattern from pi-vs-claude-code.
  */
@@ -27,7 +28,7 @@ import {
 } from "node:fs";
 import { join, resolve } from "node:path";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
-import { Text, truncateToWidth, visibleWidth } from "@mariozechner/pi-tui";
+import { Text } from "@mariozechner/pi-tui";
 import { Type } from "@sinclair/typebox";
 
 // ── Types ────────────────────────────────────────
@@ -63,7 +64,7 @@ interface StepState {
 
 type FirmStateValue = "active" | "paused";
 
-function getFirmState(cwd: string): { hasFirm: boolean; state: FirmStateValue | undefined } {
+export function getFirmState(cwd: string): { hasFirm: boolean; state: FirmStateValue | undefined } {
 	const configPath = join(cwd, ".pi", "firm", "config.json");
 	if (!existsSync(configPath)) return { hasFirm: false, state: undefined };
 
@@ -78,7 +79,7 @@ function getFirmState(cwd: string): { hasFirm: boolean; state: FirmStateValue | 
 	}
 }
 
-function setFirmState(cwd: string, state: FirmStateValue): void {
+export function setFirmState(cwd: string, state: FirmStateValue): void {
 	const configPath = join(cwd, ".pi", "firm", "config.json");
 	const dir = join(cwd, ".pi", "firm");
 	if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
@@ -98,7 +99,7 @@ function setFirmState(cwd: string, state: FirmStateValue): void {
 
 // ── Display Name Helper ──────────────────────────
 
-function displayName(name: string): string {
+export function displayName(name: string): string {
 	return name
 		.split("-")
 		.map((w) => w.charAt(0).toUpperCase() + w.slice(1))
@@ -252,6 +253,7 @@ export default function register(pi: ExtensionAPI) {
 	// Per-step state for the active chain
 	let stepStates: StepState[] = [];
 	let pendingReset = false;
+	let widgetVisible = false; // default OFF
 
 	function loadChains(cwd: string) {
 		sessionDir = join(cwd, ".pi", "agent-sessions");
@@ -344,7 +346,7 @@ export default function register(pi: ExtensionAPI) {
 	}
 
 	function updateWidget() {
-		if (!widgetCtx) return;
+		if (!widgetCtx || !widgetVisible) return;
 
 		widgetCtx.ui.setWidget("orchestrator", (_tui: any, theme: any) => {
 			const text = new Text("", 0, 1);
@@ -968,6 +970,27 @@ ${chainInfo}`;
 		},
 	});
 
+	pi.registerCommand("chain-widget", {
+		description: "Toggle the chain pipeline status widget",
+		handler: async (_args, ctx) => {
+			widgetCtx = ctx;
+			toggleWidget(ctx);
+		},
+	});
+
+	// ── Widget Toggle ────────────────────────────
+
+	function toggleWidget(ctx: any): void {
+		widgetVisible = !widgetVisible;
+		if (widgetVisible) {
+			updateWidget();
+			ctx.ui.notify("Chain widget visible.", "info");
+		} else {
+			ctx.ui.setWidget("orchestrator", undefined);
+			ctx.ui.notify("Chain widget hidden.", "info");
+		}
+	}
+
 	// ── System Prompt Override ───────────────────
 
 	pi.on("before_agent_start", async (_event, _ctx) => {
@@ -1054,29 +1077,11 @@ ${chainInfo}`;
 			);
 		}
 		notifyLines.push("/chain-status  Show pipeline status");
+		notifyLines.push("/chain-widget  Toggle pipeline widget");
 
 		_ctx.ui.notify(notifyLines.join("\n"), "info");
 
-		// Footer: model | mode | context bar
-		_ctx.ui.setFooter((_tui, theme, _footerData) => ({
-			dispose: () => {},
-			invalidate() {},
-			render(width: number): string[] {
-				const model = _ctx.model?.id || "no-model";
-				const usage = _ctx.getContextUsage();
-				const pct = usage ? usage.percent : 0;
-				const filled = Math.round(pct / 10);
-				const bar = "#".repeat(filled) + "-".repeat(10 - filled);
-
-				const modeTag = firmActive ? theme.fg("success", "FIRM") : theme.fg("accent", "AD-HOC");
-
-				const left = theme.fg("dim", ` ${model}`) + theme.fg("muted", " · ") + modeTag;
-				const right = theme.fg("dim", `[${bar}] ${Math.round(pct)}% `);
-				const pad = " ".repeat(Math.max(1, width - visibleWidth(left) - visibleWidth(right)));
-
-				return [truncateToWidth(left + pad + right, width)];
-			},
-		}));
+		// Do NOT override Pi's footer — let Pi handle it
 
 		updateWidget();
 	});
