@@ -11,9 +11,18 @@ and adheres to [Semantic Versioning](https://semver.org/).
 - **Handoff bestanden per sessie**: bestandsnaam bevat nu session ID + timestamp (`handoff-<sid>-<ts>.md`) in `.pi/firm/handoffs/`
 - **Multi-instance safe**: meerdere Pi-sessies op hetzelfde project overschrijven elkaars handoff niet meer
 - `findLatestHandoffDoc()` zoekt de nieuwste `handoff-*.md` in `.pi/firm/handoffs/`, met fallback naar legacy `HANDOFF.md`
-- `clearHandoffDoc()` wist nu alle handoff bestanden in `.pi/firm/handoffs/` (zowel nieuw formaat als legacy)
+- `clearHandoffDoc()` respecteert nu `handoffStorage` setting: `inmemory` (default) wist na injectie, `file` bewaart
 - **Alle `.local/` referenties verwijderd**: handoff leeft nu volledig in `.pi/firm/`
+- `/handoff` fix: slaat basic handoff op als safety net, stuurt prompt naar agent, geen niet-bestaand `/handoff-accept` meer
 - Docs bijgewerkt: AGENTS.md, APPEND_SYSTEM.md, CHANGELOG.md
+
+### Toegevoegd
+- `theFirm.compaction.handoffStorage` setting: `inmemory` (default) of `file`
+
+### Verwijderd
+- `/handoff-now` command — overbodig (shutdown + nieuwe sessie doet hetzelfde)
+- `saveHandoffToDisk()` functie — samengevoegd in `/handoff` handler
+- `theFirm.compaction.handoffSaveToDisk` setting — vervangen door `handoffStorage`
 
 ## [0.1.12] - 2026-04-04
 

@@ -172,6 +172,10 @@ function readHandoffDoc(): string | null {
 }
 
 function clearHandoffDoc(): void {
+	// Only clear if storage mode is 'inmemory' (default)
+	const storage = getSetting("theFirm.compaction.handoffStorage");
+	if (storage === "file") return; // keep files on disk
+
 	try {
 		const handoffDir = ensureHandoffDir();
 

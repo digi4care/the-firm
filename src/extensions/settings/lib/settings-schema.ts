@@ -218,14 +218,15 @@ export const SETTINGS_SCHEMA = {
 		},
 	},
 
-	"theFirm.compaction.handoffSaveToDisk": {
-		type: "boolean",
-		default: false,
+	"theFirm.compaction.handoffStorage": {
+		type: "string",
+		enum: ["inmemory", "file"],
+		default: "inmemory",
 		ui: {
 			tab: "workflows",
-			label: "Keep Handoff on Disk",
+			label: "Handoff Storage",
 			description:
-				"Keep handoff files in .pi/firm/ after new session consumes them (handoff is always generated regardless of this setting)",
+				"inmemory: wis handoff bestanden na injectie in nieuwe sessie (default). file: bewaar handoff bestanden in .pi/firm/handoffs/.",
 		},
 	},
 
