@@ -26,7 +26,10 @@ Do not use me for:
 
 ### Step 1: Load and Review Plan
 
-1. **Read the plan file** — locate it (issue body, markdown file, or conversation context)
+1. **Read the plan file** — locate it:
+   - **Beads issue body** (preferred — plan is tracked, traceable)
+   - **`.pi/firm/plans/YYYY-MM-DD-<feature>.md`** (runtime artifact, linked to issue)
+   - Conversation context (ephemeral, avoid for multi-session work)
 2. **Review critically** — identify concerns, gaps, or ambiguities
 3. **If concerns:** raise them with your partner BEFORE starting any work
 4. **If no concerns:** proceed to execution

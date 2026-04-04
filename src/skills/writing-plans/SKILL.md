@@ -15,9 +15,15 @@ Assume they are a skilled developer, but know almost nothing about our toolset o
 
 **Context:** This should be run in a dedicated worktree (created by brainstorming skill).
 
-**Save plans to:** `docs/superpowers/plans/YYYY-MM-DD-<feature-name>.md`
+**Save plans to:** `.pi/firm/plans/YYYY-MM-DD-<feature-name>.md`
 
-- (User preferences for plan location override this default)
+After saving, **always create a Beads issue** linking to the plan:
+
+```bash
+bd create --title "Plan: <feature name>" --body "Plan: .pi/firm/plans/YYYY-MM-DD-<feature-name>.md"
+```
+
+This ensures every plan is tracked in Beads (doctrine #12: no classified work outside Beads).
 
 ## Scope Check
 
@@ -65,6 +71,8 @@ This structure informs the task decomposition. Each task should produce self-con
 # [Feature Name] Implementation Plan
 
 > **For agentic workers:** REQUIRED: Use subagent-driven-development (if subagents available) or executing-plans to implement this plan. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Beads Issue:** `the-firm-xxx` (created after plan is saved)
 
 **Goal:** [One sentence describing what this builds]
 
@@ -156,7 +164,7 @@ After writing the complete plan:
 
 After saving the plan:
 
-**"Plan complete and saved to `docs/superpowers/plans/<filename>.md`. Ready to execute?"**
+**"Plan complete and saved to `.pi/firm/plans/<filename>.md`. Beads issue: the-firm-xxx. Ready to execute?"**
 
 **Execution path depends on harness capabilities:**
 
