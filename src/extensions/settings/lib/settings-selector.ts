@@ -3,7 +3,7 @@
  *
  * Uses pi-tui's SettingsList for settings rendering.
  * Submenu settings (thresholds, tokens) get a SelectList dropdown overlay.
- * Tab bar is rendered inline.
+ * Tab bar is rendered inline with DynamicBorder-style top/bottom lines.
  *
  * Pure component — receives settings as input, calls onChange/onCancel.
  */
@@ -69,6 +69,14 @@ function renderTabBar(theme: ThemeLike, activeIndex: number, width: number): str
 
 	const line = chunks.join("");
 	return [truncateToWidth(line, width)];
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Border — matches Pi's native DynamicBorder component
+// ═══════════════════════════════════════════════════════════════
+
+function renderBorder(width: number, color: (s: string) => string): string {
+	return color("─".repeat(Math.max(1, width)));
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -209,6 +217,7 @@ function buildListForTab(
 export function createSettingsSelector(options: SettingsSelectorOptions) {
 	const { settings, theme, onChange, onCancel } = options;
 	const listTheme = getSettingsListTheme(theme);
+	const borderColor = (s: string) => theme.fg("border", s);
 
 	let currentTabIndex = 0;
 	let currentList = buildListForTab(
@@ -223,6 +232,8 @@ export function createSettingsSelector(options: SettingsSelectorOptions) {
 	return {
 		render(width: number): string[] {
 			const lines: string[] = [];
+			// Top border — same style as Pi's native DynamicBorder
+			lines.push(renderBorder(width, borderColor));
 			lines.push(...renderTabBar(theme, currentTabIndex, width));
 			lines.push("");
 
@@ -230,6 +241,9 @@ export function createSettingsSelector(options: SettingsSelectorOptions) {
 				lines.push(...currentList.render(width));
 			}
 
+			lines.push("");
+			// Bottom border — same style as Pi's native DynamicBorder
+			lines.push(renderBorder(width, borderColor));
 			return lines;
 		},
 
