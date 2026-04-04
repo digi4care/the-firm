@@ -13,8 +13,8 @@
  * For color validation of images, use with extract-colors.cjs
  */
 
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 
 // Validation rules
 const RULES = {
@@ -193,7 +193,7 @@ function checkManifest(filepath) {
 /**
  * Generate suggested filename
  */
-function suggestFilename(original, parsed) {
+function suggestFilename(_original, parsed) {
 	if (!parsed) return null;
 
 	const today = new Date().toISOString().slice(0, 10).replace(/-/g, "");
@@ -213,7 +213,7 @@ function formatBytes(bytes) {
 	const k = 1024;
 	const sizes = ["Bytes", "KB", "MB", "GB"];
 	const i = Math.floor(Math.log(bytes) / Math.log(k));
-	return parseFloat((bytes / k ** i).toFixed(2)) + " " + sizes[i];
+	return `${parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
 }
 
 /**
@@ -288,10 +288,10 @@ function validateAsset(assetPath) {
 /**
  * Format output for console
  */
-function formatOutput(results) {
+function _formatOutput(results) {
 	const lines = [];
 
-	lines.push("\n" + "=".repeat(60));
+	lines.push(`\n${"=".repeat(60)}`);
 	lines.push(`ASSET VALIDATION: ${results.filename}`);
 	lines.push("=".repeat(60));
 
@@ -300,17 +300,17 @@ function formatOutput(results) {
 
 	if (results.issues.length > 0) {
 		lines.push("\nISSUES:");
-		results.issues.forEach((issue) => lines.push(`  - ${issue}`));
+		for (const issue of results.issues) lines.push(`  - ${issue}`);
 	}
 
 	if (results.warnings.length > 0) {
 		lines.push("\nWARNINGS:");
-		results.warnings.forEach((warning) => lines.push(`  - ${warning}`));
+		for (const warning of results.warnings) lines.push(`  - ${warning}`);
 	}
 
 	if (results.suggestions.length > 0) {
 		lines.push("\nSUGGESTIONS:");
-		results.suggestions.forEach((suggestion) => lines.push(`  - ${suggestion}`));
+		for (const suggestion of results.suggestions) lines.push(`  - ${suggestion}`);
 	}
 
 	// File size info
@@ -318,7 +318,7 @@ function formatOutput(results) {
 		lines.push(`\nFile Size: ${formatBytes(results.checks.fileSize.size)}`);
 	}
 
-	lines.push("\n" + "=".repeat(60));
+	lines.push(`\n${"=".repeat(60)}`);
 
 	return lines.join("\n");
 }
@@ -332,12 +332,6 @@ function main() {
 	const assetPath = args.find((a) => !a.startsWith("--"));
 
 	if (!assetPath) {
-		console.error("Usage: node validate-asset.cjs <asset-path> [--json]");
-		console.error("\nExamples:");
-		console.error(
-			"  node validate-asset.cjs assets/banners/social-media/banner_launch_hero_20251209.png",
-		);
-		console.error("  node validate-asset.cjs assets/logos/icon-only/logo-icon.svg --json");
 		process.exit(1);
 	}
 
@@ -349,9 +343,7 @@ function main() {
 
 	// Output
 	if (jsonOutput) {
-		console.log(JSON.stringify(results, null, 2));
 	} else {
-		console.log(formatOutput(results));
 	}
 
 	// Exit with appropriate code

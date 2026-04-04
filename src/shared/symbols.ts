@@ -61,7 +61,7 @@ const PRESETS: Record<string, SymbolPreset> = {
 /** Get a symbol for the given key, using the current preset from settings */
 export function getSymbol(key: SymbolKey): string {
 	const presetName = getSetting("theFirm.symbolPreset") ?? "emoji";
-	const preset = PRESETS[String(presetName)] ?? PRESETS["emoji"]!;
+	const preset = PRESETS[String(presetName)] ?? PRESETS.emoji!;
 	return preset[key] ?? key;
 }
 

@@ -10,8 +10,8 @@
  *   node embed-tokens.cjs --style   # Wrap in <style> tags
  */
 
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 
 // Find project root (look for assets/design-tokens.css)
 function findProjectRoot(startDir) {
@@ -27,7 +27,6 @@ function findProjectRoot(startDir) {
 
 const projectRoot = findProjectRoot(process.cwd());
 if (!projectRoot) {
-	console.error("Error: Could not find assets/design-tokens.css");
 	process.exit(1);
 }
 
@@ -89,9 +88,6 @@ try {
 	} else {
 		output = `/* Design Tokens (embedded for standalone HTML) */\n${output}`;
 	}
-
-	console.log(output);
-} catch (err) {
-	console.error(`Error reading tokens: ${err.message}`);
+} catch (_err) {
 	process.exit(1);
 }

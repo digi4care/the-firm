@@ -214,7 +214,7 @@ function generateReflectionReport(
 		patterns.push("- Session appears well-structured");
 	}
 
-	report += patterns.join("\n") + "\n\n";
+	report += `${patterns.join("\n")}\n\n`;
 
 	report += `## Suggestions\n`;
 	if (score.total >= 20) {
@@ -411,13 +411,13 @@ export default async function aceReflector(pi: ExtensionAPI) {
 
 			// Show as markdown
 			await ctx.ui.custom(
-				(tui, theme, kb, done) => {
+				(_tui, theme, _kb, done) => {
 					const lines = report.split("\n");
 					return {
 						render: (w: number) => {
 							const Container = require("@mariozechner/pi-tui").Container;
 							const Text = require("@mariozechner/pi-tui").Text;
-							const Markdown = require("@mariozechner/pi-tui").Markdown;
+							const _Markdown = require("@mariozechner/pi-tui").Markdown;
 
 							const container = new Container();
 							container.addChild(new Text(`${theme.fg("accent", "═".repeat(50))}`, 0, 0));
@@ -442,7 +442,7 @@ export default async function aceReflector(pi: ExtensionAPI) {
 
 							return container.render(w);
 						},
-						handleInput: (data: string) => {
+						handleInput: (_data: string) => {
 							done(undefined);
 						},
 						invalidate: () => {},

@@ -1,5 +1,5 @@
 (() => {
-	const WS_URL = "ws://" + window.location.host;
+	const WS_URL = `ws://${window.location.host}`;
 	let ws = null;
 	let eventQueue = [];
 

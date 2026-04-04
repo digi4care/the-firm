@@ -1,7 +1,7 @@
-const crypto = require("crypto");
-const http = require("http");
-const fs = require("fs");
-const path = require("path");
+const crypto = require("node:crypto");
+const http = require("node:http");
+const fs = require("node:fs");
+const path = require("node:path");
 
 // ========== WebSocket Protocol (RFC 6455) ==========
 
@@ -109,7 +109,7 @@ h1 { color: #333; } p { color: #666; }</style>
 
 const frameTemplate = fs.readFileSync(path.join(__dirname, "frame-template.html"), "utf-8");
 const helperScript = fs.readFileSync(path.join(__dirname, "helper.js"), "utf-8");
-const helperInjection = "<script>\n" + helperScript + "\n</script>";
+const helperInjection = `<script>\n${helperScript}\n</script>`;
 
 // ========== Helper Functions ==========
 
@@ -147,7 +147,7 @@ function handleRequest(req, res) {
 			: WAITING_PAGE;
 
 		if (html.includes("</body>")) {
-			html = html.replace("</body>", helperInjection + "\n</body>");
+			html = html.replace("</body>", `${helperInjection}\n</body>`);
 		} else {
 			html += helperInjection;
 		}
@@ -202,7 +202,7 @@ function handleUpgrade(req, socket) {
 			let result;
 			try {
 				result = decodeFrame(buffer);
-			} catch (e) {
+			} catch (_e) {
 				socket.end(encodeFrame(OPCODES.CLOSE, Buffer.alloc(0)));
 				clients.delete(socket);
 				return;
@@ -242,15 +242,13 @@ function handleMessage(text) {
 	let event;
 	try {
 		event = JSON.parse(text);
-	} catch (e) {
-		console.error("Failed to parse WebSocket message:", e.message);
+	} catch (_e) {
 		return;
 	}
 	touchActivity();
-	console.log(JSON.stringify({ source: "user-event", ...event }));
 	if (event.choice) {
 		const eventsFile = path.join(SCREEN_DIR, ".events");
-		fs.appendFileSync(eventsFile, JSON.stringify(event) + "\n");
+		fs.appendFileSync(eventsFile, `${JSON.stringify(event)}\n`);
 	}
 }
 
@@ -259,7 +257,7 @@ function broadcast(msg) {
 	for (const socket of clients) {
 		try {
 			socket.write(frame);
-		} catch (e) {
+		} catch (_e) {
 			clients.delete(socket);
 		}
 	}
@@ -291,8 +289,8 @@ function startServer() {
 	const server = http.createServer(handleRequest);
 	server.on("upgrade", handleUpgrade);
 
-	const watcher = fs.watch(SCREEN_DIR, (eventType, filename) => {
-		if (!filename || !filename.endsWith(".html")) return;
+	const watcher = fs.watch(SCREEN_DIR, (_eventType, filename) => {
+		if (!filename?.endsWith(".html")) return;
 
 		if (debounceTimers.has(filename)) clearTimeout(debounceTimers.get(filename));
 		debounceTimers.set(
@@ -308,24 +306,21 @@ function startServer() {
 					knownFiles.add(filename);
 					const eventsFile = path.join(SCREEN_DIR, ".events");
 					if (fs.existsSync(eventsFile)) fs.unlinkSync(eventsFile);
-					console.log(JSON.stringify({ type: "screen-added", file: filePath }));
 				} else {
-					console.log(JSON.stringify({ type: "screen-updated", file: filePath }));
 				}
 
 				broadcast({ type: "reload" });
 			}, 100),
 		);
 	});
-	watcher.on("error", (err) => console.error("fs.watch error:", err.message));
+	watcher.on("error", (_err) => {});
 
 	function shutdown(reason) {
-		console.log(JSON.stringify({ type: "server-stopped", reason }));
 		const infoFile = path.join(SCREEN_DIR, ".server-info");
 		if (fs.existsSync(infoFile)) fs.unlinkSync(infoFile);
 		fs.writeFileSync(
 			path.join(SCREEN_DIR, ".server-stopped"),
-			JSON.stringify({ reason, timestamp: Date.now() }) + "\n",
+			`${JSON.stringify({ reason, timestamp: Date.now() })}\n`,
 		);
 		watcher.close();
 		clearInterval(lifecycleCheck);
@@ -337,7 +332,7 @@ function startServer() {
 		try {
 			process.kill(OWNER_PID, 0);
 			return true;
-		} catch (e) {
+		} catch (_e) {
 			return false;
 		}
 	}
@@ -355,11 +350,10 @@ function startServer() {
 			port: Number(PORT),
 			host: HOST,
 			url_host: URL_HOST,
-			url: "http://" + URL_HOST + ":" + PORT,
+			url: `http://${URL_HOST}:${PORT}`,
 			screen_dir: SCREEN_DIR,
 		});
-		console.log(info);
-		fs.writeFileSync(path.join(SCREEN_DIR, ".server-info"), info + "\n");
+		fs.writeFileSync(path.join(SCREEN_DIR, ".server-info"), `${info}\n`);
 	});
 }
 

@@ -74,7 +74,7 @@ function readSettings(): Record<string, unknown> {
 	return JSON.parse(readFileSync(path, "utf-8"));
 }
 
-function writeHandoffDoc(content: string) {
+function _writeHandoffDoc(content: string) {
 	writeFileSync(join(TMP_DIR, ".pi", "firm", "handoffs", "HANDOFF.md"), content, "utf-8");
 }
 
@@ -468,9 +468,7 @@ describe("session_compact — handoff from compaction summary", () => {
 		const { default: register } = await import("../workflow-settings.ts");
 		register(mockPi as any);
 
-		const entries = [
-			{ type: "message", message: { role: "user", content: "Hallo" } },
-		];
+		const entries = [{ type: "message", message: { role: "user", content: "Hallo" } }];
 		const notify = vi.fn();
 		const mockCtx = createMockCtx({
 			sessionManager: { getEntries: () => entries },
@@ -483,10 +481,7 @@ describe("session_compact — handoff from compaction summary", () => {
 			mockCtx,
 		);
 
-		expect(notify).toHaveBeenCalledWith(
-			expect.stringContaining("Handoff opgeslagen"),
-			"info",
-		);
+		expect(notify).toHaveBeenCalledWith(expect.stringContaining("Handoff opgeslagen"), "info");
 	});
 });
 

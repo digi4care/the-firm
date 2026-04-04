@@ -12,8 +12,8 @@
  * Default path: docs/brand-guidelines.md
  */
 
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 
 // Default brand guidelines path
 const DEFAULT_GUIDELINES_PATH = "docs/brand-guidelines.md";
@@ -240,7 +240,7 @@ function extractImageStyle(content) {
 /**
  * Generate system prompt addition
  */
-function generatePromptAddition(brandContext) {
+function _generatePromptAddition(brandContext) {
 	const { colors, typography, voice, attributes, imageStyle } = brandContext;
 
 	let prompt = `
@@ -261,7 +261,7 @@ CONTENT RULES:
 `;
 
 	// Add image style context if available
-	if (imageStyle && imageStyle.basePrompt) {
+	if (imageStyle?.basePrompt) {
 		prompt += `
 IMAGE GENERATION:
 - Base Prompt: ${imageStyle.basePrompt}
@@ -294,8 +294,6 @@ function main() {
 
 	// Check if file exists
 	if (!fs.existsSync(resolvedPath)) {
-		console.error(`Error: Brand guidelines not found at ${resolvedPath}`);
-		console.error(`Create brand guidelines at ${DEFAULT_GUIDELINES_PATH} or specify a path.`);
 		process.exit(1);
 	}
 
@@ -303,7 +301,7 @@ function main() {
 	const content = fs.readFileSync(resolvedPath, "utf-8");
 
 	// Extract brand context
-	const brandContext = {
+	const _brandContext = {
 		colors: extractColorsFromTable(content),
 		typography: extractTypography(content),
 		voice: extractVoice(content),
@@ -315,9 +313,7 @@ function main() {
 
 	// Output
 	if (jsonOutput) {
-		console.log(JSON.stringify(brandContext, null, 2));
 	} else {
-		console.log(generatePromptAddition(brandContext));
 	}
 }
 

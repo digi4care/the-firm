@@ -64,7 +64,7 @@ const DEFAULT_BASE_DIR = ".pi/skills";
 const normalizeList = (items?: string[]) =>
 	(items ?? []).map((item) => item.trim()).filter(Boolean);
 
-const unique = (items: string[]) => [...new Set(items)];
+const _unique = (items: string[]) => [...new Set(items)];
 
 const normalizeForMatch = (value: string) =>
 	value
@@ -335,7 +335,7 @@ const upsertSection = (content: string, title: string, body: string) => {
 	return `${content.trim()}\n\n${section}\n`;
 };
 
-const updateFrontmatter = (content: string, description?: string, version?: string) => {
+const updateFrontmatter = (content: string, description?: string, _version?: string) => {
 	const match = content.match(/^---\n([\s\S]*?)\n---\n/);
 	if (!match) {
 		return { content, warnings: ["missing_frontmatter"] };
@@ -952,7 +952,7 @@ export default async function skillCreator(pi: ExtensionAPI) {
 		}),
 
 		async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-			const root = ctx.cwd;
+			const _root = ctx.cwd;
 			try {
 				const plan = buildPlan(params as Parameters<typeof buildPlan>[0]);
 				return {
@@ -992,7 +992,7 @@ export default async function skillCreator(pi: ExtensionAPI) {
 		}),
 
 		async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
-			const root = ctx.cwd;
+			const _root = ctx.cwd;
 			try {
 				const audit = auditSkill(params as Parameters<typeof auditSkill>[0]);
 				return {

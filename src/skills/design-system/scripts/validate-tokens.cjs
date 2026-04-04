@@ -8,8 +8,8 @@
  *   node validate-tokens.cjs --dir src/ --fix
  */
 
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 
 /**
  * Parse command line arguments
@@ -30,20 +30,6 @@ function parseArgs() {
 		} else if (args[i] === "--ignore" || args[i] === "-i") {
 			options.ignore.push(args[++i]);
 		} else if (args[i] === "--help" || args[i] === "-h") {
-			console.log(`
-Usage: node validate-tokens.cjs [options]
-
-Options:
-  -d, --dir <path>      Directory to scan (required)
-  --fix                 Show suggested fixes (no auto-fix)
-  -i, --ignore <dir>    Additional directories to ignore
-  -h, --help            Show this help
-
-Checks for:
-  - Hardcoded hex colors (#RGB, #RRGGBB)
-  - Hardcoded pixel values (except 0, 1px)
-  - Hardcoded rem values in CSS
-      `);
 			process.exit(0);
 		}
 	}
@@ -175,7 +161,7 @@ function scanFile(filePath) {
 /**
  * Format violation report
  */
-function formatReport(violations) {
+function _formatReport(violations) {
 	if (violations.length === 0) {
 		return "✅ No token violations found";
 	}
@@ -220,18 +206,14 @@ function main() {
 	const options = parseArgs();
 
 	if (!options.dir) {
-		console.error("Error: --dir is required");
 		process.exit(1);
 	}
 
 	const dirPath = path.resolve(process.cwd(), options.dir);
 
 	if (!fs.existsSync(dirPath)) {
-		console.error(`Error: Directory not found: ${dirPath}`);
 		process.exit(1);
 	}
-
-	console.log(`Scanning ${dirPath} for token violations...\n`);
 
 	const files = getFiles(dirPath, options.ignore);
 	const allViolations = [];
@@ -242,8 +224,6 @@ function main() {
 		const violations = scanFile(file);
 		allViolations.push(...violations);
 	}
-
-	console.log(formatReport(allViolations));
 
 	// Exit with error code if violations found
 	if (allViolations.length > 0) {

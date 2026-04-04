@@ -18,7 +18,7 @@ import {
 	truncateToWidth,
 } from "@mariozechner/pi-tui";
 import { getTabIcons } from "../../../shared/symbols";
-import { getSettingsForTab, type SettingDef, type SubmenuSettingDef } from "./settings-defs";
+import { getSettingsForTab, type SettingDef } from "./settings-defs";
 import {
 	getDefault,
 	SETTING_TABS,

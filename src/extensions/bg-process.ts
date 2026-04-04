@@ -39,7 +39,7 @@ export default function (pi: ExtensionAPI) {
 
 	function isEnabled(): boolean {
 		const val = getSetting("theFirm.bgProcessTracking");
-		return val === false ? false : true; // default true
+		return val !== false; // default true
 	}
 
 	// Override built-in bash tool with auto-backgrounding
@@ -55,7 +55,7 @@ export default function (pi: ExtensionAPI) {
 				}),
 			),
 		}),
-		async execute(toolCallId, params, signal) {
+		async execute(_toolCallId, params, signal) {
 			// If bg tracking disabled, run command directly without auto-backgrounding
 			if (!isEnabled()) {
 				const { command } = params;
@@ -165,7 +165,7 @@ export default function (pi: ExtensionAPI) {
 						proc.exitCode = code;
 						const fullOutput = stdout + stderr;
 						const tail = fullOutput.slice(-3000);
-						const truncated = fullOutput.length > 3000 ? "[...truncated]\n" + tail : tail;
+						const truncated = fullOutput.length > 3000 ? `[...truncated]\n${tail}` : tail;
 
 						// Write final output to log
 						try {
@@ -264,7 +264,7 @@ export default function (pi: ExtensionAPI) {
 				}),
 			),
 		}),
-		async execute(toolCallId, params) {
+		async execute(_toolCallId, params) {
 			const { action, pid } = params;
 
 			if (action === "list") {

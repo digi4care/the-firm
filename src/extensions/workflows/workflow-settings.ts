@@ -328,14 +328,14 @@ export default function registerWorkflowSettings(pi: ExtensionAPI) {
 			const entries = ctx.sessionManager.getEntries();
 
 			let handoffContent: string;
-			let method: string;
+			let _method: string;
 
 			if (compactionSummary) {
 				handoffContent = `# Handoff — After Compaction\n\nSession: ${sessionId}\nGenerated: ${new Date().toISOString()}\n\n${compactionSummary}`;
-				method = "compaction-summary";
+				_method = "compaction-summary";
 			} else if (entries.length >= 2) {
 				handoffContent = `# Handoff — After Compaction (fallback)\n\nSession: ${sessionId}\nGenerated: ${new Date().toISOString()}\n\n${generateBasicHandoff(entries)}`;
-				method = "basic-fallback";
+				_method = "basic-fallback";
 			} else {
 				return; // Nothing useful to save
 			}

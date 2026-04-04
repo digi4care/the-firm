@@ -160,8 +160,6 @@ function showCompactionSettings(ctx: any): void {
 		lines.push(`  ${JSON.stringify(piCompaction, null, 2).split("\n").join("\n  ")}`);
 	}
 
-
-
 	ctx.ui.notify(lines.join("\n"), "info");
 }
 
@@ -198,7 +196,7 @@ function showFirmStatus(ctx: any): void {
 
 		// Settings summary
 		const settings = getSettingsMap();
-		const nonDefault = Array.from(settings.entries()).filter(([k, v]) => {
+		const nonDefault = Array.from(settings.entries()).filter(([_k, _v]) => {
 			// Rough check — show all explicitly set settings
 			return true;
 		});

@@ -182,7 +182,7 @@ export function findSynthesisOpportunities(candidates: SkillCandidate[]): Synthe
 	// Helper to extract capability keywords from description
 	function extractCapabilities(candidate: SkillCandidate): Set<string> {
 		const caps = new Set<string>();
-		const text = (candidate.skillName + " " + candidate.description).toLowerCase();
+		const text = `${candidate.skillName} ${candidate.description}`.toLowerCase();
 
 		const patterns: [RegExp, string][] = [
 			[/\bskill\s+(?:finder|discovery|search|recommend)/, "skill-discovery"],

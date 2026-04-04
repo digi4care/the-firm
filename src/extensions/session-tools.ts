@@ -151,7 +151,7 @@ export default async function sessionTools(pi: ExtensionAPI) {
 			),
 		}),
 
-		async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+		async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
 			try {
 				const sessionsDir = getSessionsDir();
 				const folders = await listSessionFolders();
@@ -243,7 +243,7 @@ export default async function sessionTools(pi: ExtensionAPI) {
 			offset: Type.Optional(Type.Number({ description: "Message offset (default 0)" })),
 		}),
 
-		async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+		async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
 			try {
 				const sessionsDir = getSessionsDir();
 
@@ -458,7 +458,7 @@ export default async function sessionTools(pi: ExtensionAPI) {
 			limit: Type.Optional(Type.Number({ description: "Max results per session (default 5)" })),
 		}),
 
-		async execute(_toolCallId, params, _signal, _onUpdate, ctx) {
+		async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
 			try {
 				const sessionsDir = getSessionsDir();
 				const folders = params.folder ? [params.folder] : await listSessionFolders();
@@ -530,7 +530,7 @@ export default async function sessionTools(pi: ExtensionAPI) {
 	// Register command for quick access (renamed to avoid conflict with built-in)
 	pi.registerCommand("session-stats", {
 		description: "Show current session statistics",
-		handler: async (args, ctx) => {
+		handler: async (_args, ctx) => {
 			const branch = ctx.sessionManager.getBranch();
 			const stats = calculateSessionStats(branch as any);
 

@@ -13,7 +13,7 @@ export default function (pi: ExtensionAPI) {
 
 	function isEnabled(): boolean {
 		const val = getSetting("theFirm.autoSessionName");
-		return val === false ? false : true; // default true
+		return val !== false; // default true
 	}
 
 	pi.on("session_start", async (_event, _ctx) => {

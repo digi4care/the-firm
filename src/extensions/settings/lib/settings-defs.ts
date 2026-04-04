@@ -81,7 +81,8 @@ const OPTION_PROVIDERS: Partial<Record<SettingPath, OptionProvider>> = {
 		{
 			value: "handoff",
 			label: "Handoff",
-			description: "Samenvatting opslaan + notificatie. Start zelf een nieuwe sessie om verder te gaan",
+			description:
+				"Samenvatting opslaan + notificatie. Start zelf een nieuwe sessie om verder te gaan",
 		},
 		{ value: "off", label: "Off", description: "Geen automatische compaction" },
 	],
