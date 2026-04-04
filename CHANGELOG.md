@@ -153,6 +153,11 @@ and adheres to [Semantic Versioning](https://semver.org/).
 - Client dossier design + intake department revisie
 - The Firm design documentatie
 
+## [0.1.18] - 2026-04-04
+
+### Toegevoegd
+- (nog in te vullen)
+
 ## [0.1.0] - 2026-04-03
 
 ### Toegevoegd
