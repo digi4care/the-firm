@@ -29,7 +29,13 @@ import {
 import { join } from "node:path";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { getSetting } from "../settings/lib/settings-store";
-import { generateBasicHandoff, wrapHandoffContext } from "./lib/handoff-generator";
+import { checkContextThreshold, shouldTriggerAutoHandoff } from "./lib/context-monitor";
+import {
+	generateBasicHandoff,
+	getAutoHandoffFocus,
+	renderHandoffPrompt,
+	wrapHandoffContext,
+} from "./lib/handoff-generator";
 
 // ═══════════════════════════════════════════════════════════════
 // Setting helpers
@@ -84,6 +90,12 @@ export function isAutoContinue(): boolean {
 	return val !== false;
 }
 
+export function getEffectiveStrategy(): string {
+	const userStrategy = getCompactionStrategy();
+	if (userStrategy === "handoff") return "off";
+	return userStrategy;
+}
+
 // ═══════════════════════════════════════════════════════════════
 // Sync The Firm compaction settings → Pi's compaction settings
 // ═══════════════════════════════════════════════════════════════
@@ -105,7 +117,7 @@ function syncCompactionSettingsToPi(): void {
 	// the compaction block in settings.json. Without these, Pi never triggers auto-handoff.
 	const compaction: Record<string, unknown> = {
 		enabled: isAutoCompact(),
-		strategy: getCompactionStrategy(),
+		strategy: getEffectiveStrategy(),
 		thresholdPercent: getThresholdPercent(),
 		thresholdTokens: getThresholdTokens(),
 		reserveTokens: getReserveTokens(),
@@ -379,6 +391,59 @@ export default function registerWorkflowSettings(pi: ExtensionAPI) {
 		// Save session state metadata
 		if (isSaveOnExit()) {
 			saveSessionMetadata();
+		}
+	});
+
+	// ── Agent end: auto-handoff context threshold detection ──
+	// Intercepts Pi's native auto-handoff and replaces it with The Firm's
+	// own controlled flow: sends handoff prompt via sendMessage with triggerTurn.
+	let handoffInProgress = false;
+
+	pi.on("agent_end", async (_event, ctx) => {
+		const strategy = getCompactionStrategy();
+		if (strategy !== "handoff") return;
+		if (handoffInProgress) return;
+
+		const threshold = getThresholdPercent();
+		if (threshold <= 0) return;
+
+		// HookContext might have getContextUsage - check dynamically
+		// biome-ignore lint/suspicious/noExplicitAny: Pi SDK HookContext doesn't type getContextUsage but it may exist at runtime
+		const usage = (ctx as any).getContextUsage?.();
+		const result = checkContextThreshold(() => usage ?? undefined, threshold);
+
+		if (shouldTriggerAutoHandoff(strategy, result)) {
+			handoffInProgress = true;
+
+			try {
+				// Save basic handoff as safety net
+				const sessionId = ctx.sessionManager?.getSessionId?.() || "unknown";
+				const branch = ctx.sessionManager?.getBranch?.() || [];
+				if (branch.length >= 2) {
+					const basicHandoff = generateBasicHandoff(branch);
+					saveHandoffDoc(basicHandoff, sessionId);
+				}
+
+				// Send handoff prompt to agent via sendMessage with triggerTurn
+				pi.sendMessage(
+					{
+						customType: "firm-auto-handoff",
+						content: renderHandoffPrompt(getAutoHandoffFocus()),
+						attribution: "agent",
+					},
+					{ triggerTurn: true },
+				);
+
+				ctx.ui?.notify(
+					`📋 Context threshold bereikt (${result.percent}%). Handoff wordt gegenereerd...`,
+					"info",
+				);
+			} finally {
+				// Reset flag after a delay to allow agent to process
+				setTimeout(() => {
+					handoffInProgress = false;
+				}, 30000);
+			}
 		}
 	});
 }

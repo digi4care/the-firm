@@ -39,6 +39,7 @@ function createMockPi() {
 		on: vi.fn((event: string, handler: Function) => {
 			handlers[event] = handler;
 		}),
+		sendMessage: vi.fn(),
 		getHandler: (event: string) => handlers[event],
 	};
 }
@@ -236,7 +237,8 @@ describe("session_start — sync all compaction settings to Pi's compaction bloc
 		const settings = readSettings();
 		// ALL settings in the compaction block (Pi reads from here)
 		expect((settings.compaction as any).enabled).toBe(true);
-		expect((settings.compaction as any).strategy).toBe("handoff");
+		// NEW: strategy "handoff" is synced as "off" to Pi — The Firm handles handoff itself
+		expect((settings.compaction as any).strategy).toBe("off");
 		expect((settings.compaction as any).thresholdPercent).toBe(60);
 		expect((settings.compaction as any).thresholdTokens).toBe(100000);
 		expect((settings.compaction as any).reserveTokens).toBe(8192);
@@ -585,7 +587,7 @@ describe("session_shutdown — save on exit", () => {
 // ================================================================
 
 describe("workflow-settings registration", () => {
-	it("registers all event handlers", async () => {
+	it("registers all event handlers including agent_end", async () => {
 		const mockPi = createMockPi();
 		const { default: register } = await import("../workflow-settings.ts");
 		register(mockPi as any);
@@ -595,6 +597,7 @@ describe("workflow-settings registration", () => {
 		expect(mockPi.on).toHaveBeenCalledWith("session_before_compact", expect.any(Function));
 		expect(mockPi.on).toHaveBeenCalledWith("session_compact", expect.any(Function));
 		expect(mockPi.on).toHaveBeenCalledWith("session_shutdown", expect.any(Function));
+		expect(mockPi.on).toHaveBeenCalledWith("agent_end", expect.any(Function));
 	});
 });
 
@@ -693,5 +696,212 @@ describe("compaction helper functions — isAutoContinue", () => {
 		writeSettings({ theFirm: { compaction: { autoContinue: true } } });
 		const { isAutoContinue } = await import("../workflow-settings.ts");
 		expect(isAutoContinue()).toBe(true);
+	});
+});
+
+// ================================================================
+// getEffectiveStrategy
+// ================================================================
+
+describe("getEffectiveStrategy", () => {
+	it("returns 'off' when user strategy is 'handoff'", async () => {
+		writeSettings({ theFirm: { workflows: { compactionStrategy: "handoff" } } });
+		const { getEffectiveStrategy } = await import("../workflow-settings.ts");
+		expect(getEffectiveStrategy()).toBe("off");
+	});
+
+	it("returns 'context-full' when user strategy is 'context-full'", async () => {
+		writeSettings({ theFirm: { workflows: { compactionStrategy: "context-full" } } });
+		const { getEffectiveStrategy } = await import("../workflow-settings.ts");
+		expect(getEffectiveStrategy()).toBe("context-full");
+	});
+
+	it("returns 'off' when user strategy is 'off'", async () => {
+		writeSettings({ theFirm: { workflows: { compactionStrategy: "off" } } });
+		const { getEffectiveStrategy } = await import("../workflow-settings.ts");
+		expect(getEffectiveStrategy()).toBe("off");
+	});
+
+	it("returns 'context-full' when not set (default)", async () => {
+		writeSettings({});
+		const { getEffectiveStrategy } = await import("../workflow-settings.ts");
+		expect(getEffectiveStrategy()).toBe("context-full");
+	});
+});
+
+// ================================================================
+// agent_end: auto-handoff interception
+// ================================================================
+
+describe("agent_end — auto-handoff interception", () => {
+	it("agent_end handler registers", async () => {
+		writeSettings({});
+		const mockPi = createMockPi();
+		const { default: register } = await import("../workflow-settings.ts");
+		register(mockPi as any);
+
+		expect(mockPi.on).toHaveBeenCalledWith("agent_end", expect.any(Function));
+		expect(mockPi.getHandler("agent_end")).toBeDefined();
+	});
+
+	it("does not send handoff when strategy is 'off'", async () => {
+		writeSettings({ theFirm: { workflows: { compactionStrategy: "off" } } });
+		const mockPi = createMockPi();
+		const { default: register } = await import("../workflow-settings.ts");
+		register(mockPi as any);
+
+		const mockCtx = createMockCtx({
+			getContextUsage: () => ({ tokens: 80000, contextWindow: 100000, percent: 80 }),
+		});
+
+		await mockPi.getHandler("agent_end")({}, mockCtx);
+
+		expect(mockPi.sendMessage).not.toHaveBeenCalled();
+	});
+
+	it("does not send handoff when strategy is 'context-full'", async () => {
+		writeSettings({ theFirm: { workflows: { compactionStrategy: "context-full" } } });
+		const mockPi = createMockPi();
+		const { default: register } = await import("../workflow-settings.ts");
+		register(mockPi as any);
+
+		const mockCtx = createMockCtx({
+			getContextUsage: () => ({ tokens: 80000, contextWindow: 100000, percent: 80 }),
+		});
+
+		await mockPi.getHandler("agent_end")({}, mockCtx);
+
+		expect(mockPi.sendMessage).not.toHaveBeenCalled();
+	});
+
+	it("sends handoff when strategy is 'handoff' and percent >= threshold", async () => {
+		writeSettings({
+			theFirm: {
+				workflows: { compactionStrategy: "handoff" },
+				compaction: { thresholdPercent: 70 },
+			},
+		});
+		const mockPi = createMockPi();
+		const { default: register } = await import("../workflow-settings.ts");
+		register(mockPi as any);
+
+		const notify = vi.fn();
+		const mockCtx = createMockCtx({
+			getContextUsage: () => ({ tokens: 80000, contextWindow: 100000, percent: 80 }),
+			sessionManager: {
+				getSessionId: () => "test-session-123",
+				getBranch: () => [
+					{ type: "message", message: { role: "user", content: "test" } },
+					{ type: "message", message: { role: "assistant", content: "ok" } },
+				],
+			},
+			ui: { notify },
+		});
+
+		await mockPi.getHandler("agent_end")({}, mockCtx);
+
+		expect(mockPi.sendMessage).toHaveBeenCalledWith(
+			expect.objectContaining({
+				customType: "firm-auto-handoff",
+				content: expect.any(String),
+				attribution: "agent",
+			}),
+			{ triggerTurn: true },
+		);
+		expect(notify).toHaveBeenCalledWith(
+			expect.stringContaining("Context threshold bereikt"),
+			"info",
+		);
+	});
+
+	it("does not send handoff when strategy is 'handoff' but percent < threshold", async () => {
+		writeSettings({
+			theFirm: {
+				workflows: { compactionStrategy: "handoff" },
+				compaction: { thresholdPercent: 90 },
+			},
+		});
+		const mockPi = createMockPi();
+		const { default: register } = await import("../workflow-settings.ts");
+		register(mockPi as any);
+
+		const mockCtx = createMockCtx({
+			getContextUsage: () => ({ tokens: 50000, contextWindow: 100000, percent: 50 }),
+		});
+
+		await mockPi.getHandler("agent_end")({}, mockCtx);
+
+		expect(mockPi.sendMessage).not.toHaveBeenCalled();
+	});
+
+	it("does not send handoff when thresholdPercent is -1", async () => {
+		writeSettings({
+			theFirm: {
+				workflows: { compactionStrategy: "handoff" },
+				compaction: { thresholdPercent: -1 },
+			},
+		});
+		const mockPi = createMockPi();
+		const { default: register } = await import("../workflow-settings.ts");
+		register(mockPi as any);
+
+		const mockCtx = createMockCtx({
+			getContextUsage: () => ({ tokens: 80000, contextWindow: 100000, percent: 80 }),
+		});
+
+		await mockPi.getHandler("agent_end")({}, mockCtx);
+
+		expect(mockPi.sendMessage).not.toHaveBeenCalled();
+	});
+
+	it("does not send handoff when getContextUsage returns undefined", async () => {
+		writeSettings({
+			theFirm: {
+				workflows: { compactionStrategy: "handoff" },
+				compaction: { thresholdPercent: 70 },
+			},
+		});
+		const mockPi = createMockPi();
+		const { default: register } = await import("../workflow-settings.ts");
+		register(mockPi as any);
+
+		const mockCtx = createMockCtx({
+			// No getContextUsage method
+		});
+
+		await mockPi.getHandler("agent_end")({}, mockCtx);
+
+		expect(mockPi.sendMessage).not.toHaveBeenCalled();
+	});
+
+	it("saves basic handoff as safety net when sending handoff", async () => {
+		writeSettings({
+			theFirm: {
+				workflows: { compactionStrategy: "handoff" },
+				compaction: { thresholdPercent: 70 },
+			},
+		});
+		const mockPi = createMockPi();
+		const { default: register } = await import("../workflow-settings.ts");
+		register(mockPi as any);
+
+		const notify = vi.fn();
+		const mockCtx = createMockCtx({
+			getContextUsage: () => ({ tokens: 80000, contextWindow: 100000, percent: 80 }),
+			sessionManager: {
+				getSessionId: () => "test-session-456",
+				getBranch: () => [
+					{ type: "message", message: { role: "user", content: "test" } },
+					{ type: "message", message: { role: "assistant", content: "ok" } },
+				],
+			},
+			ui: { notify },
+		});
+
+		await mockPi.getHandler("agent_end")({}, mockCtx);
+
+		// Should have saved a handoff doc as safety net
+		const handoff = readHandoffDoc();
+		expect(handoff).not.toBeNull();
 	});
 });
