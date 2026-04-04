@@ -5,6 +5,16 @@ All notable changes to The Firm are documented here.
 This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.1.14] - 2026-04-04
+
+### Veranderd
+- **Handoff bestanden per sessie**: bestandsnaam bevat nu session ID + timestamp (`handoff-<sid>-<ts>.md`) in `.pi/firm/`
+- **Multi-instance safe**: meerdere Pi-sessies op hetzelfde project overschrijven elkaars handoff niet meer
+- `findLatestHandoffDoc()` zoekt de nieuwste `handoff-*.md` in `.pi/firm/`, met fallback naar legacy `HANDOFF.md`
+- `clearHandoffDoc()` wist nu alle handoff bestanden in `.pi/firm/` (zowel nieuw formaat als legacy)
+- **Alle `.local/` referenties verwijderd**: handoff leeft nu volledig in `.pi/firm/`
+- Docs bijgewerkt: AGENTS.md, APPEND_SYSTEM.md, CHANGELOG.md
+
 ## [0.1.12] - 2026-04-04
 
 ### Veranderd
@@ -148,9 +158,14 @@ and adheres to [Semantic Versioning](https://semver.org/).
 ### Toegevoegd
 - (nog in te vullen)
 
+## [0.1.15] - 2026-04-04
+
+### Toegevoegd
+- (nog in te vullen)
+
 ## [0.1.0] - 2026-04-03
 
 ### Toegevoegd
 - Project structuur en basisbestanden (AGENTS.md, APPEND_SYSTEM.md)
 - Terminologie en communicatie-afspraken vastgelegd
-- Handoff documentatie in `.local/HANDOFF.md`
+- Handoff documentatie in `.pi/firm/handoffs/handoff-<sid>-<ts>.md` (per-sessie, multi-instance safe)
