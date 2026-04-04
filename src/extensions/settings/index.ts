@@ -160,19 +160,7 @@ function showCompactionSettings(ctx: any): void {
 		lines.push(`  ${JSON.stringify(piCompaction, null, 2).split("\n").join("\n  ")}`);
 	}
 
-	// Also show theFirmCompaction block if available
-	if (existsSync(piSettingsPath)) {
-		try {
-			const raw = JSON.parse(readFileSync(piSettingsPath, "utf-8"));
-			if (raw.theFirmCompaction) {
-				lines.push("");
-				lines.push("The Firm compaction (synced to .pi/settings.json):");
-				lines.push(`  ${JSON.stringify(raw.theFirmCompaction, null, 2).split("\n").join("\n  ")}`);
-			}
-		} catch {
-			// ignore
-		}
-	}
+
 
 	ctx.ui.notify(lines.join("\n"), "info");
 }
