@@ -135,6 +135,22 @@ Deze bash-commando's worden **geblokkeerd** omdat de ingebouwde tools meer conte
 
 ---
 
+## Agent Rules
+
+### Elke agent heeft skills voor gedragsafdwinging
+
+Agent definitions MOETEN `skill:` in frontmatter hebben. Skills afdwingen specifiek gedrag dat niet in de system prompt staat.
+
+| Agent | Skills | Waarom |
+|---|---|---|
+| `scout` | `verification-before-completion` | Nooit "klaar" zeggen zonder bewijs |
+| `worker` | `test-driven-development,verification-before-completion` | TDD discipline + verification |
+| `reviewer` | `review,verification-before-completion` | Review protocol + verification |
+
+**Regel:** Zet nooit gedragsregels alleen in de system prompt. Gebruik skills voor alles wat afgedwongen moet worden.
+
+---
+
 ## Git Rules (Parallel Agents)
 
 Meerdere agents kunnen tegelijk aan verschillende bestanden werken.
@@ -240,6 +256,51 @@ Issue prefix: `the-firm` (issues heten `the-firm-<hash>`)
 
 ---
 
+## Anti-patterns (eigen ervaring)
+
+### "Refactor alles" mega-tickets
+
+**Wat:** Eén ticket voor "refactor skill-creator.ts naar 10 files met SOLID".
+
+**Waarom fout:**
+- Big-bang wijziging breekt alles tegelijk
+- Geen incrementele waarde — pas aan het eind "werkt" het
+- Nooit duidelijk wanneer het "klaar" is
+- Andere devs kunnen niet parallel werken tijdens de refactor
+
+**Correct:**
+```
+Ticket: "Extract normalizeList uit skill-creator.ts naar shared/"
+- 1 functie, 1 verplaatsing
+- Tests blijven werken
+- Commit, push, klaar in 30 min
+- Volgende stap: pas één caller aan om het te gebruiken
+```
+
+### Architecture astronautics
+
+**Wat:** "Dit moet een Strategy Pattern met abstracte BaseGuard class worden" terwijl er 3 simple if-statements staan.
+
+**Waarom fout:**
+- Complexiteit toevoegen zonder probleem op te lossen
+- Abstractie voor de abstractie
+- Volgende dev moet 5 files lezen voor 1 gedragswijziging
+
+**Correct:** Herhaal de logica eerst 3 keer. Pas bij de 4e variant overwegen om te dedupliceren. Duplicatie is goedkoper dan verkeerde abstractie.
+
+### "We moeten de types fixen" refactor
+
+**Wat:** Een ticket om "alle `any` types weg te werken".
+
+**Waarom fout:**
+- Geen bedrijfswaarde — code werkt al
+- Risico: runtime gedrag wijzigt door verkeerde types
+- Waarom `any` er staat is vaak valid (externe lib, legacy)
+
+**Correct:** Pas types aan als je die code toch aanraakt voor een bug/feature. Nooit types-only refactors.
+
+---
+
 ## NOOIT DOEN
 
 - Aannames maken zonder te bevestigen bij de gebruiker
@@ -247,6 +308,8 @@ Issue prefix: `the-firm` (issues heten `the-firm-<hash>`)
 - Doorgaan als het niet duidelijk is wat de bedoeling is
 - Code schrijven "omdat het kan" in plaats van "omdat het nodig is"
 - Destructive git commands gebruiken zonder toestemming
+- Mega-refactor tickets aanmaken (zie Anti-patterns hierboven)
+- Terugvragen "wil je X of Y" als professional — kies zelf
 
 ---
 
