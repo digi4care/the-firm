@@ -13,76 +13,20 @@
  *   - pi-search-session: Search for content in sessions
  */
 
-import { readdir, readFile } from "node:fs/promises";
-import path from "node:path";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
-
-interface SessionEntry {
-	id: string;
-	parentId?: string;
-	type: string;
-	role?: string;
-	content?: string;
-	timestamp?: number;
-	toolName?: string;
-	toolCalls?: any[];
-}
+import {
+	calculateSessionStats,
+	findSessionFile,
+	formatDuration,
+	getCurrentSessionDir,
+	listSessionFiles,
+	listSessionFolders,
+	parseSessionFile,
+	type SessionEntry,
+} from "./shared/session-io.js";
 
 // ── Helper Functions ────────────────────────────────────────
-
-function getSessionsDir(): string {
-	const home = process.env.HOME || process.env.USERPROFILE || "~";
-	return path.join(home, ".pi", "agent", "sessions");
-}
-
-function getCurrentSessionDir(): string {
-	const home = process.env.HOME || process.env.USERPROFILE || "~";
-	// Get current working directory and convert to session folder name
-	const cwd = process.cwd().replace(/\//g, "-").replace(/^-/, "");
-	return path.join(home, ".pi", "agent", "sessions", `--${cwd}--`);
-}
-
-async function listSessionFolders(): Promise<string[]> {
-	const sessionsDir = getSessionsDir();
-	try {
-		const entries = await readdir(sessionsDir, { withFileTypes: true });
-		return entries.filter((e) => e.isDirectory()).map((e) => e.name);
-	} catch {
-		return [];
-	}
-}
-
-async function listSessionFiles(folderName: string): Promise<string[]> {
-	const folderPath = path.join(getSessionsDir(), folderName);
-	try {
-		const entries = await readdir(folderPath);
-		return entries
-			.filter((e) => e.endsWith(".jsonl"))
-			.sort()
-			.reverse(); // Most recent first
-	} catch {
-		return [];
-	}
-}
-
-async function parseSessionFile(filePath: string): Promise<SessionEntry[]> {
-	try {
-		const content = await readFile(filePath, "utf-8");
-		const lines = content.trim().split("\n");
-		return lines
-			.map((line) => {
-				try {
-					return JSON.parse(line);
-				} catch {
-					return null;
-				}
-			})
-			.filter(Boolean) as SessionEntry[];
-	} catch {
-		return [];
-	}
-}
 
 function extractSessionTitle(entries: SessionEntry[]): string {
 	// Find first user message as title
@@ -91,43 +35,6 @@ function extractSessionTitle(entries: SessionEntry[]): string {
 		return userMsg.content.slice(0, 60) + (userMsg.content.length > 60 ? "..." : "");
 	}
 	return "Untitled Session";
-}
-
-function calculateSessionStats(entries: SessionEntry[]): any {
-	const userMessages = entries.filter((e) => e.role === "user");
-	const assistantMessages = entries.filter((e) => e.role === "assistant");
-	const toolResults = entries.filter((e) => e.role === "toolResult");
-	const toolCalls = entries.filter(
-		(e) =>
-			e.type === "message" && (e as any).message?.content?.some((c: any) => c.type === "toolCall"),
-	);
-
-	const firstEntry = entries[0];
-	const lastEntry = entries[entries.length - 1];
-	const duration =
-		firstEntry?.timestamp && lastEntry?.timestamp ? lastEntry.timestamp - firstEntry.timestamp : 0;
-
-	// Count unique tools used
-	const toolsUsed = new Set(entries.filter((e) => e.toolName).map((e) => e.toolName));
-
-	return {
-		totalEntries: entries.length,
-		userMessages: userMessages.length,
-		assistantMessages: assistantMessages.length,
-		toolResults: toolResults.length,
-		toolCalls: toolCalls.length,
-		uniqueTools: toolsUsed.size,
-		toolsUsed: Array.from(toolsUsed),
-		durationMs: duration,
-		durationFormatted: formatDuration(duration),
-	};
-}
-
-function formatDuration(ms: number): string {
-	if (ms < 1000) return `${ms}ms`;
-	if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
-	if (ms < 3600000) return `${Math.floor(ms / 60000)}m ${Math.floor((ms % 60000) / 1000)}s`;
-	return `${Math.floor(ms / 3600000)}h ${Math.floor((ms % 3600000) / 60000)}m`;
 }
 
 // ── Extension ─────────────────────────────────────────────
@@ -153,13 +60,18 @@ export default async function sessionTools(pi: ExtensionAPI) {
 
 		async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
 			try {
-				const sessionsDir = getSessionsDir();
 				const folders = await listSessionFolders();
-
 				const limit = params.limit || 10;
 				const targetFolder = params.projectFolder;
 
-				const results: any[] = [];
+				const results: Array<{
+					id: string;
+					folder: string;
+					title: string;
+					entries: number;
+					startTime?: number;
+					endTime?: number;
+				}> = [];
 
 				const foldersToScan = targetFolder ? [targetFolder] : folders;
 
@@ -168,7 +80,7 @@ export default async function sessionTools(pi: ExtensionAPI) {
 					const limitedFiles = files.slice(0, limit);
 
 					for (const file of limitedFiles) {
-						const filePath = path.join(sessionsDir, folder, file);
+						const filePath = `${folder}/${file}`;
 						const entries = await parseSessionFile(filePath);
 
 						if (entries.length > 0) {
@@ -245,29 +157,15 @@ export default async function sessionTools(pi: ExtensionAPI) {
 
 		async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
 			try {
-				const sessionsDir = getSessionsDir();
-
 				// Find the session file
-				let foundPath: string | null = null;
-
-				// Try current project folder first
-				const currentFolder = path.basename(getCurrentSessionDir());
+				const currentFolder = getCurrentSessionDir().split("/").pop() || "";
 				const folders = params.folder
 					? [params.folder]
 					: [currentFolder, ...(await listSessionFolders())];
 
-				for (const folder of folders) {
-					const files = await listSessionFiles(folder);
-					const match = files.find(
-						(f) => f.includes(params.sessionId) || f === `${params.sessionId}.jsonl`,
-					);
-					if (match) {
-						foundPath = path.join(sessionsDir, folder, match);
-						break;
-					}
-				}
+				const found = await findSessionFile(params.sessionId, folders);
 
-				if (!foundPath) {
+				if (!found) {
 					return {
 						content: [
 							{
@@ -286,7 +184,7 @@ export default async function sessionTools(pi: ExtensionAPI) {
 					};
 				}
 
-				const entries = await parseSessionFile(foundPath);
+				const entries = await parseSessionFile(found.path);
 				const offset = params.offset || 0;
 				const limit = params.limit || 100;
 				const slicedEntries = entries.slice(offset, offset + limit);
@@ -298,7 +196,7 @@ export default async function sessionTools(pi: ExtensionAPI) {
 					content:
 						typeof entry.content === "string"
 							? entry.content
-							: JSON.stringify((entry.content as any)?.slice?.(0, 500) ?? entry.content),
+							: JSON.stringify(entry.content).slice(0, 500),
 					timestamp: entry.timestamp,
 					toolName: entry.toolName,
 				}));
@@ -352,8 +250,8 @@ export default async function sessionTools(pi: ExtensionAPI) {
 			try {
 				// Get current session if no ID provided
 				if (!params.sessionId) {
-					const branch = ctx.sessionManager.getBranch();
-					const stats = calculateSessionStats(branch as any);
+					const branch = ctx.sessionManager.getBranch() as SessionEntry[];
+					const stats = calculateSessionStats(branch);
 
 					return {
 						content: [
@@ -375,26 +273,14 @@ export default async function sessionTools(pi: ExtensionAPI) {
 				}
 
 				// Find and read specific session
-				const sessionsDir = getSessionsDir();
-				const currentFolder = path.basename(getCurrentSessionDir());
+				const currentFolder = getCurrentSessionDir().split("/").pop() || "";
 				const folders = params.folder
 					? [params.folder]
 					: [currentFolder, ...(await listSessionFolders())];
 
-				let foundPath: string | null = null;
+				const found = await findSessionFile(params.sessionId, folders);
 
-				for (const folder of folders) {
-					const files = await listSessionFiles(folder);
-					const match = files.find(
-						(f) => f.includes(params.sessionId!) || f === `${params.sessionId}.jsonl`,
-					);
-					if (match) {
-						foundPath = path.join(sessionsDir, folder, match);
-						break;
-					}
-				}
-
-				if (!foundPath) {
+				if (!found) {
 					return {
 						content: [
 							{
@@ -413,7 +299,7 @@ export default async function sessionTools(pi: ExtensionAPI) {
 					};
 				}
 
-				const entries = await parseSessionFile(foundPath);
+				const entries = await parseSessionFile(found.path);
 				const stats = calculateSessionStats(entries);
 
 				return {
@@ -460,19 +346,23 @@ export default async function sessionTools(pi: ExtensionAPI) {
 
 		async execute(_toolCallId, params, _signal, _onUpdate, _ctx) {
 			try {
-				const sessionsDir = getSessionsDir();
 				const folders = params.folder ? [params.folder] : await listSessionFolders();
 
 				const query = params.query.toLowerCase();
 				const limit = params.limit || 5;
-				const results: any[] = [];
+				const results: Array<{
+					sessionId: string;
+					folder: string;
+					matches: Array<{ id: string; role?: string; content: string }>;
+					matchCount: number;
+				}> = [];
 
 				for (const folder of folders) {
 					const files = await listSessionFiles(folder);
 
 					for (const file of files.slice(0, 10)) {
 						// Limit to recent 10 files
-						const filePath = path.join(sessionsDir, folder, file);
+						const filePath = `${folder}/${file}`;
 						const entries = await parseSessionFile(filePath);
 
 						const matches = entries.filter((entry) => {
@@ -531,11 +421,11 @@ export default async function sessionTools(pi: ExtensionAPI) {
 	pi.registerCommand("session-stats", {
 		description: "Show current session statistics",
 		handler: async (_args, ctx) => {
-			const branch = ctx.sessionManager.getBranch();
-			const stats = calculateSessionStats(branch as any);
+			const branch = ctx.sessionManager.getBranch() as SessionEntry[];
+			const stats = calculateSessionStats(branch);
 
 			ctx.ui.notify(
-				`Session: ${stats.totalEntries} entries, ${stats.uniqueTools} tools, ${stats.durationFormatted}`,
+				`Session: ${stats.totalEntries} entries, ${stats.uniqueTools.length} tools, ${formatDuration(stats.durationMs)}`,
 				"info",
 			);
 		},

@@ -26,11 +26,13 @@ afterEach(() => {
 	rmSync(TMP_DIR, { recursive: true, force: true });
 });
 
+type EventHandler = (event: unknown, ctx: unknown) => Promise<unknown> | unknown;
+
 function createMockPi() {
-	const handlers: Record<string, Function> = {};
-	const commands: Record<string, any> = {};
+	const handlers: Record<string, EventHandler> = {};
+	const commands: Record<string, unknown> = {};
 	return {
-		on: vi.fn((event: string, handler: Function) => {
+		on: vi.fn((event: string, handler: EventHandler) => {
 			handlers[event] = handler;
 		}),
 		registerCommand: vi.fn((name: string, options: any) => {
@@ -76,23 +78,32 @@ describe("settings extension entry point", () => {
 		const mockCtx = {
 			hasUI: true,
 			ui: {
-				custom: vi.fn(async (factory: Function) => {
-					customCalled = true;
-					// Simulate calling the factory to verify it doesn't throw
-					const mockTui = { requestRender: vi.fn() };
-					const mockTheme = {
-						fg: (_c: string, t: string) => t,
-						bold: (t: string) => t,
-					};
-					const mockKb = {};
-					const mockDone = vi.fn();
-					const component = factory(mockTui, mockTheme, mockKb, mockDone);
-					expect(component).toBeDefined();
-					expect(typeof component.render).toBe("function");
-					expect(typeof component.handleInput).toBe("function");
-					// Call done to clean up
-					mockDone(undefined);
-				}),
+				custom: vi.fn(
+					async (
+						factory: (
+							tui: unknown,
+							theme: unknown,
+							kb: unknown,
+							done: (value: unknown) => void,
+						) => { render: () => void; handleInput: (key: string) => void },
+					) => {
+						customCalled = true;
+						// Simulate calling the factory to verify it doesn't throw
+						const mockTui = { requestRender: vi.fn() };
+						const mockTheme = {
+							fg: (_c: string, t: string) => t,
+							bold: (t: string) => t,
+						};
+						const mockKb = {};
+						const mockDone = vi.fn();
+						const component = factory(mockTui, mockTheme, mockKb, mockDone);
+						expect(component).toBeDefined();
+						expect(typeof component.render).toBe("function");
+						expect(typeof component.handleInput).toBe("function");
+						// Call done to clean up
+						mockDone(undefined);
+					},
+				),
 			},
 		};
 

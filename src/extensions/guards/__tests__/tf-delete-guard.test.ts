@@ -13,10 +13,12 @@ import { join } from "node:path";
 
 // --- Mock helpers ---
 
+type HandlerFn = (event: unknown, ctx: unknown) => Promise<unknown> | unknown;
+
 function createMockPi() {
-	const handlers: Record<string, Function[]> = {};
+	const handlers: Record<string, HandlerFn[]> = {};
 	return {
-		on: vi.fn((event: string, handler: Function) => {
+		on: vi.fn((event: string, handler: HandlerFn) => {
 			if (!handlers[event]) handlers[event] = [];
 			handlers[event].push(handler);
 		}),
