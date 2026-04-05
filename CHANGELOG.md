@@ -183,6 +183,11 @@ and adheres to [Semantic Versioning](https://semver.org/).
 ### Toegevoegd
 - (nog in te vullen)
 
+## [0.1.25] - 2026-04-05
+
+### Toegevoegd
+- (nog in te vullen)
+
 ## [0.1.0] - 2026-04-03
 
 ### Toegevoegd
