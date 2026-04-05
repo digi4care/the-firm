@@ -21,7 +21,7 @@
 
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
-import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
+import type { ExtensionAPI, ExtensionCommandContext } from "@mariozechner/pi-coding-agent";
 
 interface AutocompleteHint {
 	value: string;
@@ -38,6 +38,11 @@ interface ParsedCommand {
 	description: string;
 	hints?: AutocompleteHint[];
 	body: string;
+}
+
+interface AutocompleteOption {
+	value: string;
+	label: string;
 }
 
 function parseFrontmatter(content: string): { frontmatter: CommandFrontmatter; body: string } {
@@ -130,11 +135,11 @@ export default async function commandLoader(pi: ExtensionAPI) {
 		// Build registration options
 		const options: {
 			description: string;
-			getArgumentCompletions?: (prefix: string) => any[] | null;
-			handler: (args: string, ctx: any) => Promise<void>;
+			getArgumentCompletions?: (prefix: string) => AutocompleteOption[] | null;
+			handler: (args: string, ctx: ExtensionCommandContext) => Promise<void>;
 		} = {
 			description,
-			handler: async (args: string, ctx: any) => {
+			handler: async (args: string, ctx: ExtensionCommandContext) => {
 				// Build the prompt: command body + any user arguments
 				let prompt = body;
 				if (args?.trim()) {

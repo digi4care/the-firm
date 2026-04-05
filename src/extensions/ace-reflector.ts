@@ -10,129 +10,40 @@
  * Usage: pi -e extensions/ace-reflector.ts
  */
 
-import { readdir, readFile } from "node:fs/promises";
-import path from "node:path";
 import type { ExtensionAPI } from "@mariozechner/pi-coding-agent";
 import { Type } from "@sinclair/typebox";
-import { getSetting } from "./settings/lib/settings-store";
-
-interface SessionEntry {
-	id: string;
-	parentId?: string;
-	type: string;
-	role?: string;
-	content?: string;
-	timestamp?: number;
-	toolName?: string;
-	toolCalls?: any[];
-}
-
-// ── Helper Functions ────────────────────────────────────────
-
-function getSessionsDir(): string {
-	const home = process.env.HOME || process.env.USERPROFILE || "~";
-	return path.join(home, ".pi", "agent", "sessions");
-}
-
-function getCurrentSessionDir(): string {
-	const home = process.env.HOME || process.env.USERPROFILE || "~";
-	const cwd = process.cwd().replace(/\//g, "-").replace(/^-/, "");
-	return path.join(home, ".pi", "agent", "sessions", `--${cwd}--`);
-}
-
-async function listSessionFolders(): Promise<string[]> {
-	const sessionsDir = getSessionsDir();
-	try {
-		const entries = await readdir(sessionsDir, { withFileTypes: true });
-		return entries.filter((e) => e.isDirectory()).map((e) => e.name);
-	} catch {
-		return [];
-	}
-}
-
-async function listSessionFiles(folderName: string): Promise<string[]> {
-	const folderPath = path.join(getSessionsDir(), folderName);
-	try {
-		const entries = await readdir(folderPath);
-		return entries
-			.filter((e) => e.endsWith(".jsonl"))
-			.sort()
-			.reverse();
-	} catch {
-		return [];
-	}
-}
-
-async function parseSessionFile(filePath: string): Promise<SessionEntry[]> {
-	try {
-		const content = await readFile(filePath, "utf-8");
-		const lines = content.trim().split("\n");
-		return lines
-			.map((line) => {
-				try {
-					return JSON.parse(line);
-				} catch {
-					return null;
-				}
-			})
-			.filter(Boolean) as SessionEntry[];
-	} catch {
-		return [];
-	}
-}
-
-interface SessionStats {
-	totalEntries: number;
-	userMessages: number;
-	assistantMessages: number;
-	toolResults: number;
-	toolCalls: number;
-	uniqueTools: string[];
-	durationMs: number;
-}
-
-function calculateStats(entries: SessionEntry[]): SessionStats {
-	const userMessages = entries.filter((e) => e.role === "user");
-	const assistantMessages = entries.filter((e) => e.role === "assistant");
-	const toolResults = entries.filter((e) => e.role === "toolResult");
-	const toolCalls = entries.filter(
-		(e) =>
-			e.type === "message" && (e as any).message?.content?.some((c: any) => c.type === "toolCall"),
-	);
-
-	const toolsUsed = new Set(entries.filter((e) => e.toolName).map((e) => e.toolName));
-
-	const firstEntry = entries[0];
-	const lastEntry = entries[entries.length - 1];
-	const duration =
-		firstEntry?.timestamp && lastEntry?.timestamp ? lastEntry.timestamp - firstEntry.timestamp : 0;
-
-	return {
-		totalEntries: entries.length,
-		userMessages: userMessages.length,
-		assistantMessages: assistantMessages.length,
-		toolResults: toolResults.length,
-		toolCalls: toolCalls.length,
-		uniqueTools: Array.from(toolsUsed).filter((t): t is string => t !== undefined),
-		durationMs: duration,
-	};
-}
-
-function formatDuration(ms: number): string {
-	if (ms < 1000) return `${ms}ms`;
-	if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
-	if (ms < 3600000) return `${Math.floor(ms / 60000)}m ${Math.floor((ms % 60000) / 1000)}s`;
-	return `${Math.floor(ms / 3600000)}h ${Math.floor((ms % 3600000) / 60000)}m`;
-}
+import { getSetting } from "./settings/lib/settings-store.js";
+import {
+	calculateSessionStats,
+	formatDuration,
+	getCurrentSessionDir,
+	getSessionsDir,
+	listSessionFiles,
+	listSessionFolders,
+	parseSessionFile,
+	type SessionEntry,
+	type SessionStats,
+} from "./shared/session-io.js";
 
 // ── ACE Scoring Functions ───────────────────────────────────
 
-function calculateACEScore(stats: SessionStats, entries: SessionEntry[]): any {
+interface ACEScore {
+	completeness: number;
+	accuracy: number;
+	efficiency: number;
+	clarity: number;
+	relevance: number;
+	total: number;
+}
+
+function calculateACEScore(stats: SessionStats, entries: SessionEntry[]): ACEScore {
 	// Completeness: Did we get meaningful work done?
 	const completeness = Math.min(5, Math.floor((stats.totalEntries / 10) * 5));
 
 	// Accuracy: Check for tool errors
-	const errorEntries = entries.filter((e) => e.role === "toolResult" && (e as any).isError);
+	const errorEntries = entries.filter(
+		(e) => e.role === "toolResult" && (e as { isError?: boolean }).isError,
+	);
 	const accuracy = errorEntries.length === 0 ? 5 : Math.max(1, 5 - errorEntries.length);
 
 	// Efficiency: Good tool usage without spam
@@ -158,14 +69,13 @@ function calculateACEScore(stats: SessionStats, entries: SessionEntry[]): any {
 
 function generateReflectionReport(
 	stats: SessionStats,
-	score: any,
+	score: ACEScore,
 	mode: string,
 	sessionId?: string,
 ): string {
 	const modeLabel = mode === "technical" ? "Technical" : mode === "verbose" ? "Verbose" : "Default";
 
-	let report = `# ACE Reflection Report (${modeLabel})
-`;
+	let report = `# ACE Reflection Report (${modeLabel})\n`;
 
 	if (sessionId) {
 		report += `**Session:** ${sessionId}\n`;
@@ -286,20 +196,22 @@ export default async function aceReflector(pi: ExtensionAPI) {
 
 				if (!params.sessionId) {
 					// Current session
-					const branch = ctx.sessionManager.getBranch() as any;
-					entries = branch.map((e: any) => ({
+					const branch = ctx.sessionManager.getBranch() as SessionEntry[];
+					entries = branch.map((e) => ({
 						id: e.id,
 						type: e.type,
-						role: e.message?.role,
-						content: e.message?.content?.[0]?.text || "",
-						timestamp: e.message?.timestamp,
-						toolName: e.message?.toolName,
+						role: (e as { message?: { role?: string } }).message?.role,
+						content:
+							(e as { message?: { content?: [{ text?: string }] } }).message?.content?.[0]?.text ||
+							"",
+						timestamp: (e as { message?: { timestamp?: number } }).message?.timestamp,
+						toolName: (e as { message?: { toolName?: string } }).message?.toolName,
 					}));
-					stats = calculateStats(entries);
+					stats = calculateSessionStats(entries);
 				} else {
 					// Specific session
 					const sessionsDir = getSessionsDir();
-					const currentFolder = path.basename(getCurrentSessionDir());
+					const currentFolder = getCurrentSessionDir().split("/").pop() || "";
 					const folders = params.folder
 						? [params.folder]
 						: [currentFolder, ...(await listSessionFolders())];
@@ -312,7 +224,7 @@ export default async function aceReflector(pi: ExtensionAPI) {
 							(f) => f.includes(params.sessionId!) || f === `${params.sessionId}.jsonl`,
 						);
 						if (match) {
-							foundPath = path.join(sessionsDir, folder, match);
+							foundPath = `${sessionsDir}/${folder}/${match}`;
 							sessionId = match.replace(".jsonl", "");
 							break;
 						}
@@ -331,7 +243,7 @@ export default async function aceReflector(pi: ExtensionAPI) {
 					}
 
 					entries = await parseSessionFile(foundPath);
-					stats = calculateStats(entries);
+					stats = calculateSessionStats(entries);
 				}
 
 				const score = calculateACEScore(stats, entries);
@@ -372,7 +284,7 @@ export default async function aceReflector(pi: ExtensionAPI) {
 
 			if (sessionId) {
 				const sessionsDir = getSessionsDir();
-				const currentFolder = path.basename(getCurrentSessionDir());
+				const currentFolder = getCurrentSessionDir().split("/").pop() || "";
 				const folders = [currentFolder, ...(await listSessionFolders())];
 
 				let foundPath: string | null = null;
@@ -381,7 +293,7 @@ export default async function aceReflector(pi: ExtensionAPI) {
 					const files = await listSessionFiles(folder);
 					const match = files.find((f) => f.includes(sessionId) || f === `${sessionId}.jsonl`);
 					if (match) {
-						foundPath = path.join(sessionsDir, folder, match);
+						foundPath = `${sessionsDir}/${folder}/${match}`;
 						break;
 					}
 				}
@@ -392,18 +304,20 @@ export default async function aceReflector(pi: ExtensionAPI) {
 				}
 
 				entries = await parseSessionFile(foundPath);
-				stats = calculateStats(entries);
+				stats = calculateSessionStats(entries);
 			} else {
-				const branch = ctx.sessionManager.getBranch() as any;
-				entries = branch.map((e: any) => ({
+				const branch = ctx.sessionManager.getBranch() as SessionEntry[];
+				entries = branch.map((e) => ({
 					id: e.id,
 					type: e.type,
-					role: e.message?.role,
-					content: e.message?.content?.[0]?.text || "",
-					timestamp: e.message?.timestamp,
-					toolName: e.message?.toolName,
+					role: (e as { message?: { role?: string } }).message?.role,
+					content:
+						(e as { message?: { content?: [{ text?: string }] } }).message?.content?.[0]?.text ||
+						"",
+					timestamp: (e as { message?: { timestamp?: number } }).message?.timestamp,
+					toolName: (e as { message?: { toolName?: string } }).message?.toolName,
 				}));
-				stats = calculateStats(entries);
+				stats = calculateSessionStats(entries);
 			}
 
 			const score = calculateACEScore(stats, entries);
@@ -417,7 +331,6 @@ export default async function aceReflector(pi: ExtensionAPI) {
 						render: (w: number) => {
 							const Container = require("@mariozechner/pi-tui").Container;
 							const Text = require("@mariozechner/pi-tui").Text;
-							const _Markdown = require("@mariozechner/pi-tui").Markdown;
 
 							const container = new Container();
 							container.addChild(new Text(`${theme.fg("accent", "═".repeat(50))}`, 0, 0));

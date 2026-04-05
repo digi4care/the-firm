@@ -112,7 +112,7 @@ describe("session_start — sync compaction settings", () => {
 		writeSettings({ theFirm: { requireConfirmationBeforeDelete: true } });
 
 		const mockPi = createMockPi();
-		const { default: register } = await import("../workflow-settings.ts");
+		const { default: register } = await import("../settings/index.ts");
 		register(mockPi as any);
 
 		await mockPi.getHandler("session_start")({ reason: "startup" }, createMockCtx());
@@ -133,7 +133,7 @@ describe("session_start — sync compaction settings", () => {
 		});
 
 		const mockPi = createMockPi();
-		const { default: register } = await import("../workflow-settings.ts");
+		const { default: register } = await import("../settings/index.ts");
 		register(mockPi as any);
 
 		await mockPi.getHandler("session_start")({ reason: "startup" }, createMockCtx());
@@ -151,7 +151,7 @@ describe("session_start — sync compaction settings", () => {
 		});
 
 		const mockPi = createMockPi();
-		const { default: register } = await import("../workflow-settings.ts");
+		const { default: register } = await import("../settings/index.ts");
 		register(mockPi as any);
 
 		await mockPi.getHandler("session_start")({ reason: "startup" }, createMockCtx());
@@ -165,7 +165,7 @@ describe("session_start — sync compaction settings", () => {
 		writeSettings({});
 
 		const mockPi = createMockPi();
-		const { default: register } = await import("../workflow-settings.ts");
+		const { default: register } = await import("../settings/index.ts");
 		register(mockPi as any);
 
 		// Should not throw on non-startup reason
@@ -179,7 +179,7 @@ describe("session_start — sync compaction settings", () => {
 		rmSync(join(TMP_DIR, ".pi"), { recursive: true, force: true });
 
 		const mockPi = createMockPi();
-		const { default: register } = await import("../workflow-settings.ts");
+		const { default: register } = await import("../settings/index.ts");
 		register(mockPi as any);
 
 		await mockPi.getHandler("session_start")({ reason: "startup" }, createMockCtx());
@@ -197,7 +197,7 @@ describe("session_start — sync all compaction settings to Pi's compaction bloc
 		writeSettings({});
 
 		const mockPi = createMockPi();
-		const { default: register } = await import("../workflow-settings.ts");
+		const { default: register } = await import("../settings/index.ts");
 		register(mockPi as any);
 
 		await mockPi.getHandler("session_start")({ reason: "startup" }, createMockCtx());
@@ -230,7 +230,7 @@ describe("session_start — sync all compaction settings to Pi's compaction bloc
 		});
 
 		const mockPi = createMockPi();
-		const { default: register } = await import("../workflow-settings.ts");
+		const { default: register } = await import("../settings/index.ts");
 		register(mockPi as any);
 
 		await mockPi.getHandler("session_start")({ reason: "startup" }, createMockCtx());
@@ -260,7 +260,7 @@ describe("session_start — sync all compaction settings to Pi's compaction bloc
 		});
 
 		const mockPi = createMockPi();
-		const { default: register } = await import("../workflow-settings.ts");
+		const { default: register } = await import("../settings/index.ts");
 		register(mockPi as any);
 
 		await mockPi.getHandler("session_start")({ reason: "startup" }, createMockCtx());
@@ -274,7 +274,7 @@ describe("session_start — sync all compaction settings to Pi's compaction bloc
 		writeSettings({});
 
 		const mockPi = createMockPi();
-		const { default: register } = await import("../workflow-settings.ts");
+		const { default: register } = await import("../settings/index.ts");
 		register(mockPi as any);
 
 		await mockPi.getHandler("session_start")({ reason: "startup" }, createMockCtx());
@@ -302,7 +302,7 @@ describe("session_before_compact — blocking logic", () => {
 		writeSettings({});
 
 		const mockPi = createMockPi();
-		const { default: register } = await import("../workflow-settings.ts");
+		const { default: register } = await import("../settings/index.ts");
 		register(mockPi as any);
 
 		const result = await mockPi.getHandler("session_before_compact")({}, createMockCtx());
@@ -313,7 +313,7 @@ describe("session_before_compact — blocking logic", () => {
 		writeSettings({ theFirm: { session: { autoCompact: false } } });
 
 		const mockPi = createMockPi();
-		const { default: register } = await import("../workflow-settings.ts");
+		const { default: register } = await import("../settings/index.ts");
 		register(mockPi as any);
 
 		// New behavior: we never cancel from the extension.
@@ -327,7 +327,7 @@ describe("session_before_compact — blocking logic", () => {
 		writeSettings({ theFirm: { workflows: { compactionStrategy: "off" } } });
 
 		const mockPi = createMockPi();
-		const { default: register } = await import("../workflow-settings.ts");
+		const { default: register } = await import("../settings/index.ts");
 		register(mockPi as any);
 
 		// New behavior: we never cancel. Pi handles strategy checks internally.
@@ -339,7 +339,7 @@ describe("session_before_compact — blocking logic", () => {
 		writeSettings({ theFirm: { workflows: { compactionStrategy: "context-full" } } });
 
 		const mockPi = createMockPi();
-		const { default: register } = await import("../workflow-settings.ts");
+		const { default: register } = await import("../settings/index.ts");
 		register(mockPi as any);
 
 		const result = await mockPi.getHandler("session_before_compact")({}, createMockCtx());
@@ -350,7 +350,7 @@ describe("session_before_compact — blocking logic", () => {
 		writeSettings({ theFirm: { workflows: { compactionStrategy: "handoff" } } });
 
 		const mockPi = createMockPi();
-		const { default: register } = await import("../workflow-settings.ts");
+		const { default: register } = await import("../settings/index.ts");
 		register(mockPi as any);
 
 		const entries = [
@@ -377,7 +377,7 @@ describe("session_before_compact — blocking logic", () => {
 		});
 
 		const mockPi = createMockPi();
-		const { default: register } = await import("../workflow-settings.ts");
+		const { default: register } = await import("../settings/index.ts");
 		register(mockPi as any);
 
 		// New behavior: extension never blocks. autoCompact=false is synced
@@ -396,7 +396,7 @@ describe("session_compact — handoff from compaction summary", () => {
 		writeSettings({});
 
 		const mockPi = createMockPi();
-		const { default: register } = await import("../workflow-settings.ts");
+		const { default: register } = await import("../settings/index.ts");
 		register(mockPi as any);
 
 		const entries = [
@@ -426,7 +426,7 @@ describe("session_compact — handoff from compaction summary", () => {
 		writeSettings({});
 
 		const mockPi = createMockPi();
-		const { default: register } = await import("../workflow-settings.ts");
+		const { default: register } = await import("../settings/index.ts");
 		register(mockPi as any);
 
 		const entries = [
@@ -449,7 +449,7 @@ describe("session_compact — handoff from compaction summary", () => {
 		writeSettings({});
 
 		const mockPi = createMockPi();
-		const { default: register } = await import("../workflow-settings.ts");
+		const { default: register } = await import("../settings/index.ts");
 		register(mockPi as any);
 
 		const mockCtx = createMockCtx({
@@ -465,7 +465,7 @@ describe("session_compact — handoff from compaction summary", () => {
 		writeSettings({ theFirm: { workflows: { compactionStrategy: "handoff" } } });
 
 		const mockPi = createMockPi();
-		const { default: register } = await import("../workflow-settings.ts");
+		const { default: register } = await import("../settings/index.ts");
 		register(mockPi as any);
 
 		const entries = [{ type: "message", message: { role: "user", content: "Hallo" } }];
@@ -494,7 +494,7 @@ describe("session_shutdown — save on exit", () => {
 		writeSettings({});
 
 		const mockPi = createMockPi();
-		const { default: register } = await import("../workflow-settings.ts");
+		const { default: register } = await import("../settings/index.ts");
 		register(mockPi as any);
 
 		// No existing handoff doc — should generate one
@@ -515,7 +515,7 @@ describe("session_shutdown — save on exit", () => {
 		);
 
 		const mockPi = createMockPi();
-		const { default: register } = await import("../workflow-settings.ts");
+		const { default: register } = await import("../settings/index.ts");
 		register(mockPi as any);
 
 		const entries = [
@@ -537,7 +537,7 @@ describe("session_shutdown — save on exit", () => {
 		writeSettings({ theFirm: { session: { saveOnExit: true } } });
 
 		const mockPi = createMockPi();
-		const { default: register } = await import("../workflow-settings.ts");
+		const { default: register } = await import("../settings/index.ts");
 		register(mockPi as any);
 
 		await mockPi.getHandler("session_shutdown")({}, createMockCtx());
@@ -554,7 +554,7 @@ describe("session_shutdown — save on exit", () => {
 		writeSettings({});
 
 		const mockPi = createMockPi();
-		const { default: register } = await import("../workflow-settings.ts");
+		const { default: register } = await import("../settings/index.ts");
 		register(mockPi as any);
 
 		await mockPi.getHandler("session_shutdown")({}, createMockCtx());
@@ -567,7 +567,7 @@ describe("session_shutdown — save on exit", () => {
 		writeSettings({});
 
 		const mockPi = createMockPi();
-		const { default: register } = await import("../workflow-settings.ts");
+		const { default: register } = await import("../settings/index.ts");
 		register(mockPi as any);
 
 		// No sessionManager at all
@@ -585,7 +585,7 @@ describe("session_shutdown — save on exit", () => {
 describe("workflow-settings registration", () => {
 	it("registers all event handlers including agent_end", async () => {
 		const mockPi = createMockPi();
-		const { default: register } = await import("../workflow-settings.ts");
+		const { default: register } = await import("../settings/index.ts");
 		register(mockPi as any);
 
 		expect(mockPi.on).toHaveBeenCalledWith("session_start", expect.any(Function));
@@ -604,13 +604,13 @@ describe("workflow-settings registration", () => {
 describe("compaction helper functions — getCompactionStrategy", () => {
 	it("returns default 'context-full' when not set", async () => {
 		writeSettings({});
-		const { getCompactionStrategy } = await import("../workflow-settings.ts");
+		const { getCompactionStrategy } = await import("../settings/index.ts");
 		expect(getCompactionStrategy()).toBe("context-full");
 	});
 
 	it("returns custom value when set as string", async () => {
 		writeSettings({ theFirm: { workflows: { compactionStrategy: "handoff" } } });
-		const { getCompactionStrategy } = await import("../workflow-settings.ts");
+		const { getCompactionStrategy } = await import("../settings/index.ts");
 		expect(getCompactionStrategy()).toBe("handoff");
 	});
 });
@@ -618,19 +618,19 @@ describe("compaction helper functions — getCompactionStrategy", () => {
 describe("compaction helper functions — getThresholdPercent", () => {
 	it("returns default -1 when not set", async () => {
 		writeSettings({});
-		const { getThresholdPercent } = await import("../workflow-settings.ts");
+		const { getThresholdPercent } = await import("../settings/index.ts");
 		expect(getThresholdPercent()).toBe(-1);
 	});
 
 	it("returns number when stored as number", async () => {
 		writeSettings({ theFirm: { compaction: { thresholdPercent: 60 } } });
-		const { getThresholdPercent } = await import("../workflow-settings.ts");
+		const { getThresholdPercent } = await import("../settings/index.ts");
 		expect(getThresholdPercent()).toBe(60);
 	});
 
 	it("returns number when stored as string", async () => {
 		writeSettings({ theFirm: { compaction: { thresholdPercent: "60" } } });
-		const { getThresholdPercent } = await import("../workflow-settings.ts");
+		const { getThresholdPercent } = await import("../settings/index.ts");
 		expect(getThresholdPercent()).toBe(60);
 	});
 });
@@ -638,19 +638,19 @@ describe("compaction helper functions — getThresholdPercent", () => {
 describe("compaction helper functions — getThresholdTokens", () => {
 	it("returns default -1 when not set", async () => {
 		writeSettings({});
-		const { getThresholdTokens } = await import("../workflow-settings.ts");
+		const { getThresholdTokens } = await import("../settings/index.ts");
 		expect(getThresholdTokens()).toBe(-1);
 	});
 
 	it("returns number when stored as number", async () => {
 		writeSettings({ theFirm: { compaction: { thresholdTokens: 100000 } } });
-		const { getThresholdTokens } = await import("../workflow-settings.ts");
+		const { getThresholdTokens } = await import("../settings/index.ts");
 		expect(getThresholdTokens()).toBe(100000);
 	});
 
 	it("returns number when stored as string", async () => {
 		writeSettings({ theFirm: { compaction: { thresholdTokens: "100000" } } });
-		const { getThresholdTokens } = await import("../workflow-settings.ts");
+		const { getThresholdTokens } = await import("../settings/index.ts");
 		expect(getThresholdTokens()).toBe(100000);
 	});
 });
@@ -658,19 +658,19 @@ describe("compaction helper functions — getThresholdTokens", () => {
 describe("compaction helper functions — isHandoffSaveToDisk", () => {
 	it("returns default false when not set (storage=inmemory)", async () => {
 		writeSettings({});
-		const { isHandoffSaveToDisk } = await import("../workflow-settings.ts");
+		const { isHandoffSaveToDisk } = await import("../settings/index.ts");
 		expect(isHandoffSaveToDisk()).toBe(false);
 	});
 
 	it("returns true when handoffStorage is 'file'", async () => {
 		writeSettings({ theFirm: { compaction: { handoffStorage: "file" } } });
-		const { isHandoffSaveToDisk } = await import("../workflow-settings.ts");
+		const { isHandoffSaveToDisk } = await import("../settings/index.ts");
 		expect(isHandoffSaveToDisk()).toBe(true);
 	});
 
 	it("returns false when handoffStorage is 'inmemory'", async () => {
 		writeSettings({ theFirm: { compaction: { handoffStorage: "inmemory" } } });
-		const { isHandoffSaveToDisk } = await import("../workflow-settings.ts");
+		const { isHandoffSaveToDisk } = await import("../settings/index.ts");
 		expect(isHandoffSaveToDisk()).toBe(false);
 	});
 });
@@ -678,19 +678,19 @@ describe("compaction helper functions — isHandoffSaveToDisk", () => {
 describe("compaction helper functions — isAutoContinue", () => {
 	it("returns default true when not set", async () => {
 		writeSettings({});
-		const { isAutoContinue } = await import("../workflow-settings.ts");
+		const { isAutoContinue } = await import("../settings/index.ts");
 		expect(isAutoContinue()).toBe(true);
 	});
 
 	it("returns false when explicitly set to false", async () => {
 		writeSettings({ theFirm: { compaction: { autoContinue: false } } });
-		const { isAutoContinue } = await import("../workflow-settings.ts");
+		const { isAutoContinue } = await import("../settings/index.ts");
 		expect(isAutoContinue()).toBe(false);
 	});
 
 	it("returns true when explicitly set to true", async () => {
 		writeSettings({ theFirm: { compaction: { autoContinue: true } } });
-		const { isAutoContinue } = await import("../workflow-settings.ts");
+		const { isAutoContinue } = await import("../settings/index.ts");
 		expect(isAutoContinue()).toBe(true);
 	});
 });
@@ -702,25 +702,25 @@ describe("compaction helper functions — isAutoContinue", () => {
 describe("getEffectiveStrategy", () => {
 	it("returns 'off' when user strategy is 'handoff'", async () => {
 		writeSettings({ theFirm: { workflows: { compactionStrategy: "handoff" } } });
-		const { getEffectiveStrategy } = await import("../workflow-settings.ts");
+		const { getEffectiveStrategy } = await import("../settings/index.ts");
 		expect(getEffectiveStrategy()).toBe("off");
 	});
 
 	it("returns 'context-full' when user strategy is 'context-full'", async () => {
 		writeSettings({ theFirm: { workflows: { compactionStrategy: "context-full" } } });
-		const { getEffectiveStrategy } = await import("../workflow-settings.ts");
+		const { getEffectiveStrategy } = await import("../settings/index.ts");
 		expect(getEffectiveStrategy()).toBe("context-full");
 	});
 
 	it("returns 'off' when user strategy is 'off'", async () => {
 		writeSettings({ theFirm: { workflows: { compactionStrategy: "off" } } });
-		const { getEffectiveStrategy } = await import("../workflow-settings.ts");
+		const { getEffectiveStrategy } = await import("../settings/index.ts");
 		expect(getEffectiveStrategy()).toBe("off");
 	});
 
 	it("returns 'context-full' when not set (default)", async () => {
 		writeSettings({});
-		const { getEffectiveStrategy } = await import("../workflow-settings.ts");
+		const { getEffectiveStrategy } = await import("../settings/index.ts");
 		expect(getEffectiveStrategy()).toBe("context-full");
 	});
 });
@@ -733,7 +733,7 @@ describe("agent_end — auto-handoff interception", () => {
 	it("agent_end handler registers", async () => {
 		writeSettings({});
 		const mockPi = createMockPi();
-		const { default: register } = await import("../workflow-settings.ts");
+		const { default: register } = await import("../settings/index.ts");
 		register(mockPi as any);
 
 		expect(mockPi.on).toHaveBeenCalledWith("agent_end", expect.any(Function));
@@ -743,7 +743,7 @@ describe("agent_end — auto-handoff interception", () => {
 	it("does not send handoff when strategy is 'off'", async () => {
 		writeSettings({ theFirm: { workflows: { compactionStrategy: "off" } } });
 		const mockPi = createMockPi();
-		const { default: register } = await import("../workflow-settings.ts");
+		const { default: register } = await import("../settings/index.ts");
 		register(mockPi as any);
 
 		const mockCtx = createMockCtx({
@@ -758,7 +758,7 @@ describe("agent_end — auto-handoff interception", () => {
 	it("does not send handoff when strategy is 'context-full'", async () => {
 		writeSettings({ theFirm: { workflows: { compactionStrategy: "context-full" } } });
 		const mockPi = createMockPi();
-		const { default: register } = await import("../workflow-settings.ts");
+		const { default: register } = await import("../settings/index.ts");
 		register(mockPi as any);
 
 		const mockCtx = createMockCtx({
@@ -778,7 +778,7 @@ describe("agent_end — auto-handoff interception", () => {
 			},
 		});
 		const mockPi = createMockPi();
-		const { default: register } = await import("../workflow-settings.ts");
+		const { default: register } = await import("../settings/index.ts");
 		register(mockPi as any);
 
 		const notify = vi.fn();
@@ -813,7 +813,7 @@ describe("agent_end — auto-handoff interception", () => {
 			},
 		});
 		const mockPi = createMockPi();
-		const { default: register } = await import("../workflow-settings.ts");
+		const { default: register } = await import("../settings/index.ts");
 		register(mockPi as any);
 
 		const mockCtx = createMockCtx({
@@ -833,7 +833,7 @@ describe("agent_end — auto-handoff interception", () => {
 			},
 		});
 		const mockPi = createMockPi();
-		const { default: register } = await import("../workflow-settings.ts");
+		const { default: register } = await import("../settings/index.ts");
 		register(mockPi as any);
 
 		const mockCtx = createMockCtx({
@@ -853,7 +853,7 @@ describe("agent_end — auto-handoff interception", () => {
 			},
 		});
 		const mockPi = createMockPi();
-		const { default: register } = await import("../workflow-settings.ts");
+		const { default: register } = await import("../settings/index.ts");
 		register(mockPi as any);
 
 		const mockCtx = createMockCtx({
@@ -873,7 +873,7 @@ describe("agent_end — auto-handoff interception", () => {
 			},
 		});
 		const mockPi = createMockPi();
-		const { default: register } = await import("../workflow-settings.ts");
+		const { default: register } = await import("../settings/index.ts");
 		register(mockPi as any);
 
 		const notify = vi.fn();
