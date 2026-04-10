@@ -1,14 +1,15 @@
 {
-	"name": "@mariozechner/pi-coding-agent",
-	"version": "0.66.1",
-	"description": "Coding agent CLI with read, bash, edit, write tools and session management",
+	"name": "@digi4care/the-firm",
+	"version": "0.1.0",
+	"description": "The Firm — governance-first coding agent (fork of pi-mono)",
 	"type": "module",
 	"piConfig": {
-		"name": "pi",
-		"configDir": ".pi"
+		"name": "the-firm",
+		"configDir": ".the-firm"
 	},
 	"bin": {
-		"pi": "dist/cli.js"
+		"the-firm": "dist/cli.js",
+		"firm": "dist/cli.js"
 	},
 	"main": "./dist/index.js",
 	"types": "./dist/index.d.ts",
@@ -87,11 +88,11 @@
 		"tui",
 		"agent"
 	],
-	"author": "Mario Zechner",
+	"author": "digi4care",
 	"license": "MIT",
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/badlogic/pi-mono.git",
+		"url": "git+https://github.com/digi4care/the-firm.git",
 		"directory": "packages/coding-agent"
 	},
 	"engines": {
