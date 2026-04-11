@@ -31,6 +31,28 @@ This document tracks all modifications made to the pi-mono fork for The Firm.
 ### `packages/coding-agent/src/modes/interactive/components/config-selector.ts`
 - Scope label: `~/.pi/agent/` → uses `CONFIG_DIR_NAME`
 
+## Provider Hardening (commit TBD)
+
+### `packages/ai/src/providers/transform-messages.ts`
+- **Bug fix:** Errored/aborted assistant turns now track their tool calls before being skipped
+- Previously, skipping errored turns silently dropped tool call IDs, leaving orphaned toolResult messages
+- Now extracts tool calls from errored turns into `pendingToolCalls` so synthetic results are injected for any that lack real results
+- Inspired by can1357/oh-my-pi's approach but implemented minimally
+
+### `packages/ai/src/providers/openai-responses-shared.ts`
+- **Bug fix:** Added strict responses pairing — orphaned `function_call_output` items are filtered
+- Collects all known `call_id`s from `function_call` items, then removes any `function_call_output` whose `call_id` has no match
+- Prevents OpenAI Responses API error: "No tool call found for function call output with call_id X"
+
+### New tests
+- `packages/ai/test/transform-messages-errored-turn.test.ts` — 7 unit tests covering errored/aborted turn handling
+- `packages/ai/test/openai-responses-orphan-filtering.test.ts` — 3 unit tests covering orphaned function_call_output filtering
+
+### Resolves
+- Upstream issue: https://github.com/badlogic/pi-mono/issues/3017
+- Beads issue: `the-firm-v2-g1b` (PHASE 5: Harden provider/model layer)
+- Supersedes local `node_modules` hotfixes documented in `HOTFIX-OPENAI.md`
+
 ## Upstream Sync
 
 To sync with upstream:

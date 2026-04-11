@@ -257,7 +257,39 @@ export function convertResponsesMessages<TApi extends Api>(
 		msgIndex++;
 	}
 
-	return messages;
+	// Strict Responses Pairing: filter orphaned function_call_output items.
+	// When transformMessages skips errored assistant turns (which contained the
+	// function_call items), their toolResult messages may still be present or
+	// synthetic results may have been injected. After conversion, any
+	// function_call_output whose call_id has no matching function_call must be
+	// removed to prevent OpenAI Responses API errors:
+	// "No tool call found for function call output with call_id X".
+	const knownCallIds = new Set<string>();
+	for (const item of messages) {
+		if (
+			item !== null &&
+			typeof item === "object" &&
+			"type" in item &&
+			(item as { type: string }).type === "function_call" &&
+			"call_id" in item &&
+			typeof (item as { call_id: string }).call_id === "string"
+		) {
+			knownCallIds.add((item as { call_id: string }).call_id);
+		}
+	}
+	return messages.filter((item) => {
+		if (
+			item !== null &&
+			typeof item === "object" &&
+			"type" in item &&
+			(item as { type: string }).type === "function_call_output" &&
+			"call_id" in item &&
+			typeof (item as { call_id: string }).call_id === "string"
+		) {
+			return knownCallIds.has((item as { call_id: string }).call_id);
+		}
+		return true;
+	});
 }
 
 // =============================================================================
