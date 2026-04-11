@@ -376,7 +376,26 @@ export default function theFirmExtension(pi: ExtensionAPI): void {
 		},
 	});
 
+	// ── Resources ────────────────────────────────────────────────────────
+
+	// Expose The Firm skills, prompts, and rules to Pi's resource system.
+	// This makes them discoverable via /skill and /template commands.
+	let extDir: string | undefined;
+
 	// ── Events ───────────────────────────────────────────────────────────
+
+	pi.on("resources_discover", async () => {
+		if (!extDir) {
+			const { dirname, join } = await import("node:path");
+			const { fileURLToPath } = await import("node:url");
+			extDir = dirname(fileURLToPath(import.meta.url));
+		}
+		const { join } = await import("node:path");
+		return {
+			skillPaths: [join(extDir!, "skills")],
+			promptPaths: [join(extDir!, "prompts")],
+		};
+	});
 
 	pi.on("session_start", async (_event, ctx) => {
 		// Check if .firm/ exists in the project
