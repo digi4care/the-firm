@@ -31,7 +31,7 @@ This document tracks all modifications made to the pi-mono fork for The Firm.
 ### `packages/coding-agent/src/modes/interactive/components/config-selector.ts`
 - Scope label: `~/.pi/agent/` → uses `CONFIG_DIR_NAME`
 
-## Provider Hardening (commit TBD)
+## Provider Hardening (commit `cc0f0fd98`)
 
 ### `packages/ai/src/providers/transform-messages.ts`
 - **Bug fix:** Errored/aborted assistant turns now track their tool calls before being skipped
@@ -52,6 +52,19 @@ This document tracks all modifications made to the pi-mono fork for The Firm.
 - Upstream issue: https://github.com/badlogic/pi-mono/issues/3017
 - Beads issue: `the-firm-v2-g1b` (PHASE 5: Harden provider/model layer)
 - Supersedes local `node_modules` hotfixes documented in `HOTFIX-OPENAI.md`
+
+## KB Tool Registration Extension
+
+### `packages/coding-agent/the-firm-ext/index.ts`
+- **New:** Pi extension that registers all 9 KB tools and 6 commands
+- Uses Pi's `ExtensionAPI.registerTool()` to expose tools to the LLM
+- Wires up the full dependency graph: scanners, validators, repos, templates, approval gate
+- Tools registered: `firm_init`, `firm_setup`, `firm_harvest`, `firm_capture`, `firm_extract`, `firm_organize`, `firm_compact`, `firm_map`, `firm_workflow`
+- Commands registered: `/firm-init`, `/firm-harvest`, `/firm-extract`, `/firm-error`, `/firm-pattern`, `/firm-map`
+- Events: `session_start` loads .firm/ context, `before_agent_start` injects KB health
+
+### Resolves
+- Beads issue: `the-firm-v2-4st` (Registreer KB tools als Pi tools via ExtensionAPI)
 
 ## Upstream Sync
 
