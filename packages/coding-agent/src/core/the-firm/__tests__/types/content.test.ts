@@ -1,18 +1,9 @@
-import { describe, expect, it } from "bun:test";
-import { CONTENT_TYPE_TO_CATEGORY, isContentCategory, isContentType } from "../../types/content.ts";
+import { describe, expect, it } from "vitest";
 import type { ContentCategory, ContentType } from "../../types/content.ts";
+import { CONTENT_TYPE_TO_CATEGORY, isContentCategory, isContentType } from "../../types/content.ts";
 
 describe("content types", () => {
-	const ALL_TYPES: ContentType[] = [
-		"concept",
-		"decision",
-		"pattern",
-		"guide",
-		"error",
-		"standard",
-		"spec",
-		"rule",
-	];
+	const ALL_TYPES: ContentType[] = ["concept", "decision", "pattern", "guide", "error", "standard", "spec", "rule"];
 
 	const ALL_CATEGORIES: ContentCategory[] = [
 		"concepts",

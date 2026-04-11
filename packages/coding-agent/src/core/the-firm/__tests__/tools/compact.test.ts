@@ -1,8 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { ApprovalGate as RealApprovalGate } from "../../pipeline/approval-gate";
 import type { ApprovalGate } from "../../pipeline/approval-gate";
+import { ApprovalGate as RealApprovalGate } from "../../pipeline/approval-gate";
 import type { ProjectScanner } from "../../scanning/project-scanner";
 import type { TemplateProvider } from "../../templates/template-provider";
 import { CompactTool } from "../../tools/compact";
@@ -115,7 +115,7 @@ function makeTool(mocks: ReturnType<typeof makeMocks>) {
 		mocks.templates,
 		mocks.approval,
 		mocks.navSync,
-		mocks.contentBuilder
+		mocks.contentBuilder,
 	);
 }
 

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "vitest";
 import type { Template } from "../../types";
 import { CompositeValidator } from "../../validation/composite-validator";
 import { FrontmatterValidator } from "../../validation/frontmatter-validator";

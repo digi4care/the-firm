@@ -1,16 +1,16 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ApprovalGate } from "../../pipeline/approval-gate";
 import type { ApprovalGate as ApprovalGateType } from "../../pipeline/approval-gate";
+import { ApprovalGate } from "../../pipeline/approval-gate";
 import type { PipelineContext } from "../../pipeline/pipeline-context";
 import type { TemplateProvider } from "../../templates/template-provider";
 import { type ExtractInput, ExtractTool } from "../../tools/extract";
 import type { Proposal, Template, ValidationResult, WriteOperation } from "../../types";
 import type { CompositeValidator } from "../../validation/composite-validator";
-import { ContentBuilder as RealContentBuilder } from "../../writing/content-builder";
 import type { ContentBuilder } from "../../writing/content-builder";
+import { ContentBuilder as RealContentBuilder } from "../../writing/content-builder";
 import type { FirmRepository } from "../../writing/firm-repository";
 import type { NavigationSync } from "../../writing/navigation-sync";
 import type { RulesRepository } from "../../writing/rules-repository";
@@ -105,7 +105,7 @@ function makeTool(mocks: MockDeps): ExtractTool {
 		mocks.templates,
 		mocks.approval,
 		mocks.navSync,
-		mocks.contentBuilder
+		mocks.contentBuilder,
 	);
 }
 
@@ -282,10 +282,7 @@ describe("ExtractTool", () => {
 			const mocks = makeMocks();
 			const tool = makeTool(mocks);
 
-			await writeFile(
-				join(root, "setup.md"),
-				"How to setup the development environment step by step"
-			);
+			await writeFile(join(root, "setup.md"), "How to setup the development environment step by step");
 
 			const input: ExtractInput = {
 				projectRoot: root,
@@ -340,9 +337,8 @@ describe("ExtractTool", () => {
 			const mocks = makeMocks();
 
 			// dry-run: no approved proposals
-			(
-				mocks.approval as unknown as { approve: (p: Proposal[], m: string) => Promise<Proposal[]> }
-			).approve = async () => [];
+			(mocks.approval as unknown as { approve: (p: Proposal[], m: string) => Promise<Proposal[]> }).approve =
+				async () => [];
 
 			const tool = makeTool(mocks);
 
@@ -375,9 +371,7 @@ describe("ExtractTool", () => {
 			};
 
 			const origSync = mocks.navSync.syncAll.bind(mocks.navSync);
-			(mocks.navSync as unknown as { syncAll: (root: string) => Promise<string[]> }).syncAll = (
-				r: string
-			) => {
+			(mocks.navSync as unknown as { syncAll: (root: string) => Promise<string[]> }).syncAll = (r: string) => {
 				syncedDirs.push([r]);
 				return origSync(r);
 			};

@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "vitest";
 import { ApprovalGate, type ApprovalMode } from "../../pipeline/approval-gate";
 import { PipelineContext } from "../../pipeline/pipeline-context";
 import type { Proposal } from "../../types";

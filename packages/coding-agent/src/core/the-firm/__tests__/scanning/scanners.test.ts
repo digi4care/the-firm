@@ -1,6 +1,5 @@
-import { afterEach, describe, expect, it } from "bun:test";
-import { mkdir, writeFile } from "node:fs/promises";
-import { rm } from "node:fs/promises";
+import { afterEach, describe, expect, it } from "vitest";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { FirmScanner } from "../../scanning/firm-scanner";
@@ -105,7 +104,7 @@ describe("FrameworkScanner", () => {
 			join(root, "package.json"),
 			JSON.stringify({
 				dependencies: { express: "^4.18.0" },
-			})
+			}),
 		);
 
 		const scanner = new FrameworkScanner();
@@ -236,7 +235,7 @@ describe("ProjectScanner", () => {
 			JSON.stringify({
 				name: "test-project",
 				dependencies: { "@sveltejs/kit": "^2.0.0" },
-			})
+			}),
 		);
 		await writeFile(join(root, "svelte.config.js"), "export default {}");
 		await mkdir(join(root, "src"), { recursive: true });
@@ -248,7 +247,7 @@ describe("ProjectScanner", () => {
 			new LanguageScanner(),
 			new FrameworkScanner(),
 			new StructureScanner(),
-			new FirmScanner()
+			new FirmScanner(),
 		);
 
 		const profile = await scanner.scan(root);

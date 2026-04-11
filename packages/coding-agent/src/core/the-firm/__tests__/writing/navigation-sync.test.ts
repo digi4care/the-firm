@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "vitest";
 import { existsSync } from "node:fs";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -36,7 +36,7 @@ describe("NavigationSync", () => {
 				await mkdir(conceptsDir, { recursive: true });
 				await writeFile(
 					join(conceptsDir, "my-concept.md"),
-					"---\nstatus: active\n---\n# My Concept\nSome description here.\n"
+					"---\nstatus: active\n---\n# My Concept\nSome description here.\n",
 				);
 
 				const updated = await sync.syncDir(conceptsDir);
@@ -68,10 +68,7 @@ describe("NavigationSync", () => {
 			try {
 				const conceptsDir = join(firmDir, "concepts");
 				await mkdir(conceptsDir, { recursive: true });
-				await writeFile(
-					join(conceptsDir, "topic.md"),
-					"---\nstatus: active\n---\n# Topic\nA topic.\n"
-				);
+				await writeFile(join(conceptsDir, "topic.md"), "---\nstatus: active\n---\n# Topic\nA topic.\n");
 
 				// First sync creates the file
 				const first = await sync.syncDir(conceptsDir);
@@ -97,17 +94,17 @@ describe("NavigationSync", () => {
 				await mkdir(decisionsDir, { recursive: true });
 				await writeFile(
 					join(conceptsDir, "concept-a.md"),
-					"---\nstatus: active\n---\n# Concept A\nFirst concept.\n"
+					"---\nstatus: active\n---\n# Concept A\nFirst concept.\n",
 				);
 				await writeFile(
 					join(decisionsDir, "decision-001.md"),
-					"---\nstatus: active\n---\n# Decision 001\nA decision.\n"
+					"---\nstatus: active\n---\n# Decision 001\nA decision.\n",
 				);
 
-				const updated = await sync.syncAll(firmDir);
+				const updated = await sync.syncAll(root);
 
 				// Both directories should have been synced (not skipped)
-				expect(updated).toHaveLength(2);
+				expect(updated).toHaveLength(3); // .firm/ itself + 2 subdirs
 				expect(updated).toContain(conceptsDir);
 				expect(updated).toContain(decisionsDir);
 
@@ -129,13 +126,13 @@ describe("NavigationSync", () => {
 				await mkdir(emptyDir, { recursive: true });
 				await writeFile(
 					join(conceptsDir, "concept-a.md"),
-					"---\nstatus: active\n---\n# Concept A\nFirst concept.\n"
+					"---\nstatus: active\n---\n# Concept A\nFirst concept.\n",
 				);
 
-				const updated = await sync.syncAll(firmDir);
+				const updated = await sync.syncAll(root);
 
 				// Only the directory with content should be returned
-				expect(updated).toHaveLength(1);
+				expect(updated).toHaveLength(2); // .firm/ itself + 1 subdir
 				expect(updated).toContain(conceptsDir);
 			} finally {
 				await cleanup(root);
@@ -145,7 +142,7 @@ describe("NavigationSync", () => {
 		it("returns empty array when .firm/ has no subdirectories", async () => {
 			const { root, firmDir, sync } = await makeFirmRoot();
 			try {
-				const updated = await sync.syncAll(firmDir);
+				const updated = await sync.syncAll(root);
 				expect(updated).toEqual([]);
 			} finally {
 				await cleanup(root);

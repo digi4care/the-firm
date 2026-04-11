@@ -1,20 +1,19 @@
+import { describe, expect, it } from "vitest";
 import { mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "bun:test";
 import { FirmRepository } from "../../writing/firm-repository.ts";
 import {
-	WorkflowRepository,
 	instanceFileName,
 	parseInstanceYaml,
 	parseTemplateYaml,
 	serializeInstanceYaml,
+	WorkflowRepository,
 } from "../../writing/workflow-repository.ts";
 
 // -- Test helpers -----------------------------------------------------------
 
 let makeRepoCounter = 0;
-
 
 async function makeRepo(): Promise<{
 	root: string;
@@ -87,19 +86,12 @@ describe("WorkflowRepository", () => {
 
 		it("parses a valid template YAML", async () => {
 			const { firmRepo, workflowRepo } = await makeRepo();
-			await firmRepo.write(
-				"operations/workflows/templates/spec-implementation.yaml",
-				SAMPLE_TEMPLATE_YAML,
-			);
+			await firmRepo.write("operations/workflows/templates/spec-implementation.yaml", SAMPLE_TEMPLATE_YAML);
 
-			const template = await workflowRepo.readTemplate(
-				"spec-implementation.yaml",
-			);
+			const template = await workflowRepo.readTemplate("spec-implementation.yaml");
 			expect(template).not.toBeNull();
 			expect(template!.name).toBe("spec-implementation");
-			expect(template!.description).toBe(
-				"Standard spec-to-implementation workflow",
-			);
+			expect(template!.description).toBe("Standard spec-to-implementation workflow");
 			expect(template!.type).toBe("implementation");
 			expect(template!.phases).toHaveLength(3);
 			expect(template!.phases[0]).toEqual({
@@ -120,9 +112,7 @@ describe("WorkflowRepository", () => {
 				"operations/workflows/templates/bad.yaml",
 				"description: 'no name'\ntype: 'test'\nphases:\n  - name: 'Phase1'\n    gate: []\n    retrospective: []\n",
 			);
-			await expect(
-				workflowRepo.readTemplate("bad.yaml"),
-			).rejects.toThrow("missing required 'name' field");
+			await expect(workflowRepo.readTemplate("bad.yaml")).rejects.toThrow("missing required 'name' field");
 		});
 
 		it("throws on template with no phases", async () => {
@@ -131,9 +121,7 @@ describe("WorkflowRepository", () => {
 				"operations/workflows/templates/no-phases.yaml",
 				'name: "empty"\ndescription: "no phases"\ntype: "test"\nphases:\n',
 			);
-			await expect(
-				workflowRepo.readTemplate("no-phases.yaml"),
-			).rejects.toThrow("has no phases");
+			await expect(workflowRepo.readTemplate("no-phases.yaml")).rejects.toThrow("has no phases");
 		});
 	});
 
@@ -164,10 +152,7 @@ describe("WorkflowRepository", () => {
 			const { workflowRepo } = await makeRepo();
 
 			const template = parseTemplateYaml(SAMPLE_TEMPLATE_YAML, "test");
-			const instance = await workflowRepo.createInstance(
-				template,
-				"my-feature",
-			);
+			const instance = await workflowRepo.createInstance(template, "my-feature");
 
 			expect(instance.name).toBe("my-feature");
 			expect(instance.template).toBe("spec-implementation");
@@ -186,11 +171,7 @@ describe("WorkflowRepository", () => {
 			const { workflowRepo } = await makeRepo();
 
 			const template = parseTemplateYaml(SAMPLE_TEMPLATE_YAML, "test");
-			const instance = await workflowRepo.createInstance(
-				template,
-				"feature-2",
-				"specs/feature-2.md",
-			);
+			const instance = await workflowRepo.createInstance(template, "feature-2", "specs/feature-2.md");
 
 			expect(instance.linkedSpec).toBe("specs/feature-2.md");
 		});
@@ -218,10 +199,7 @@ describe("WorkflowRepository", () => {
 			const { firmRepo, workflowRepo } = await makeRepo();
 
 			// Write a sample instance directly
-			await firmRepo.write(
-				"operations/workflows/instances/my-feature.yaml",
-				SAMPLE_INSTANCE_YAML,
-			);
+			await firmRepo.write("operations/workflows/instances/my-feature.yaml", SAMPLE_INSTANCE_YAML);
 
 			const instance = await workflowRepo.readInstance("my-feature");
 			expect(instance).not.toBeNull();
@@ -231,12 +209,8 @@ describe("WorkflowRepository", () => {
 			expect(instance!.status).toBe("in-progress");
 			expect(instance!.currentPhase).toBe("Build");
 			expect(instance!.phaseState.Design.status).toBe("completed");
-			expect(instance!.phaseState.Design.completedAt).toBe(
-				"2026-04-09T10:30:00.000Z",
-			);
-			expect(instance!.phaseState.Design.retrospectiveFindings).toEqual([
-				"Considered Option A and B",
-			]);
+			expect(instance!.phaseState.Design.completedAt).toBe("2026-04-09T10:30:00.000Z");
+			expect(instance!.phaseState.Design.retrospectiveFindings).toEqual(["Considered Option A and B"]);
 			expect(instance!.phaseState.Build.status).toBe("in-progress");
 			expect(instance!.phaseState.Build.backlogItems).toHaveLength(2);
 			expect(instance!.phaseState.Build.backlogItems[0]).toEqual({
@@ -257,10 +231,7 @@ describe("WorkflowRepository", () => {
 			const { workflowRepo } = await makeRepo();
 
 			const template = parseTemplateYaml(SAMPLE_TEMPLATE_YAML, "test");
-			const instance = await workflowRepo.createInstance(
-				template,
-				"ts-test",
-			);
+			const instance = await workflowRepo.createInstance(template, "ts-test");
 			const originalUpdated = instance.updated;
 
 			// Ensure different millisecond
@@ -275,10 +246,7 @@ describe("WorkflowRepository", () => {
 			const { workflowRepo } = await makeRepo();
 
 			const template = parseTemplateYaml(SAMPLE_TEMPLATE_YAML, "test");
-			const instance = await workflowRepo.createInstance(
-				template,
-				"roundtrip",
-			);
+			const instance = await workflowRepo.createInstance(template, "roundtrip");
 
 			// Modify phase state
 			instance.status = "in-progress";
@@ -294,12 +262,8 @@ describe("WorkflowRepository", () => {
 			expect(readBack!.status).toBe("in-progress");
 			expect(readBack!.currentPhase).toBe("Build");
 			expect(readBack!.phaseState.Design.status).toBe("completed");
-			expect(readBack!.phaseState.Design.completedAt).toBe(
-				"2026-04-09T10:30:00.000Z",
-			);
-			expect(readBack!.phaseState.Design.retrospectiveFindings).toEqual([
-				"Found X",
-			]);
+			expect(readBack!.phaseState.Design.completedAt).toBe("2026-04-09T10:30:00.000Z");
+			expect(readBack!.phaseState.Design.retrospectiveFindings).toEqual(["Found X"]);
 			expect(readBack!.phaseState.Build.status).toBe("in-progress");
 			expect(readBack!.phaseState.Verify.status).toBe("not-started");
 		});
@@ -341,10 +305,7 @@ describe("WorkflowRepository", () => {
 			const instance = await workflowRepo.readInstance("old-idle");
 			instance!.status = "not-started";
 			instance!.updated = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString();
-			await firmRepo.write(
-				"operations/workflows/instances/old-idle.yaml",
-				serializeInstanceYaml(instance!),
-			);
+			await firmRepo.write("operations/workflows/instances/old-idle.yaml", serializeInstanceYaml(instance!));
 
 			const stale = await workflowRepo.findStaleInstances();
 			expect(stale).toHaveLength(1);
@@ -362,10 +323,7 @@ describe("WorkflowRepository", () => {
 			const instance = await workflowRepo.readInstance("stuck");
 			instance!.status = "in-progress";
 			instance!.updated = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString();
-			await firmRepo.write(
-				"operations/workflows/instances/stuck.yaml",
-				serializeInstanceYaml(instance!),
-			);
+			await firmRepo.write("operations/workflows/instances/stuck.yaml", serializeInstanceYaml(instance!));
 
 			const stale = await workflowRepo.findStaleInstances();
 			expect(stale).toHaveLength(1);
@@ -382,10 +340,7 @@ describe("WorkflowRepository", () => {
 			const instance = await workflowRepo.readInstance("done");
 			instance!.status = "completed";
 			instance!.updated = new Date(Date.now() - 100 * 24 * 60 * 60 * 1000).toISOString();
-			await firmRepo.write(
-				"operations/workflows/instances/done.yaml",
-				serializeInstanceYaml(instance!),
-			);
+			await firmRepo.write("operations/workflows/instances/done.yaml", serializeInstanceYaml(instance!));
 
 			const stale = await workflowRepo.findStaleInstances();
 			expect(stale).toEqual([]);
@@ -437,13 +392,9 @@ describe("parseInstanceYaml / serializeInstanceYaml", () => {
 		expect(parsed.status).toBe(original.status);
 		expect(parsed.currentPhase).toBe(original.currentPhase);
 		expect(parsed.created).toBe(original.created);
-		expect(Object.keys(parsed.phaseState)).toEqual(
-			Object.keys(original.phaseState),
-		);
+		expect(Object.keys(parsed.phaseState)).toEqual(Object.keys(original.phaseState));
 		expect(parsed.phaseState.Design.status).toBe("completed");
-		expect(parsed.phaseState.Design.completedAt).toBe(
-			"2026-04-09T10:30:00.000Z",
-		);
+		expect(parsed.phaseState.Design.completedAt).toBe("2026-04-09T10:30:00.000Z");
 		expect(parsed.phaseState.Build.backlogItems).toHaveLength(2);
 	});
 });
@@ -538,7 +489,10 @@ describe("artifact serialization (G4)", () => {
 		const serialized = serializeInstanceYaml(original);
 		const parsed = parseInstanceYaml(serialized);
 
-		expect(parsed.phaseState.Design.artifacts).toEqual(["concepts/decisions/adr-001.md", "guides/workflows/design-guide.md"]);
+		expect(parsed.phaseState.Design.artifacts).toEqual([
+			"concepts/decisions/adr-001.md",
+			"guides/workflows/design-guide.md",
+		]);
 		expect(parsed.phaseState.Build.artifacts).toEqual(["concepts/patterns/factory-pattern.md"]);
 		expect(parsed.phaseState.Verify.artifacts).toEqual([]);
 	});

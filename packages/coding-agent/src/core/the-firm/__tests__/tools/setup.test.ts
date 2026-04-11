@@ -1,6 +1,5 @@
-import { afterEach, describe, expect, it } from "bun:test";
-import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
-import { rm } from "node:fs/promises";
+import { afterEach, describe, expect, it } from "vitest";
+import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ApprovalGate } from "../../pipeline/approval-gate";
@@ -11,7 +10,7 @@ import { ProjectScanner } from "../../scanning/project-scanner";
 import { StructureScanner } from "../../scanning/structure-scanner";
 import { BuiltinTemplates } from "../../templates/builtin-templates";
 import { FileTemplateProvider } from "../../templates/file-template-provider";
-import { SetupTool, loadStandardFiles, parseFrontmatter } from "../../tools/setup";
+import { loadStandardFiles, parseFrontmatter, SetupTool } from "../../tools/setup";
 import { CompositeValidator } from "../../validation/composite-validator";
 import { FrontmatterValidator } from "../../validation/frontmatter-validator";
 import { LinkValidator } from "../../validation/link-validator";
@@ -47,7 +46,7 @@ async function createTypeScriptProject(root: string): Promise<void> {
 			scripts: { test: "bun test", build: "bun run build", lint: "biome lint ." },
 			dependencies: {},
 			devDependencies: { typescript: "^5.0.0" },
-		})
+		}),
 	);
 	await writeFile(join(root, "tsconfig.json"), "{}");
 	await mkdir(join(root, "src"), { recursive: true });
@@ -84,8 +83,8 @@ async function createInitializedFirm(root: string): Promise<void> {
 				commands: { test: "bun test", build: "bun run build", lint: "biome lint ." },
 			},
 			null,
-			2
-		)
+			2,
+		),
 	);
 }
 
@@ -95,7 +94,7 @@ function buildTool(projectRoot: string): SetupTool {
 		new LanguageScanner(),
 		new FrameworkScanner(),
 		new StructureScanner(),
-		new FirmScanner()
+		new FirmScanner(),
 	);
 	const validator = new CompositeValidator([
 		new MVIValidator(),
@@ -110,16 +109,7 @@ function buildTool(projectRoot: string): SetupTool {
 	const navSync = new NavigationSync(firmRepo);
 	const approval = new ApprovalGate();
 
-	return new SetupTool(
-		scanner,
-		validator,
-		firmRepo,
-		rulesRepo,
-		templates,
-		approval,
-		navSync,
-		contentBuilder
-	);
+	return new SetupTool(scanner, validator, firmRepo, rulesRepo, templates, approval, navSync, contentBuilder);
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -155,9 +145,7 @@ describe("SetupTool", () => {
 			expect(result.items?.length).toBeGreaterThan(0);
 
 			// Verify nothing was written to .firm/lookup/standards/
-			const standards = await readFile(join(root, ".firm", "lookup", "standards")).catch(
-				() => null
-			);
+			const standards = await readFile(join(root, ".firm", "lookup", "standards")).catch(() => null);
 			// Directory exists but no files (it was created by createInitializedFirm)
 			expect(standards).toBeNull();
 		});
@@ -170,9 +158,7 @@ describe("SetupTool", () => {
 
 			const result = await tool.execute({ projectRoot: root, options: {} }, "dry-run");
 
-			const planningProposal = result.items?.find(
-				(p) => p.targetPath === "lookup/standards/planning-output.md"
-			);
+			const planningProposal = result.items?.find((p) => p.targetPath === "lookup/standards/planning-output.md");
 			expect(planningProposal).toBeDefined();
 			expect(planningProposal?.action).toBe("create");
 			expect(planningProposal?.content).toContain("# Standard: Planning Output");
@@ -188,15 +174,11 @@ describe("SetupTool", () => {
 
 			const result = await tool.execute({ projectRoot: root, options: {} }, "dry-run");
 
-			const workflowRule = result.items?.find(
-				(p) => p.targetPath === "rule:implementation-workflow.md"
-			);
+			const workflowRule = result.items?.find((p) => p.targetPath === "rule:implementation-workflow.md");
 			expect(workflowRule).toBeDefined();
 			expect(workflowRule?.content).toContain("# Rule: Implementation Workflow");
 			expect(workflowRule?.content).toContain("alwaysApply: true");
-			expect(workflowRule?.content).toContain(
-				'description: "Follow implementation planning workflow"'
-			);
+			expect(workflowRule?.content).toContain('description: "Follow implementation planning workflow"');
 		});
 
 		it("detects TypeScript and generates TS standard", async () => {
@@ -207,9 +189,7 @@ describe("SetupTool", () => {
 
 			const result = await tool.execute({ projectRoot: root, options: {} }, "dry-run");
 
-			const tsStandard = result.items?.find(
-				(p) => p.targetPath === "lookup/standards/typescript-coding.md"
-			);
+			const tsStandard = result.items?.find((p) => p.targetPath === "lookup/standards/typescript-coding.md");
 			expect(tsStandard).toBeDefined();
 			expect(tsStandard?.content).toContain("# Standard: TypeScript Coding");
 			expect(tsStandard?.content).toContain("strict: true");
@@ -236,15 +216,9 @@ describe("SetupTool", () => {
 			expect(result.message).toContain("file(s) written");
 
 			// Verify standard files exist
-			expect(
-				await fileExists(join(root, ".firm", "lookup", "standards", "planning-output.md"))
-			).toBe(true);
-			expect(
-				await fileExists(join(root, ".firm", "lookup", "standards", "implementation-workflow.md"))
-			).toBe(true);
-			expect(
-				await fileExists(join(root, ".firm", "lookup", "standards", "typescript-coding.md"))
-			).toBe(true);
+			expect(await fileExists(join(root, ".firm", "lookup", "standards", "planning-output.md"))).toBe(true);
+			expect(await fileExists(join(root, ".firm", "lookup", "standards", "implementation-workflow.md"))).toBe(true);
+			expect(await fileExists(join(root, ".firm", "lookup", "standards", "typescript-coding.md"))).toBe(true);
 
 			// Verify rule files exist
 			expect(await fileExists(join(root, ".omp", "rules", "planning-output.md"))).toBe(true);
@@ -288,10 +262,7 @@ describe("SetupTool", () => {
 
 			await tool.execute({ projectRoot: root, options: {} }, "auto");
 
-			const content = await readFile(
-				join(root, ".firm", "lookup", "standards", "planning-output.md"),
-				"utf-8"
-			);
+			const content = await readFile(join(root, ".firm", "lookup", "standards", "planning-output.md"), "utf-8");
 
 			// Frontmatter
 			expect(content).toContain("status: active");
@@ -341,24 +312,17 @@ describe("SetupTool", () => {
 
 			// Pre-create a standard
 			const existingContent = "# Existing Standard\n";
-			await writeFile(
-				join(root, ".firm", "lookup", "standards", "planning-output.md"),
-				existingContent
-			);
+			await writeFile(join(root, ".firm", "lookup", "standards", "planning-output.md"), existingContent);
 
 			const tool = buildTool(root);
 			const result = await tool.execute({ projectRoot: root, options: {} }, "dry-run");
 
 			// planning-output should NOT be in proposals (already exists)
-			const planningProposal = result.items?.find(
-				(p) => p.targetPath === "lookup/standards/planning-output.md"
-			);
+			const planningProposal = result.items?.find((p) => p.targetPath === "lookup/standards/planning-output.md");
 			expect(planningProposal).toBeUndefined();
 
 			// But implementation-workflow should still be proposed
-			const implProposal = result.items?.find(
-				(p) => p.targetPath === "lookup/standards/implementation-workflow.md"
-			);
+			const implProposal = result.items?.find((p) => p.targetPath === "lookup/standards/implementation-workflow.md");
 			expect(implProposal).toBeDefined();
 		});
 
@@ -385,19 +349,13 @@ describe("SetupTool", () => {
 			await createInitializedFirm(root);
 
 			const existingContent = "# Existing Standard\n";
-			await writeFile(
-				join(root, ".firm", "lookup", "standards", "planning-output.md"),
-				existingContent
-			);
+			await writeFile(join(root, ".firm", "lookup", "standards", "planning-output.md"), existingContent);
 
 			const tool = buildTool(root);
 			await tool.execute({ projectRoot: root, options: {} }, "auto");
 
 			// Existing standard should be untouched
-			const content = await readFile(
-				join(root, ".firm", "lookup", "standards", "planning-output.md"),
-				"utf-8"
-			);
+			const content = await readFile(join(root, ".firm", "lookup", "standards", "planning-output.md"), "utf-8");
 			expect(content).toBe(existingContent);
 		});
 	});
@@ -412,18 +370,14 @@ describe("SetupTool", () => {
 			const result = await tool.execute({ projectRoot: root, options: {} }, "dry-run");
 
 			// general-coding rule proposal
-			const generalCoding = result.items?.find(
-				(p) => p.targetPath === "rule:general-coding.md"
-			);
+			const generalCoding = result.items?.find((p) => p.targetPath === "rule:general-coding.md");
 			expect(generalCoding).toBeDefined();
 			expect(generalCoding?.action).toBe("create");
 			expect(generalCoding?.content).toContain("General Coding");
 			expect(generalCoding?.content).toContain("alwaysApply: true");
 
 			// commit-hygiene rule proposal
-			const commitHygiene = result.items?.find(
-				(p) => p.targetPath === "rule:commit-hygiene.md"
-			);
+			const commitHygiene = result.items?.find((p) => p.targetPath === "rule:commit-hygiene.md");
 			expect(commitHygiene).toBeDefined();
 			expect(commitHygiene?.action).toBe("create");
 			expect(commitHygiene?.content).toContain("Commit Hygiene");
@@ -439,20 +393,13 @@ describe("SetupTool", () => {
 			await tool.execute({ projectRoot: root, options: {} }, "auto");
 
 			// Verify default rule files exist in .pi/rules/
-			expect(
-				await fileExists(join(root, ".omp", "rules", "general-coding.md"))
-			).toBe(true);
-			expect(
-				await fileExists(join(root, ".omp", "rules", "commit-hygiene.md"))
-			).toBe(true);
+			expect(await fileExists(join(root, ".omp", "rules", "general-coding.md"))).toBe(true);
+			expect(await fileExists(join(root, ".omp", "rules", "commit-hygiene.md"))).toBe(true);
 
 			// Verify content structure
-			const generalContent = await readFile(
-				join(root, ".omp", "rules", "general-coding.md"),
-				"utf-8"
-			);
+			const generalContent = await readFile(join(root, ".omp", "rules", "general-coding.md"), "utf-8");
 			expect(generalContent).toContain("---");
-			expect(generalContent).toContain("name: \"General Coding\"");
+			expect(generalContent).toContain('name: "General Coding"');
 			expect(generalContent).toContain("self-documenting code");
 		});
 
@@ -463,24 +410,17 @@ describe("SetupTool", () => {
 
 			// Pre-create a default rule
 			await mkdir(join(root, ".omp", "rules"), { recursive: true });
-			await writeFile(
-				join(root, ".omp", "rules", "general-coding.md"),
-				"# Existing Rule\n"
-			);
+			await writeFile(join(root, ".omp", "rules", "general-coding.md"), "# Existing Rule\n");
 
 			const tool = buildTool(root);
 			const result = await tool.execute({ projectRoot: root, options: {} }, "dry-run");
 
 			// general-coding should NOT be in proposals (already exists)
-			const generalProposal = result.items?.find(
-				(p) => p.targetPath === "rule:general-coding.md"
-			);
+			const generalProposal = result.items?.find((p) => p.targetPath === "rule:general-coding.md");
 			expect(generalProposal).toBeUndefined();
 
 			// commit-hygiene should still be proposed
-			const commitProposal = result.items?.find(
-				(p) => p.targetPath === "rule:commit-hygiene.md"
-			);
+			const commitProposal = result.items?.find((p) => p.targetPath === "rule:commit-hygiene.md");
 			expect(commitProposal).toBeDefined();
 		});
 
@@ -491,19 +431,13 @@ describe("SetupTool", () => {
 
 			const existingContent = "# My Custom Rule\n";
 			await mkdir(join(root, ".omp", "rules"), { recursive: true });
-			await writeFile(
-				join(root, ".omp", "rules", "general-coding.md"),
-				existingContent
-			);
+			await writeFile(join(root, ".omp", "rules", "general-coding.md"), existingContent);
 
 			const tool = buildTool(root);
 			await tool.execute({ projectRoot: root, options: {} }, "auto");
 
 			// Existing rule should be untouched
-			const content = await readFile(
-				join(root, ".omp", "rules", "general-coding.md"),
-				"utf-8"
-			);
+			const content = await readFile(join(root, ".omp", "rules", "general-coding.md"), "utf-8");
 			expect(content).toBe(existingContent);
 		});
 	});
@@ -538,14 +472,7 @@ describe("parseFrontmatter", () => {
 	});
 
 	it("handles frontmatter with unquoted values", () => {
-		const raw = [
-			"---",
-			"name: Test Standard",
-			"language: TypeScript",
-			"---",
-			"",
-			"Content here.",
-		].join("\n");
+		const raw = ["---", "name: Test Standard", "language: TypeScript", "---", "", "Content here."].join("\n");
 
 		const { frontmatter } = parseFrontmatter(raw);
 		expect(frontmatter.name).toBe("Test Standard");

@@ -1,11 +1,9 @@
-import { afterEach, describe, expect, it } from "bun:test";
-import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
-import { readdir } from "node:fs/promises";
-import { rm } from "node:fs/promises";
+import { afterEach, describe, expect, it } from "vitest";
+import { mkdir, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ApprovalGate } from "../../pipeline/approval-gate";
 import type { ApprovalMode } from "../../pipeline/approval-gate";
+import { ApprovalGate } from "../../pipeline/approval-gate";
 import { FirmScanner } from "../../scanning/firm-scanner";
 import { FrameworkScanner } from "../../scanning/framework-scanner";
 import { LanguageScanner } from "../../scanning/language-scanner";
@@ -53,7 +51,7 @@ async function createTypeScriptProject(root: string): Promise<void> {
 			},
 			dependencies: {},
 			devDependencies: { typescript: "^5.0.0" },
-		})
+		}),
 	);
 	await writeFile(join(root, "tsconfig.json"), "{}");
 	await mkdir(join(root, "src"), { recursive: true });
@@ -72,7 +70,7 @@ function buildTool(projectRoot: string): InitTool {
 		new LanguageScanner(),
 		new FrameworkScanner(),
 		new StructureScanner(),
-		new FirmScanner()
+		new FirmScanner(),
 	);
 	const validator = new CompositeValidator([
 		new MVIValidator(),
@@ -87,16 +85,7 @@ function buildTool(projectRoot: string): InitTool {
 	const navSync = new NavigationSync(firmRepo);
 	const approval = new ApprovalGate();
 
-	return new InitTool(
-		scanner,
-		validator,
-		firmRepo,
-		rulesRepo,
-		templates,
-		approval,
-		navSync,
-		contentBuilder
-	);
+	return new InitTool(scanner, validator, firmRepo, rulesRepo, templates, approval, navSync, contentBuilder);
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -264,10 +253,7 @@ describe("InitTool", () => {
 
 			await tool.execute({ projectRoot: root }, "auto");
 
-			const navContent = await readFile(
-				join(root, ".firm", "concepts", "decisions", "navigation.md"),
-				"utf-8"
-			);
+			const navContent = await readFile(join(root, ".firm", "concepts", "decisions", "navigation.md"), "utf-8");
 
 			// Has frontmatter
 			expect(navContent).toContain("status: active");
@@ -338,10 +324,7 @@ describe("InitTool", () => {
 			await tool.execute({ projectRoot: root }, "auto");
 
 			// Existing navigation.md should be preserved
-			const content = await readFile(
-				join(root, ".firm", "concepts", "decisions", "navigation.md"),
-				"utf-8"
-			);
+			const content = await readFile(join(root, ".firm", "concepts", "decisions", "navigation.md"), "utf-8");
 			expect(content).toBe(existingNav);
 		});
 

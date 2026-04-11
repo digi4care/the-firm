@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "vitest";
 import type { ApprovalGate } from "../../pipeline/approval-gate";
 import type { PipelineContext } from "../../pipeline/pipeline-context";
 import { KBToolBase } from "../../pipeline/tool-base";
@@ -167,7 +167,7 @@ function makeTool(mocks: MockDeps, deps: Parameters<typeof createTestToolClass>[
 		mocks.templates,
 		mocks.approval,
 		mocks.navSync,
-		mocks.contentBuilder
+		mocks.contentBuilder,
 	);
 }
 
@@ -225,7 +225,7 @@ describe("KBToolBase", () => {
 				mocks.templates,
 				mocks.approval,
 				mocks.navSync,
-				mocks.contentBuilder
+				mocks.contentBuilder,
 			);
 
 			const result = await tool.execute(makeInput());
@@ -257,9 +257,8 @@ describe("KBToolBase", () => {
 				return origWrite(p, c);
 			};
 			// dry-run: approval gate returns empty
-			(
-				mocks.approval as unknown as { approve: (p: Proposal[], m: string) => Promise<Proposal[]> }
-			).approve = async () => [];
+			(mocks.approval as unknown as { approve: (p: Proposal[], m: string) => Promise<Proposal[]> }).approve =
+				async () => [];
 
 			const tool = makeTool(mocks, {
 				buildFn: (_input, ctx) => {
@@ -297,9 +296,7 @@ describe("KBToolBase", () => {
 	describe("validation errors", () => {
 		it("captures validation errors but does not stop pipeline", async () => {
 			const mocks = makeMocks();
-			(
-				mocks.validator as unknown as { validate: (c: string, t: Template) => ValidationResult }
-			).validate = () => ({
+			(mocks.validator as unknown as { validate: (c: string, t: Template) => ValidationResult }).validate = () => ({
 				valid: false,
 				errors: [
 					{
@@ -324,9 +321,7 @@ describe("KBToolBase", () => {
 			// auto mode approves everything, so it still gets written
 			expect(result.items).toHaveLength(1);
 			expect(result.items?.[0].metadata.validationPassed).toBe(false);
-			expect(result.items?.[0].metadata.validationErrors).toContain(
-				"Content exceeds 200 line limit"
-			);
+			expect(result.items?.[0].metadata.validationErrors).toContain("Content exceeds 200 line limit");
 		});
 
 		it("handles missing template gracefully", async () => {
@@ -344,7 +339,7 @@ describe("KBToolBase", () => {
 								template: "unknown",
 								validationPassed: true,
 							},
-						})
+						}),
 					);
 				},
 			});
@@ -379,7 +374,7 @@ describe("KBToolBase", () => {
 							id: "del-1",
 							action: "delete",
 							targetPath: "concepts/old.md",
-						})
+						}),
 					);
 				},
 			});

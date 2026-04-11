@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "vitest";
 import type { ApprovalGate } from "../../pipeline/approval-gate";
 import type { PipelineContext } from "../../pipeline/pipeline-context";
 import type { TemplateProvider } from "../../templates/template-provider";
@@ -95,7 +95,7 @@ function makeTool(mocks: MockDeps): CaptureTool {
 		mocks.templates,
 		mocks.approval,
 		mocks.navSync,
-		mocks.contentBuilder
+		mocks.contentBuilder,
 	);
 }
 
@@ -147,9 +147,7 @@ describe("CaptureTool", () => {
 			expect(result.status).toBe("success");
 			expect(result.items).toHaveLength(1);
 			expect(result.items?.[0].action).toBe("create");
-			expect(result.items?.[0].targetPath).toMatch(
-				/^concepts\/patterns\/retry-backoff-\d{4}-\d{2}-\d{2}\.md$/
-			);
+			expect(result.items?.[0].targetPath).toMatch(/^concepts\/patterns\/retry-backoff-\d{4}-\d{2}-\d{2}\.md$/);
 		});
 	});
 
@@ -163,9 +161,8 @@ describe("CaptureTool", () => {
 				return origWrite(p, c);
 			};
 			// dry-run returns no approved proposals
-			(
-				mocks.approval as unknown as { approve: (p: Proposal[], m: string) => Promise<Proposal[]> }
-			).approve = async () => [];
+			(mocks.approval as unknown as { approve: (p: Proposal[], m: string) => Promise<Proposal[]> }).approve =
+				async () => [];
 
 			const tool = makeTool(mocks);
 			const input = makeCaptureInput({
@@ -193,9 +190,7 @@ describe("CaptureTool", () => {
 				return origWrite(p, c);
 			};
 			const origSync = mocks.navSync.syncAll.bind(mocks.navSync);
-			(mocks.navSync as unknown as { syncAll: (root: string) => Promise<string[]> }).syncAll = (
-				root: string
-			) => {
+			(mocks.navSync as unknown as { syncAll: (root: string) => Promise<string[]> }).syncAll = (root: string) => {
 				syncedDirs.push([root]);
 				return origSync(root);
 			};
@@ -263,7 +258,7 @@ describe("CaptureTool", () => {
 			// Error -> Symptoms
 			const errorResult = await tool.execute(
 				makeCaptureInput({ description: "Timeout exceeded", type: "error", title: "t" }),
-				"auto"
+				"auto",
 			);
 			expect(errorResult.items?.[0].content).toContain("## Symptom");
 			expect(errorResult.items?.[0].content).toContain("Timeout exceeded");
@@ -271,7 +266,7 @@ describe("CaptureTool", () => {
 			// Pattern -> Problem
 			const patternResult = await tool.execute(
 				makeCaptureInput({ description: "Rate limiting pattern", type: "pattern", title: "t" }),
-				"auto"
+				"auto",
 			);
 			expect(patternResult.items?.[0].content).toContain("## Problem");
 			expect(patternResult.items?.[0].content).toContain("Rate limiting pattern");

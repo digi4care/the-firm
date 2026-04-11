@@ -1,19 +1,19 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "vitest";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { ApprovalGate } from "../../pipeline/approval-gate";
 import type { ApprovalGate as ApprovalGateType } from "../../pipeline/approval-gate";
+import { ApprovalGate } from "../../pipeline/approval-gate";
 import type { PipelineContext } from "../../pipeline/pipeline-context";
 import type { TemplateProvider } from "../../templates/template-provider";
+import { type HarvestInput, HarvestTool } from "../../tools/harvest";
 import type { Proposal, Template, ValidationResult, WriteOperation } from "../../types";
 import type { CompositeValidator } from "../../validation/composite-validator";
-import { ContentBuilder as RealContentBuilder } from "../../writing/content-builder";
 import type { ContentBuilder } from "../../writing/content-builder";
+import { ContentBuilder as RealContentBuilder } from "../../writing/content-builder";
 import type { FirmRepository } from "../../writing/firm-repository";
 import type { NavigationSync } from "../../writing/navigation-sync";
 import type { RulesRepository } from "../../writing/rules-repository";
-import { HarvestTool, type HarvestInput } from "../../tools/harvest";
 
 // ── Mock helpers ──────────────────────────────────────────────────────────
 
@@ -257,7 +257,8 @@ describe("HarvestTool", () => {
 			const root = await makeTempDir();
 			const mocks = makeMocks();
 			// dry-run returns empty approved proposals
-			(mocks.approval as unknown as { approve: (p: Proposal[], m: string) => Promise<Proposal[]> }).approve = async () => [];
+			(mocks.approval as unknown as { approve: (p: Proposal[], m: string) => Promise<Proposal[]> }).approve =
+				async () => [];
 
 			const tool = makeTool(mocks);
 

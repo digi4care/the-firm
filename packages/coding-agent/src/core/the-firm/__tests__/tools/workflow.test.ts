@@ -1,11 +1,11 @@
-import { afterEach, describe, expect, it } from "bun:test";
+import { afterEach, describe, expect, it } from "vitest";
 import { mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { WorkflowTool } from "../../tools/workflow.ts";
 import type { WorkflowInput } from "../../types/workflow.ts";
 import { FirmRepository } from "../../writing/firm-repository.ts";
-import { WorkflowRepository, serializeInstanceYaml } from "../../writing/workflow-repository.ts";
+import { serializeInstanceYaml, WorkflowRepository } from "../../writing/workflow-repository.ts";
 
 // -- Test helpers -----------------------------------------------------------
 
@@ -47,7 +47,7 @@ async function deployTemplate(firmRepo: FirmRepository): Promise<void> {
 
 function makeInput(
 	action: WorkflowInput["options"]["action"],
-	options: Partial<WorkflowInput["options"]> = {}
+	options: Partial<WorkflowInput["options"]> = {},
 ): WorkflowInput {
 	return {
 		projectRoot: "/tmp/test",
@@ -76,7 +76,7 @@ describe("WorkflowTool", () => {
 				makeInput("create", {
 					template: "spec-implementation",
 					name: "my-work",
-				})
+				}),
 			);
 
 			const result = await tool.execute(makeInput("list"));
@@ -97,7 +97,7 @@ describe("WorkflowTool", () => {
 					template: "spec-implementation",
 					name: "feature-x",
 					spec: "specs/feature-x.md",
-				})
+				}),
 			);
 
 			expect(result.status).toBe("success");
@@ -140,14 +140,14 @@ describe("WorkflowTool", () => {
 				makeInput("create", {
 					template: "spec-implementation",
 					name: "dup",
-				})
+				}),
 			);
 
 			const result = await tool.execute(
 				makeInput("create", {
 					template: "spec-implementation",
 					name: "dup",
-				})
+				}),
 			);
 			expect(result.status).toBe("error");
 			expect(result.message).toContain("already exists");
@@ -161,7 +161,7 @@ describe("WorkflowTool", () => {
 				makeInput("create", {
 					template: "spec-implementation.yaml",
 					name: "ext-test",
-				})
+				}),
 			);
 			expect(result.status).toBe("success");
 		});
@@ -176,7 +176,7 @@ describe("WorkflowTool", () => {
 				makeInput("create", {
 					template: "spec-implementation",
 					name: "status-test",
-				})
+				}),
 			);
 
 			const result = await tool.execute(makeInput("status", { name: "status-test" }));
@@ -210,14 +210,14 @@ describe("WorkflowTool", () => {
 				makeInput("create", {
 					template: "spec-implementation",
 					name: "adv-test",
-				})
+				}),
 			);
 
 			const result = await tool.execute(
 				makeInput("advance", {
 					name: "adv-test",
 					retrospective: ["Design was solid", "Found edge case X"],
-				})
+				}),
 			);
 
 			expect(result.status).toBe("success");
@@ -226,10 +226,7 @@ describe("WorkflowTool", () => {
 			const instance = result.metadata?.instance;
 			expect(instance.currentPhase).toBe("Build");
 			expect(instance.phaseState.Design.status).toBe("completed");
-			expect(instance.phaseState.Design.retrospectiveFindings).toEqual([
-				"Design was solid",
-				"Found edge case X",
-			]);
+			expect(instance.phaseState.Design.retrospectiveFindings).toEqual(["Design was solid", "Found edge case X"]);
 			expect(instance.phaseState.Build.status).toBe("in-progress");
 		});
 
@@ -241,7 +238,7 @@ describe("WorkflowTool", () => {
 				makeInput("create", {
 					template: "spec-implementation",
 					name: "complete-test",
-				})
+				}),
 			);
 
 			// Advance through all phases
@@ -268,7 +265,7 @@ describe("WorkflowTool", () => {
 				makeInput("create", {
 					template: "spec-implementation",
 					name: "done-test",
-				})
+				}),
 			);
 			await tool.execute(makeInput("advance", { name: "done-test" }));
 			await tool.execute(makeInput("advance", { name: "done-test" }));
@@ -289,7 +286,7 @@ describe("WorkflowTool", () => {
 				makeInput("create", {
 					template: "spec-implementation",
 					name: "upd-test",
-				})
+				}),
 			);
 
 			const result = await tool.execute(
@@ -302,7 +299,7 @@ describe("WorkflowTool", () => {
 							priority: "high",
 						},
 					],
-				})
+				}),
 			);
 
 			expect(result.status).toBe("success");
@@ -320,7 +317,7 @@ describe("WorkflowTool", () => {
 				makeInput("create", {
 					template: "spec-implementation",
 					name: "closed-test",
-				})
+				}),
 			);
 			await tool.execute(makeInput("close", { name: "closed-test" }));
 
@@ -328,7 +325,7 @@ describe("WorkflowTool", () => {
 				makeInput("update", {
 					name: "closed-test",
 					retrospective: ["too late"],
-				})
+				}),
 			);
 			expect(result.status).toBe("error");
 			expect(result.message).toContain("completed");
@@ -342,7 +339,7 @@ describe("WorkflowTool", () => {
 				makeInput("create", {
 					template: "spec-implementation",
 					name: "dec-test",
-				})
+				}),
 			);
 
 			const result = await tool.execute(
@@ -355,7 +352,7 @@ describe("WorkflowTool", () => {
 							alternatives: ["MongoDB", "SQLite"],
 						},
 					],
-				})
+				}),
 			);
 
 			expect(result.status).toBe("success");
@@ -377,13 +374,13 @@ describe("WorkflowTool", () => {
 				makeInput("create", {
 					template: "spec-implementation",
 					name: "no-dec-test",
-				})
+				}),
 			);
 
 			const result = await tool.execute(
 				makeInput("update", {
 					name: "no-dec-test",
-				})
+				}),
 			);
 
 			expect(result.status).toBe("success");
@@ -402,7 +399,7 @@ describe("WorkflowTool", () => {
 				makeInput("create", {
 					template: "spec-implementation",
 					name: "close-test",
-				})
+				}),
 			);
 			// Advance to Build
 			await tool.execute(makeInput("advance", { name: "close-test" }));
@@ -411,16 +408,14 @@ describe("WorkflowTool", () => {
 				makeInput("close", {
 					name: "close-test",
 					retrospective: ["Partial delivery, see backlog"],
-				})
+				}),
 			);
 
 			expect(result.status).toBe("success");
 			const instance = result.metadata?.instance;
 			expect(instance.status).toBe("completed");
 			expect(instance.phaseState.Build.status).toBe("completed");
-			expect(instance.phaseState.Build.retrospectiveFindings).toEqual([
-				"Partial delivery, see backlog",
-			]);
+			expect(instance.phaseState.Build.retrospectiveFindings).toEqual(["Partial delivery, see backlog"]);
 			expect(instance.phaseState.Verify.status).toBe("not-started");
 		});
 
@@ -432,7 +427,7 @@ describe("WorkflowTool", () => {
 				makeInput("create", {
 					template: "spec-implementation",
 					name: "dbl-close",
-				})
+				}),
 			);
 			await tool.execute(makeInput("close", { name: "dbl-close" }));
 
@@ -463,9 +458,7 @@ describe("WorkflowTool", () => {
 			await deployTemplate(firmRepo);
 
 			// Create and advance without addressing gate criteria
-			await tool.execute(
-				makeInput("create", { template: "spec-implementation", name: "gate-test" })
-			);
+			await tool.execute(makeInput("create", { template: "spec-implementation", name: "gate-test" }));
 			const result = await tool.execute(makeInput("advance", { name: "gate-test" }));
 
 			expect(result.status).toBe("success");
@@ -480,15 +473,13 @@ describe("WorkflowTool", () => {
 			const { root, firmRepo, tool } = await makeSetup();
 			await deployTemplate(firmRepo);
 
-			await tool.execute(
-				makeInput("create", { template: "spec-implementation", name: "gate-pass" })
-			);
+			await tool.execute(makeInput("create", { template: "spec-implementation", name: "gate-pass" }));
 			// Advance with a finding that addresses the gate criterion "Design reviewed"
 			const result = await tool.execute(
 				makeInput("advance", {
 					name: "gate-pass",
 					retrospective: ["The design was reviewed and approved by the team"],
-				})
+				}),
 			);
 
 			expect(result.status).toBe("success");
@@ -501,9 +492,7 @@ describe("WorkflowTool", () => {
 			const { root, firmRepo, tool } = await makeSetup();
 			await deployTemplate(firmRepo);
 
-			await tool.execute(
-				makeInput("create", { template: "spec-implementation", name: "close-warn" })
-			);
+			await tool.execute(makeInput("create", { template: "spec-implementation", name: "close-warn" }));
 			// Close without advancing — current phase is still in-progress
 			const result = await tool.execute(makeInput("close", { name: "close-warn" }));
 
@@ -517,29 +506,23 @@ describe("WorkflowTool", () => {
 			const { root, firmRepo, tool } = await makeSetup();
 			await deployTemplate(firmRepo);
 
-			await tool.execute(
-				makeInput("create", { template: "spec-implementation", name: "backlog-warn" })
-			);
+			await tool.execute(makeInput("create", { template: "spec-implementation", name: "backlog-warn" }));
 			// Add a backlog item and then close
 			await tool.execute(
 				makeInput("update", {
 					name: "backlog-warn",
 					backlog: [{ description: "Write integration tests", priority: "high" }],
-				})
+				}),
 			);
 			// Advance to complete the Design phase
-			await tool.execute(
-				makeInput("advance", { name: "backlog-warn", retrospective: ["Design reviewed"] })
-			);
+			await tool.execute(makeInput("advance", { name: "backlog-warn", retrospective: ["Design reviewed"] }));
 			// Close from Build phase with unresolved backlog
 			const result = await tool.execute(makeInput("close", { name: "backlog-warn" }));
 
 			expect(result.status).toBe("success");
 			expect(result.metadata?.warnings).toBeDefined();
 			// Should warn about unresolved backlog
-			const hasBacklogWarning = (result.metadata?.warnings as string[]).some((w) =>
-				w.includes("backlog")
-			);
+			const hasBacklogWarning = (result.metadata?.warnings as string[]).some((w) => w.includes("backlog"));
 			expect(hasBacklogWarning).toBe(true);
 		});
 
@@ -547,21 +530,17 @@ describe("WorkflowTool", () => {
 			const { root, firmRepo, tool } = await makeSetup();
 			await deployTemplate(firmRepo);
 
-			await tool.execute(
-				makeInput("create", { template: "spec-implementation", name: "final-advance" })
-			);
+			await tool.execute(makeInput("create", { template: "spec-implementation", name: "final-advance" }));
 			// Advance through all 3 phases
-			await tool.execute(
-				makeInput("advance", { name: "final-advance", retrospective: ["Design reviewed"] })
-			);
+			await tool.execute(makeInput("advance", { name: "final-advance", retrospective: ["Design reviewed"] }));
 			await tool.execute(
 				makeInput("advance", {
 					name: "final-advance",
 					retrospective: ["All tests pass, coverage is good"],
-				})
+				}),
 			);
 			const result = await tool.execute(
-				makeInput("advance", { name: "final-advance", retrospective: ["No regressions found"] })
+				makeInput("advance", { name: "final-advance", retrospective: ["No regressions found"] }),
 			);
 
 			expect(result.status).toBe("success");
@@ -575,15 +554,13 @@ describe("WorkflowTool", () => {
 		it("matches synonyms: review ↔ audit", async () => {
 			const { tool, firmRepo } = await makeSetup();
 			await deployTemplate(firmRepo);
-			await tool.execute(
-				makeInput("create", { template: "spec-implementation", name: "syn-review" })
-			);
+			await tool.execute(makeInput("create", { template: "spec-implementation", name: "syn-review" }));
 			// Gate: "Design reviewed" — finding uses "audit" (synonym of review)
 			const result = await tool.execute(
 				makeInput("advance", {
 					name: "syn-review",
 					retrospective: ["Design audit completed successfully"],
-				})
+				}),
 			);
 			expect(result.status).toBe("success");
 			expect(result.metadata?.gateCheck.passed).toBe(true);
@@ -593,15 +570,13 @@ describe("WorkflowTool", () => {
 		it("matches via stemming: reviewing → review", async () => {
 			const { tool, firmRepo } = await makeSetup();
 			await deployTemplate(firmRepo);
-			await tool.execute(
-				makeInput("create", { template: "spec-implementation", name: "stem-review" })
-			);
+			await tool.execute(makeInput("create", { template: "spec-implementation", name: "stem-review" }));
 			// Gate: "Design reviewed" — finding uses "reviewing" which stems to "review"
 			const result = await tool.execute(
 				makeInput("advance", {
 					name: "stem-review",
 					retrospective: ["Reviewing design thoroughly"],
-				})
+				}),
 			);
 			expect(result.status).toBe("success");
 			expect(result.metadata?.gateCheck.passed).toBe(true);
@@ -625,15 +600,13 @@ phases:
 `;
 			await firmRepo.write("operations/workflows/templates/code-review-tmpl.yaml", customTemplate);
 
-			await tool.execute(
-				makeInput("create", { template: "code-review-tmpl", name: "code-syn" })
-			);
+			await tool.execute(makeInput("create", { template: "code-review-tmpl", name: "code-syn" }));
 			// Finding uses "implementation" (synonym of code) and "audit" (synonym of review)
 			const result = await tool.execute(
 				makeInput("advance", {
 					name: "code-syn",
 					retrospective: ["Implementation audit completed — all checks pass"],
-				})
+				}),
 			);
 			expect(result.status).toBe("success");
 			expect(result.metadata?.gateCheck.passed).toBe(true);
@@ -642,13 +615,9 @@ phases:
 		it("matches spec ↔ test synonyms", async () => {
 			const { tool, firmRepo } = await makeSetup();
 			await deployTemplate(firmRepo);
-			await tool.execute(
-				makeInput("create", { template: "spec-implementation", name: "spec-syn" })
-			);
+			await tool.execute(makeInput("create", { template: "spec-implementation", name: "spec-syn" }));
 			// Advance Design phase first (with a passing retrospective)
-			await tool.execute(
-				makeInput("advance", { name: "spec-syn", retrospective: ["Design reviewed"] })
-			);
+			await tool.execute(makeInput("advance", { name: "spec-syn", retrospective: ["Design reviewed"] }));
 			// Now in Build phase, gate: "All tests pass"
 			// Now in Build phase, gate: "All tests pass"
 			// Finding uses "specification" (synonym of test) and "passed" (stem of pass)
@@ -656,7 +625,7 @@ phases:
 				makeInput("advance", {
 					name: "spec-syn",
 					retrospective: ["Specification verification passed successfully"],
-				})
+				}),
 			);
 			expect(result.status).toBe("success");
 			expect(result.metadata?.gateCheck).toBeDefined();
@@ -682,17 +651,14 @@ phases:
 				makeInput("create", {
 					template: "spec-implementation",
 					name: "stale-test",
-				})
+				}),
 			);
 
 			// Force stale by overwriting updated to 10 days ago
 			const instance = await workflowRepo.readInstance("stale-test");
 			instance!.status = "in-progress";
 			instance!.updated = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString();
-			await firmRepo.write(
-				"operations/workflows/instances/stale-test.yaml",
-				serializeInstanceYaml(instance!)
-			);
+			await firmRepo.write("operations/workflows/instances/stale-test.yaml", serializeInstanceYaml(instance!));
 
 			const result = await tool.execute(makeInput("stale"));
 			expect(result.status).toBe("success");
@@ -721,14 +687,14 @@ describe("advance with artifacts (G4)", () => {
 			makeInput("create", {
 				template: "spec-implementation",
 				name: "artifact-test",
-			})
+			}),
 		);
 
 		const result = await tool.execute(
 			makeInput("advance", {
 				name: "artifact-test",
 				artifacts: ["concepts/decisions/adr-001.md", "guides/workflows/design-guide.md"],
-			})
+			}),
 		);
 
 		expect(result.status).toBe("success");
@@ -748,7 +714,7 @@ describe("advance with artifacts (G4)", () => {
 			makeInput("create", {
 				template: "spec-implementation",
 				name: "no-artifact-test",
-			})
+			}),
 		);
 
 		const result = await tool.execute(makeInput("advance", { name: "no-artifact-test" }));
@@ -766,14 +732,14 @@ describe("advance with artifacts (G4)", () => {
 			makeInput("create", {
 				template: "spec-implementation",
 				name: "empty-artifact-test",
-			})
+			}),
 		);
 
 		const result = await tool.execute(
 			makeInput("advance", {
 				name: "empty-artifact-test",
 				artifacts: ["concepts/patterns/factory.md", "", "  ", "guides/workflows/build.md"],
-			})
+			}),
 		);
 
 		expect(result.status).toBe("success");
@@ -804,7 +770,7 @@ describe("sync-backlog (G3)", () => {
 			makeInput("create", {
 				template: "spec-implementation",
 				name: "sync-empty",
-			})
+			}),
 		);
 		// Deferred + already-synced items should not be synced again
 		await tool.execute(
@@ -814,7 +780,7 @@ describe("sync-backlog (G3)", () => {
 					{ description: "Deferred task", priority: "low", deferredTo: "Build" },
 					{ description: "Already synced", priority: "medium", syncedToBeads: "bd-999" },
 				],
-			})
+			}),
 		);
 
 		const result = await tool.execute(makeInput("sync-backlog", { name: "sync-empty" }));
@@ -851,7 +817,7 @@ describe("sync-backlog (G3)", () => {
 			makeInput("create", {
 				template: "spec-implementation",
 				name: "sync-items",
-			})
+			}),
 		);
 		await tool.execute(
 			makeInput("update", {
@@ -860,7 +826,7 @@ describe("sync-backlog (G3)", () => {
 					{ description: "Task A", priority: "high" },
 					{ description: "Task B", priority: "low" },
 				],
-			})
+			}),
 		);
 
 		const result = await tool.execute(makeInput("sync-backlog", { name: "sync-items" }));
@@ -930,7 +896,7 @@ describe("sync-backlog (G3)", () => {
 			makeInput("create", {
 				template: "spec-implementation",
 				name: "partial-sync",
-			})
+			}),
 		);
 		await tool.execute(
 			makeInput("update", {
@@ -939,7 +905,7 @@ describe("sync-backlog (G3)", () => {
 					{ description: "Will succeed", priority: "high" },
 					{ description: "Will fail", priority: "medium" },
 				],
-			})
+			}),
 		);
 
 		const result = await tool.execute(makeInput("sync-backlog", { name: "partial-sync" }));
@@ -979,14 +945,14 @@ describe("sync-backlog (G3)", () => {
 			makeInput("create", {
 				template: "spec-implementation",
 				name: "multi-phase-sync",
-			})
+			}),
 		);
 		// Add backlog in Design phase
 		await tool.execute(
 			makeInput("update", {
 				name: "multi-phase-sync",
 				backlog: [{ description: "Design task", priority: "high" }],
-			})
+			}),
 		);
 		// Advance to Build, add more backlog
 		await tool.execute(makeInput("advance", { name: "multi-phase-sync" }));
@@ -994,16 +960,14 @@ describe("sync-backlog (G3)", () => {
 			makeInput("update", {
 				name: "multi-phase-sync",
 				backlog: [{ description: "Build task", priority: "medium" }],
-			})
+			}),
 		);
 
 		const result = await tool.execute(makeInput("sync-backlog", { name: "multi-phase-sync" }));
 
 		expect(result.status).toBe("success");
 		expect(result.metadata?.synced).toHaveLength(2);
-		const descs = (result.metadata?.synced as Array<{ description: string }>).map(
-			(s) => s.description
-		);
+		const descs = (result.metadata?.synced as Array<{ description: string }>).map((s) => s.description);
 		expect(descs).toContain("Design task");
 		expect(descs).toContain("Build task");
 	});
@@ -1020,7 +984,7 @@ describe("handoff (G7)", () => {
 			makeInput("create", {
 				template: "spec-implementation",
 				name: "handoff-test",
-			})
+			}),
 		);
 		// Add decisions, retrospective, deferred backlog
 		await tool.execute(
@@ -1029,14 +993,14 @@ describe("handoff (G7)", () => {
 				decisions: [{ description: "Use PostgreSQL", outcome: "ACID compliance" }],
 				retrospective: ["Design reviewed and approved"],
 				backlog: [{ description: "Research caching", priority: "low", deferredTo: "Build" }],
-			})
+			}),
 		);
 		// Advance to Build with artifacts (Design completed)
 		await tool.execute(
 			makeInput("advance", {
 				name: "handoff-test",
 				artifacts: ["concepts/decisions/adr-001.md"],
-			})
+			}),
 		);
 
 		const result = await tool.execute(makeInput("handoff", { name: "handoff-test" }));
@@ -1079,7 +1043,7 @@ describe("handoff (G7)", () => {
 			makeInput("create", {
 				template: "spec-implementation",
 				name: "completed-handoff",
-			})
+			}),
 		);
 		// Advance through all phases to complete
 		await tool.execute(makeInput("advance", { name: "completed-handoff" }));
@@ -1099,7 +1063,7 @@ describe("handoff (G7)", () => {
 			makeInput("create", {
 				template: "spec-implementation",
 				name: "first-phase-handoff",
-			})
+			}),
 		);
 
 		const result = await tool.execute(makeInput("handoff", { name: "first-phase-handoff" }));
@@ -1124,7 +1088,7 @@ describe("resume (G9)", () => {
 			makeInput("create", {
 				template: "spec-implementation",
 				name: "resume-test",
-			})
+			}),
 		);
 		// Add data in Design phase
 		await tool.execute(
@@ -1135,14 +1099,14 @@ describe("resume (G9)", () => {
 					{ description: "Setup CI", priority: "high" },
 					{ description: "Research SSR", priority: "low", deferredTo: "Build" },
 				],
-			})
+			}),
 		);
 		// Advance to Build with artifacts
 		await tool.execute(
 			makeInput("advance", {
 				name: "resume-test",
 				artifacts: ["concepts/patterns/component.md"],
-			})
+			}),
 		);
 
 		const result = await tool.execute(makeInput("resume", { name: "resume-test" }));
@@ -1186,7 +1150,7 @@ describe("resume (G9)", () => {
 			makeInput("create", {
 				template: "spec-implementation",
 				name: "completed-resume",
-			})
+			}),
 		);
 		await tool.execute(makeInput("close", { name: "completed-resume" }));
 
@@ -1203,7 +1167,7 @@ describe("resume (G9)", () => {
 			makeInput("create", {
 				template: "spec-implementation",
 				name: "fresh-resume",
-			})
+			}),
 		);
 
 		const result = await tool.execute(makeInput("resume", { name: "fresh-resume" }));

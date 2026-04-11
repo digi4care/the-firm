@@ -1,8 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { ApprovalGate as RealApprovalGate } from "../../pipeline/approval-gate";
 import type { ApprovalGate } from "../../pipeline/approval-gate";
+import { ApprovalGate as RealApprovalGate } from "../../pipeline/approval-gate";
 import type { TemplateProvider } from "../../templates/template-provider";
 import { OrganizeTool } from "../../tools/organize";
 import type { Proposal, ToolInput, ValidationResult, WriteOperation } from "../../types";
@@ -84,7 +84,7 @@ function makeTool(deps: MockDeps): OrganizeTool {
 		deps.templates,
 		deps.approval,
 		deps.navSync,
-		deps.contentBuilder as Parameters<typeof OrganizeTool>[7]
+		deps.contentBuilder as Parameters<typeof OrganizeTool>[7],
 	);
 }
 
@@ -125,7 +125,7 @@ describe("OrganizeTool", () => {
 			await mkdir(join(firmRoot, "concepts", "decisions"), { recursive: true });
 			await writeFile(
 				join(firmRoot, "concepts", "adr-001-architecture.md"),
-				"---\nstatus: active\n---\n\n# ADR 001\n"
+				"---\nstatus: active\n---\n\n# ADR 001\n",
 			);
 
 			const deps = makeMockDeps(firmRoot);
@@ -145,7 +145,7 @@ describe("OrganizeTool", () => {
 			await mkdir(join(firmRoot, "concepts", "decisions"), { recursive: true });
 			await writeFile(
 				join(firmRoot, "concepts", "decisions", "adr-001-architecture.md"),
-				"---\nstatus: active\n---\n\n# ADR 001\n"
+				"---\nstatus: active\n---\n\n# ADR 001\n",
 			);
 
 			const deps = makeMockDeps(firmRoot);
@@ -161,7 +161,7 @@ describe("OrganizeTool", () => {
 			await mkdir(join(firmRoot, "specs"), { recursive: true });
 			await writeFile(
 				join(firmRoot, "specs", "navigation.md"),
-				"---\nstatus: active\n---\n\n# specs\n\n| Name | Description |\n"
+				"---\nstatus: active\n---\n\n# specs\n\n| Name | Description |\n",
 			);
 
 			const deps = makeMockDeps(firmRoot);
@@ -178,14 +178,8 @@ describe("OrganizeTool", () => {
 
 		it("does not flag directories with content files", async () => {
 			await mkdir(join(firmRoot, "specs"), { recursive: true });
-			await writeFile(
-				join(firmRoot, "specs", "navigation.md"),
-				"---\nstatus: active\n---\n\n# specs\n"
-			);
-			await writeFile(
-				join(firmRoot, "specs", "api-design.md"),
-				"---\nstatus: active\n---\n\n# API Design\n"
-			);
+			await writeFile(join(firmRoot, "specs", "navigation.md"), "---\nstatus: active\n---\n\n# specs\n");
+			await writeFile(join(firmRoot, "specs", "api-design.md"), "---\nstatus: active\n---\n\n# API Design\n");
 
 			const deps = makeMockDeps(firmRoot);
 			const tool = makeTool(deps);
@@ -198,13 +192,10 @@ describe("OrganizeTool", () => {
 		it("does not flag directories with subdirectories", async () => {
 			await mkdir(join(firmRoot, "concepts"), { recursive: true });
 			await mkdir(join(firmRoot, "concepts", "decisions"), { recursive: true });
-			await writeFile(
-				join(firmRoot, "concepts", "navigation.md"),
-				"---\nstatus: active\n---\n\n# concepts\n"
-			);
+			await writeFile(join(firmRoot, "concepts", "navigation.md"), "---\nstatus: active\n---\n\n# concepts\n");
 			await writeFile(
 				join(firmRoot, "concepts", "decisions", "navigation.md"),
-				"---\nstatus: active\n---\n\n# decisions\n"
+				"---\nstatus: active\n---\n\n# decisions\n",
 			);
 
 			const deps = makeMockDeps(firmRoot);
@@ -222,18 +213,9 @@ describe("OrganizeTool", () => {
 	describe("groupable file detection", () => {
 		it("detects files that could be grouped into subdirectory", async () => {
 			await mkdir(join(firmRoot, "concepts"), { recursive: true });
-			await writeFile(
-				join(firmRoot, "concepts", "the-firm-adr-001.md"),
-				"---\nstatus: active\n---\n\n# ADR 1\n"
-			);
-			await writeFile(
-				join(firmRoot, "concepts", "the-firm-adr-002.md"),
-				"---\nstatus: active\n---\n\n# ADR 2\n"
-			);
-			await writeFile(
-				join(firmRoot, "concepts", "the-firm-adr-003.md"),
-				"---\nstatus: active\n---\n\n# ADR 3\n"
-			);
+			await writeFile(join(firmRoot, "concepts", "the-firm-adr-001.md"), "---\nstatus: active\n---\n\n# ADR 1\n");
+			await writeFile(join(firmRoot, "concepts", "the-firm-adr-002.md"), "---\nstatus: active\n---\n\n# ADR 2\n");
+			await writeFile(join(firmRoot, "concepts", "the-firm-adr-003.md"), "---\nstatus: active\n---\n\n# ADR 3\n");
 
 			const deps = makeMockDeps(firmRoot);
 			const tool = makeTool(deps);
@@ -305,15 +287,13 @@ describe("OrganizeTool", () => {
 			await mkdir(join(firmRoot, "concepts", "decisions"), { recursive: true });
 			await writeFile(
 				join(firmRoot, "concepts", "adr-001-architecture.md"),
-				"---\nstatus: active\n---\n\n# ADR 001 Architecture\n"
+				"---\nstatus: active\n---\n\n# ADR 001 Architecture\n",
 			);
 
 			const syncedDirs: string[] = [];
 			const deps = makeMockDeps(firmRoot);
 			// Override navSync to track calls
-			(deps.navSync as unknown as { syncAll: (root: string) => Promise<string[]> }).syncAll = (
-				root: string
-			) => {
+			(deps.navSync as unknown as { syncAll: (root: string) => Promise<string[]> }).syncAll = (root: string) => {
 				syncedDirs.push(root);
 				return Promise.resolve(["concepts/decisions"]);
 			};
@@ -330,7 +310,7 @@ describe("OrganizeTool", () => {
 			// Target file should exist with original content
 			const movedContent = await readFile(
 				join(firmRoot, "concepts", "decisions", "adr-001-architecture.md"),
-				"utf-8"
+				"utf-8",
 			);
 			expect(movedContent).toContain("ADR 001 Architecture");
 
@@ -344,10 +324,7 @@ describe("OrganizeTool", () => {
 
 		it("deletes empty directories in auto mode", async () => {
 			await mkdir(join(firmRoot, "specs"), { recursive: true });
-			await writeFile(
-				join(firmRoot, "specs", "navigation.md"),
-				"---\nstatus: active\n---\n\n# specs\n"
-			);
+			await writeFile(join(firmRoot, "specs", "navigation.md"), "---\nstatus: active\n---\n\n# specs\n");
 
 			const deps = makeMockDeps(firmRoot);
 			const tool = makeTool(deps);

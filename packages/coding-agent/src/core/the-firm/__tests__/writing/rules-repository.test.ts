@@ -1,7 +1,7 @@
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "bun:test";
 import type { RuleMetadata } from "../../writing/rules-repository.ts";
 import { RulesRepository } from "../../writing/rules-repository.ts";
 
@@ -82,14 +82,7 @@ describe("RulesRepository", () => {
 		it("extracts alwaysApply and globs from frontmatter", async () => {
 			await repo.write(
 				"typed-rule.md",
-				[
-					"---",
-					"name: my-rule",
-					"alwaysApply: true",
-					'globs: ["*.ts", "*.tsx"]',
-					"---",
-					"# Body",
-				].join("\n"),
+				["---", "name: my-rule", "alwaysApply: true", 'globs: ["*.ts", "*.tsx"]', "---", "# Body"].join("\n"),
 			);
 
 			const meta = await repo.readMetadata("typed-rule.md");
@@ -99,10 +92,7 @@ describe("RulesRepository", () => {
 		});
 
 		it("defaults alwaysApply to false and globs to [] when missing", async () => {
-			await repo.write(
-				"minimal.md",
-				["---", "name: minimal-rule", "---", "# Body"].join("\n"),
-			);
+			await repo.write("minimal.md", ["---", "name: minimal-rule", "---", "# Body"].join("\n"));
 
 			const meta = await repo.readMetadata("minimal.md");
 			expect(meta.alwaysApply).toBe(false);
@@ -119,10 +109,7 @@ describe("RulesRepository", () => {
 		});
 
 		it("handles single-quoted values", async () => {
-			await repo.write(
-				"quoted.md",
-				["---", "name: 'my rule'", "alwaysApply: false", "---", "# Body"].join("\n"),
-			);
+			await repo.write("quoted.md", ["---", "name: 'my rule'", "alwaysApply: false", "---", "# Body"].join("\n"));
 
 			const meta = await repo.readMetadata("quoted.md");
 			expect(meta.name).toBe("my rule");
@@ -148,15 +135,11 @@ describe("RulesRepository", () => {
 		});
 
 		it("rejects ../ traversal in exists", () => {
-			expect(repo.exists("../../../etc/shadow")).rejects.toThrow(
-				"Path traversal detected",
-			);
+			expect(repo.exists("../../../etc/shadow")).rejects.toThrow("Path traversal detected");
 		});
 
 		it("rejects ../ traversal in readMetadata", () => {
-			expect(repo.readMetadata("../../etc/passwd")).rejects.toThrow(
-				"Path traversal detected",
-			);
+			expect(repo.readMetadata("../../etc/passwd")).rejects.toThrow("Path traversal detected");
 		});
 	});
 });

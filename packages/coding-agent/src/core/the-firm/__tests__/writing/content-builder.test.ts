@@ -1,4 +1,4 @@
-import { describe, expect, it } from "bun:test";
+import { describe, expect, it } from "vitest";
 import type { Template } from "../../types";
 import { ContentBuilder } from "../../writing/content-builder.ts";
 

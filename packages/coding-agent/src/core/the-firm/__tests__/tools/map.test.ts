@@ -1,7 +1,7 @@
+import { afterEach, describe, expect, it } from "vitest";
 import { mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it } from "bun:test";
 import { MapTool } from "../../tools/map";
 import { FirmRepository } from "../../writing/firm-repository";
 
@@ -35,9 +35,9 @@ async function writeContent(root: string, relativePath: string, content: string)
 describe("MapTool", () => {
 	afterEach(async () => {
 		if (testRoot) {
-		await rm(testRoot, { recursive: true, force: true }).catch(() => {
-			/* ignore cleanup errors */
-		});
+			await rm(testRoot, { recursive: true, force: true }).catch(() => {
+				/* ignore cleanup errors */
+			});
 		}
 	});
 

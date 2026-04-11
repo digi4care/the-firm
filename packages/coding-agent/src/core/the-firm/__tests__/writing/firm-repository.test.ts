@@ -1,7 +1,7 @@
+import { describe, expect, it } from "vitest";
 import { mkdir, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "bun:test";
 import { FirmRepository } from "../../writing/firm-repository.ts";
 
 async function makeRoot(): Promise<{ root: string; repo: FirmRepository }> {
@@ -217,5 +217,4 @@ describe("FirmRepository", () => {
 			expect(files).toEqual(["alpha.md", "mid.md", "zebra.md"]);
 		});
 	});
-
 });
