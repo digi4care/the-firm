@@ -1,0 +1,35 @@
+name: "test-coverage"
+description: "Workflow for adding test coverage to an existing module or feature"
+type: "testing"
+phases:
+  - name: "Audit"
+    agent: "explore"
+    gate:
+      - "Existing tests identified"
+      - "Uncovered paths listed"
+      - "Priority areas ranked"
+    retrospective:
+      - "What areas are most at risk?"
+      - "Are there any integration points we missed?"
+  - name: "Write"
+    agent: "task"
+    skills: ["test-driven-development"]
+    gate:
+      - "All planned tests written"
+      - "Tests pass in isolation"
+      - "Edge cases covered"
+    retrospective:
+      - "Did we find any bugs while writing tests?"
+      - "Are there patterns that need shared test helpers?"
+      - "Any tests that are fragile?"
+  - name: "Validate"
+    agent: "task"
+    skills: ["verification-before-completion"]
+    gate:
+      - "Full test suite green"
+      - "Coverage meets threshold"
+      - "No test interdependencies"
+    retrospective:
+      - "What coverage gaps remain?"
+      - "Should any tests be promoted to smoke tests?"
+      - "Any follow-up improvements identified?"

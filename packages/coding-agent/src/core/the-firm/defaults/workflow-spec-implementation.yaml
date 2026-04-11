@@ -1,0 +1,37 @@
+name: "spec-implementation"
+description: "Standard workflow for implementing a .firm/ spec through design, build, and verification phases"
+type: "implementation"
+phases:
+  - name: "Design"
+    agent: "plan"
+    skills: ["writing-plans"]
+    gate:
+      - "Types and interfaces defined"
+      - "Architecture decision documented"
+      - "Affected consumers identified"
+    retrospective:
+      - "Did we consider all edge cases?"
+      - "Are the types honest about what can fail?"
+      - "Did we identify all callers that need updating?"
+  - name: "Build"
+    agent: "task"
+    skills: ["test-driven-development"]
+    gate:
+      - "All new tests pass"
+      - "No existing tests broken"
+      - "Linting clean"
+    retrospective:
+      - "Were estimates accurate?"
+      - "What did we discover during implementation?"
+      - "Any patterns that should be extracted?"
+  - name: "Verify"
+    agent: "task"
+    skills: ["verification-before-completion"]
+    gate:
+      - "All acceptance criteria met"
+      - "No regressions in existing tests"
+      - "Documentation updated"
+    retrospective:
+      - "What did we miss in the design phase?"
+      - "What would we do differently?"
+      - "Any follow-up work identified?"
