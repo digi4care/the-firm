@@ -49,7 +49,11 @@ async function login(providerId: OAuthProviderId): Promise<void> {
 		});
 
 		const auth = loadAuth();
-		auth[providerId] = { type: "oauth", ...credentials };
+		const creds =
+			typeof credentials === "string"
+				? ({ access: credentials, refresh: "", expires: 0 } satisfies OAuthCredentials)
+				: credentials;
+		auth[providerId] = { type: "oauth", ...creds };
 		saveAuth(auth);
 
 		console.log(`\nCredentials saved to ${AUTH_FILE}`);

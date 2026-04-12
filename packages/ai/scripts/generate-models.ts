@@ -1458,14 +1458,16 @@ async function generateModels() {
 	];
 	allModels.push(...vertexModels);
 
-	// Kimi For Coding models (Moonshot AI's Anthropic-compatible coding API)
-	// Static fallback in case models.dev doesn't have them yet
-	const KIMI_CODING_BASE_URL = "https://api.kimi.com/coding";
-	const kimiCodingModels: Model<"anthropic-messages">[] = [
+	// Kimi For Coding models (Moonshot AI's coding API)
+	// Uses dedicated Kimi provider that wraps Anthropic API with correct headers.
+	// Model api is "openai-completions" so the registry routes it, but streamKimi()
+	// intercepts and routes to Anthropic format internally.
+	const KIMI_CODING_BASE_URL = "https://api.kimi.com/coding/v1";
+	const kimiCodingModels: Model<"openai-completions">[] = [
 		{
 			id: "kimi-k2-thinking",
 			name: "Kimi K2 Thinking",
-			api: "anthropic-messages",
+			api: "openai-completions",
 			provider: "kimi-coding",
 			baseUrl: KIMI_CODING_BASE_URL,
 			reasoning: true,
@@ -1477,7 +1479,7 @@ async function generateModels() {
 		{
 			id: "k2p5",
 			name: "Kimi K2.5",
-			api: "anthropic-messages",
+			api: "openai-completions",
 			provider: "kimi-coding",
 			baseUrl: KIMI_CODING_BASE_URL,
 			reasoning: true,

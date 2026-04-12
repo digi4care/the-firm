@@ -352,7 +352,11 @@ export class AuthStorage {
 		}
 
 		const credentials = await provider.login(callbacks);
-		this.set(providerId, { type: "oauth", ...credentials });
+		const creds =
+			typeof credentials === "string"
+				? ({ access: credentials, refresh: "", expires: 0 } satisfies OAuthCredentials)
+				: credentials;
+		this.set(providerId, { type: "oauth", ...creds });
 	}
 
 	/**

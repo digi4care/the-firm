@@ -1,6 +1,8 @@
 import "./providers/register-builtins.js";
 
 import { getApiProvider } from "./api-registry.js";
+import { getEnvApiKey } from "./env-api-keys.js";
+import { isKimiModel, streamKimi } from "./providers/kimi.js";
 import type {
 	Api,
 	AssistantMessage,
@@ -45,6 +47,17 @@ export function streamSimple<TApi extends Api>(
 	context: Context,
 	options?: SimpleStreamOptions,
 ): AssistantMessageEventStream {
+	// Kimi Code - route to dedicated handler that wraps Anthropic API
+	// with proper headers and thinking configuration
+	if (isKimiModel(model)) {
+		const apiKey = options?.apiKey || getEnvApiKey(model.provider);
+		return streamKimi(model as Model<"openai-completions">, context, {
+			...options,
+			apiKey,
+			format: "anthropic",
+		});
+	}
+
 	const provider = resolveApiProvider(model.api);
 	return provider.streamSimple(model, context, options);
 }

@@ -23,20 +23,31 @@ export type OAuthAuthInfo = {
 	instructions?: string;
 };
 
-export interface OAuthLoginCallbacks {
+/**
+ * Subset of login callbacks — used by providers that don't need onPrompt.
+ * Compatible with OAuthLoginCallbacks (which extends this).
+ */
+export interface OAuthController {
+	onAuth?(info: OAuthAuthInfo): void;
+	onProgress?(message: string): void;
+	onManualCodeInput?(): Promise<string>;
+	onPrompt?(prompt: OAuthPrompt): Promise<string>;
+	signal?: AbortSignal;
+}
+
+export interface OAuthLoginCallbacks extends OAuthController {
 	onAuth: (info: OAuthAuthInfo) => void;
 	onPrompt: (prompt: OAuthPrompt) => Promise<string>;
-	onProgress?: (message: string) => void;
-	onManualCodeInput?: () => Promise<string>;
-	signal?: AbortSignal;
 }
 
 export interface OAuthProviderInterface {
 	readonly id: OAuthProviderId;
 	readonly name: string;
 
+	readonly sourceId?: string;
+
 	/** Run the login flow, return credentials to persist */
-	login(callbacks: OAuthLoginCallbacks): Promise<OAuthCredentials>;
+	login(callbacks: OAuthLoginCallbacks): Promise<OAuthCredentials | string>;
 
 	/** Whether login uses a local callback server and supports manual code input. */
 	usesCallbackServer?: boolean;
