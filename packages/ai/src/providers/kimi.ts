@@ -11,7 +11,7 @@
  * Ported from oh-my-pi's dedicated kimi.ts provider.
  */
 
-import type { Api, AssistantMessage, Context, Message, Model, SimpleStreamOptions, StreamFunction } from "../types.js";
+import type { Api, AssistantMessage, Context, Model, SimpleStreamOptions, StreamFunction } from "../types.js";
 import { AssistantMessageEventStream } from "../utils/event-stream.js";
 import { getKimiCommonHeaders } from "../utils/oauth/index.js";
 import { streamAnthropic } from "./anthropic.js";

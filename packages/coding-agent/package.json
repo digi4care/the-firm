@@ -1,6 +1,6 @@
 {
   "name": "@digi4care/the-firm",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "The Firm — lightweight custom pi fork",
   "type": "module",
   "piConfig": {

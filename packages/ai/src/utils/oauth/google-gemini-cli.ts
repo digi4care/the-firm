@@ -3,9 +3,9 @@
  * Standard Gemini models only (gemini-2.0-flash, gemini-2.5-*)
  */
 
-import { $env, abortableSleep } from "./shims.js";
 import { getGeminiCliHeaders } from "../../providers/google-gemini-cli.js";
 import { OAuthCallbackFlow } from "./callback-server.js";
+import { $env, abortableSleep } from "./shims.js";
 import type { OAuthController, OAuthCredentials, OAuthLoginCallbacks, OAuthProviderInterface } from "./types.js";
 
 const decode = (s: string) => atob(s);
@@ -50,7 +50,7 @@ interface GoogleRpcErrorResponse {
 
 function getDefaultTier(allowedTiers?: Array<{ id?: string; isDefault?: boolean }>): { id?: string } {
 	if (!allowedTiers || allowedTiers.length === 0) return { id: TIER_LEGACY };
-	const defaultTier = allowedTiers.find(t => t.isDefault);
+	const defaultTier = allowedTiers.find((t) => t.isDefault);
 	return defaultTier ?? { id: TIER_LEGACY };
 }
 
@@ -59,7 +59,7 @@ function isVpcScAffectedUser(payload: unknown): boolean {
 	if (!("error" in payload)) return false;
 	const error = (payload as GoogleRpcErrorResponse).error;
 	if (!error?.details || !Array.isArray(error.details)) return false;
-	return error.details.some(detail => detail.reason === "SECURITY_POLICY_VIOLATED");
+	return error.details.some((detail) => detail.reason === "SECURITY_POLICY_VIOLATED");
 }
 
 async function pollOperation(

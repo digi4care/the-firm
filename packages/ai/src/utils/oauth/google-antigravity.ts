@@ -62,7 +62,7 @@ function getDefaultTierId(allowedTiers?: Array<{ id?: string; isDefault?: boolea
 	if (!allowedTiers || allowedTiers.length === 0) {
 		return TIER_LEGACY;
 	}
-	const defaultTier = allowedTiers.find(tier => tier.isDefault && typeof tier.id === "string" && tier.id.length > 0);
+	const defaultTier = allowedTiers.find((tier) => tier.isDefault && typeof tier.id === "string" && tier.id.length > 0);
 	if (defaultTier?.id) {
 		return defaultTier.id;
 	}
@@ -78,7 +78,7 @@ async function onboardProjectWithRetries(
 	for (let attempt = 1; attempt <= PROJECT_ONBOARD_MAX_ATTEMPTS; attempt += 1) {
 		if (attempt > 1) {
 			onProgress?.(`Waiting for project provisioning (attempt ${attempt}/${PROJECT_ONBOARD_MAX_ATTEMPTS})...`);
-			await new Promise(r => setTimeout(r, PROJECT_ONBOARD_INTERVAL_MS));
+			await new Promise((r) => setTimeout(r, PROJECT_ONBOARD_INTERVAL_MS));
 		}
 
 		const onboardResponse = await fetch(`${endpoint}/v1internal:onboardUser`, {

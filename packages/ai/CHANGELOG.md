@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.0.2] - 2026-04-12
+
+### Fixed
+
+- Fixed `"tool_call_id is not found"` error with Kimi Coding (and other Anthropic-compatible APIs) after aborted/errored turns. Aborted assistant messages with `tool_use` blocks are now preserved instead of skipped, synthetic tool results are injected for orphaned calls, partial thinking signatures are stripped, and end-of-loop flushing catches trailing orphaned tool calls.
+
 ## [Unreleased]
 
 ### Fixed

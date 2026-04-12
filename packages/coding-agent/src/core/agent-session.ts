@@ -1865,7 +1865,14 @@ export class AgentSession {
 						signal: this._autoCompactionAbortController.signal,
 					});
 					if (handoffResult) {
-						this._emit({ type: "compaction_end", reason, action, result: undefined, aborted: false, willRetry: false });
+						this._emit({
+							type: "compaction_end",
+							reason,
+							action,
+							result: undefined,
+							aborted: false,
+							willRetry: false,
+						});
 
 						// Auto-continue in the new session if enabled
 						if (this.settingsManager.getHandoffAutoContinue()) {
@@ -2133,7 +2140,9 @@ export class AgentSession {
 			// Wait for agent completion
 			let handoffText: string | undefined;
 			let resolveCompletion: () => void;
-			const completionPromise = new Promise<void>((resolve) => { resolveCompletion = resolve; });
+			const completionPromise = new Promise<void>((resolve) => {
+				resolveCompletion = resolve;
+			});
 			let handoffCancelled = false;
 
 			const unsubscribe = this.agent.subscribe((event) => {

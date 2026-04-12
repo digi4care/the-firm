@@ -27,7 +27,7 @@
  */
 
 import type { Api, Context, Model, StreamOptions } from "../../types.js";
-import type { ClientConfig, ParseState, ParsedEvent, ProviderDefinition, UsageInfo } from "../infrastructure/index.js";
+import type { ClientConfig, ParsedEvent, ParseState, ProviderDefinition, UsageInfo } from "../infrastructure/index.js";
 
 // Vercel AI SDK types (from @ai-sdk/provider)
 interface VercelLanguageModel {
@@ -87,11 +87,9 @@ interface VercelAdapterConfig {
  * This adapter bridges Vercel's doStream() output to our ParsedEvent format,
  * which then feeds into our shared streamEngine().
  */
-export function createVercelAdapter(config: VercelAdapterConfig): ProviderDefinition<
-	VercelLanguageModel,
-	VercelCallOptions,
-	VercelStreamPart
-> {
+export function createVercelAdapter(
+	config: VercelAdapterConfig,
+): ProviderDefinition<VercelLanguageModel, VercelCallOptions, VercelStreamPart> {
 	return {
 		api: config.api,
 
@@ -105,7 +103,7 @@ export function createVercelAdapter(config: VercelAdapterConfig): ProviderDefini
 			return config.convertPrompt(context);
 		},
 
-		buildParams(model: Model<Api>, context: Context, options?: StreamOptions): VercelCallOptions {
+		buildParams(_model: Model<Api>, context: Context, options?: StreamOptions): VercelCallOptions {
 			const prompt = config.convertPrompt(context);
 			return {
 				prompt,
