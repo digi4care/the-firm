@@ -135,8 +135,13 @@ export class SettingsSelectorComponent extends Container {
 		this.activeTabs = settingsRegistry.getActiveTabs();
 		this.activeTab = this.activeTabs[0] ?? "appearance";
 
+		// Build component tree: border → content → border
 		this.addChild(new DynamicBorder());
-		this.renderTab(this.activeTab);
+		this.addChild(new Text(this.renderTabHeader(), 0, 0));
+		this.addChild(new Spacer(1));
+		this.addSettingsList(this.activeTab);
+		this.addChild(new Spacer(1));
+		this.addChild(new Text(theme.fg("dim", "  Tab/Shift+Tab or ←/→ to switch tabs · Esc to close"), 0, 0));
 		this.addChild(new DynamicBorder());
 	}
 
@@ -288,7 +293,7 @@ export class SettingsSelectorComponent extends Container {
 
 	// ── Tab Rendering ──────────────────────────────────────────────────────
 
-	private renderTab(tab: SettingTab): void {
+	private addSettingsList(tab: SettingTab): void {
 		const paths = settingsRegistry.getPathsForTab(tab);
 		const items: SettingItem[] = [];
 
@@ -298,10 +303,6 @@ export class SettingsSelectorComponent extends Container {
 			const item = this.defToItem(path, def);
 			if (item) items.push(item);
 		}
-
-		// Add tab header
-		this.addChild(new Text(this.renderTabHeader(), 0, 0));
-		this.addChild(new Spacer(1));
 
 		if (items.length === 0) {
 			this.addChild(new Text(theme.fg("dim", "  No settings available"), 0, 0));
@@ -320,20 +321,22 @@ export class SettingsSelectorComponent extends Container {
 		);
 
 		this.addChild(this.settingsList);
-		this.addChild(new Spacer(1));
-		this.addChild(new Text(theme.fg("dim", "  Tab/Shift+Tab or ←/→ to switch tabs · Esc to close"), 0, 0));
 	}
 
 	private switchTab(tab: SettingTab): void {
-		// Remove all children (borders + content) and rebuild from scratch
+		// Preserve border children (indices 0 and last)
+		// Rebuild everything in between
 		this.clear();
-
 		this.activeTab = tab;
 		this.settingsList = null;
 
-		// Re-add structure: top border → tab content → bottom border
+		// Rebuild: border → header → spacer → settings → spacer → hint → border
 		this.addChild(new DynamicBorder());
-		this.renderTab(tab);
+		this.addChild(new Text(this.renderTabHeader(), 0, 0));
+		this.addChild(new Spacer(1));
+		this.addSettingsList(tab);
+		this.addChild(new Spacer(1));
+		this.addChild(new Text(theme.fg("dim", "  Tab/Shift+Tab or ←/→ to switch tabs · Esc to close"), 0, 0));
 		this.addChild(new DynamicBorder());
 	}
 
