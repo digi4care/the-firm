@@ -11,7 +11,7 @@
  */
 
 import { type SessionManager, type SessionMessageEntry, SettingsManager } from "@digi4care/the-firm";
-import type { UserMessage } from "@mariozechner/pi-ai";
+import type { UserMessage } from "@digi4care/the-firm-ai";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
 

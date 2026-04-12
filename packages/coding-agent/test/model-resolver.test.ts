@@ -1,4 +1,4 @@
-import type { Model } from "@mariozechner/pi-ai";
+import type { Model } from "@digi4care/the-firm-ai";
 import { describe, expect, test } from "vitest";
 import {
 	defaultModelPerProvider,

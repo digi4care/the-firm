@@ -2,11 +2,11 @@
   "cooldown": "7d",
   "reject": [
     "@digi4care/the-firm",
-    "@mariozechner/pi",
-    "@mariozechner/pi-agent-core",
-    "@mariozechner/pi-ai",
-    "@mariozechner/pi-mom",
-    "@mariozechner/pi-tui",
-    "@mariozechner/pi-web-ui"
+    "@digi4care/the-firm-pods",
+    "@digi4care/the-firm-agent-core",
+    "@digi4care/the-firm-ai",
+    "@digi4care/the-firm-mom",
+    "@digi4care/the-firm-tui",
+    "@digi4care/the-firm-web-ui"
   ]
 }

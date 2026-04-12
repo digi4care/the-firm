@@ -1,6 +1,6 @@
 {
-	"name": "@mariozechner/pi-agent-core",
-	"version": "0.66.1",
+	"name": "@digi4care/the-firm-agent-core",
+	"version": "0.0.1",
 	"description": "General-purpose agent with transport abstraction, state management, and attachment support",
 	"type": "module",
 	"main": "./dist/index.js",
@@ -17,7 +17,7 @@
 		"prepublishOnly": "npm run clean && npm run build"
 	},
 	"dependencies": {
-		"@mariozechner/pi-ai": "^0.66.1"
+		"@digi4care/the-firm-ai": "^0.0.1"
 	},
 	"keywords": [
 		"ai",

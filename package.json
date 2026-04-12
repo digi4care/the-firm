@@ -44,7 +44,10 @@
     "*.{ts,tsx,js,jsx,json}": [
       "biome check --write --no-errors-on-unmatched"
     ],
-    "*.md": [
+    "AGENTS.md": [
+      "markdownlint-cli2 --fix"
+    ],
+    "docs/**/*.md": [
       "markdownlint-cli2 --fix"
     ]
   },
@@ -64,7 +67,7 @@
   "engines": {
     "node": ">=20.0.0"
   },
-  "version": "0.0.3",
+  "version": "0.0.1",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/digi4care/the-firm.git"

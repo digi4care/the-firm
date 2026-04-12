@@ -1,6 +1,6 @@
 {
   "name": "@digi4care/the-firm",
-  "version": "0.66.1",
+  "version": "0.0.1",
   "description": "The Firm — lightweight custom pi fork",
   "type": "module",
   "piConfig": {
@@ -42,9 +42,9 @@
   },
   "dependencies": {
     "@mariozechner/jiti": "^2.6.2",
-    "@mariozechner/pi-agent-core": "^0.66.1",
-    "@mariozechner/pi-ai": "^0.66.1",
-    "@mariozechner/pi-tui": "^0.66.1",
+    "@digi4care/the-firm-agent-core": "^0.0.1",
+    "@digi4care/the-firm-ai": "^0.0.1",
+    "@digi4care/the-firm-tui": "^0.0.1",
     "@silvia-odwyer/photon-node": "^0.3.4",
     "ajv": "^8.17.1",
     "chalk": "^5.5.0",
