@@ -8,13 +8,19 @@
  */
 import { settingsRegistry } from "./settings-registry.js";
 import { compactionSettings } from "../features/settings/compaction.js";
-import { themeSettings } from "../features/settings/theme.js";
+import { editingSettings } from "../features/settings/editing.js";
 import { interactionSettings } from "../features/settings/interaction.js";
 import { modelSettings } from "../features/settings/model.js";
+import { tasksSettings } from "../features/settings/tasks.js";
+import { themeSettings } from "../features/settings/theme.js";
+import { toolsSettings } from "../features/settings/tools.js";
 
 export function bootstrapSettings(): void {
 	settingsRegistry.register(compactionSettings);
-	settingsRegistry.register(themeSettings);
+	settingsRegistry.register(editingSettings);
 	settingsRegistry.register(interactionSettings);
 	settingsRegistry.register(modelSettings);
+	settingsRegistry.register(tasksSettings);
+	settingsRegistry.register(themeSettings);
+	settingsRegistry.register(toolsSettings);
 }

@@ -37,6 +37,7 @@ import {
 } from "./core/session-cwd.js";
 import { SessionManager } from "./core/session-manager.js";
 import { SettingsManager } from "./core/settings-manager.js";
+import { bootstrapSettings } from "./core/settings-bootstrap.js";
 import { printTimings, resetTimings, time } from "./core/timings.js";
 import { allTools } from "./core/tools/index.js";
 import { runMigrations, showDeprecationWarnings } from "./migrations.js";
@@ -483,6 +484,7 @@ export async function main(args: string[]) {
 
 	const cwd = process.cwd();
 	const agentDir = getAgentDir();
+	bootstrapSettings();
 	const startupSettingsManager = SettingsManager.create(cwd, agentDir);
 	reportDiagnostics(collectSettingsDiagnostics(startupSettingsManager, "startup session lookup"));
 

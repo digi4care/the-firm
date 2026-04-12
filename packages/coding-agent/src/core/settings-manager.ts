@@ -234,7 +234,7 @@ export class InMemorySettingsStorage implements SettingsStorage {
 // ═══════════════════════════════════════════════════════════════════════════
 
 /** Get a nested value from an object by dot-path segments */
-function getByPath(obj: Record<string, unknown>, segments: string[]): unknown {
+function pathGet(obj: Record<string, unknown>, segments: string[]): unknown {
 	let current: unknown = obj;
 	for (const segment of segments) {
 		if (current === null || current === undefined || typeof current !== "object") {
@@ -246,7 +246,7 @@ function getByPath(obj: Record<string, unknown>, segments: string[]): unknown {
 }
 
 /** Set a nested value in an object by dot-path segments. Creates intermediate objects as needed. */
-function setByPath(obj: Record<string, unknown>, segments: string[], value: unknown): void {
+function pathSet(obj: Record<string, unknown>, segments: string[], value: unknown): void {
 	let current = obj;
 	for (let i = 0; i < segments.length - 1; i++) {
 		const segment = segments[i];
@@ -429,7 +429,7 @@ export class SettingsManager {
 	/** Generic path-based getter — uses registry for default fallback */
 	get(path: string): unknown {
 		const segments = path.split(".");
-		const value = getByPath(this.settings as Record<string, unknown>, segments);
+		const value = pathGet(this.settings as Record<string, unknown>, segments);
 		if (value !== undefined) return value;
 		// Fallback to schema default
 		return settingsRegistry.get(path)?.default;
@@ -438,7 +438,7 @@ export class SettingsManager {
 	/** Generic path-based setter — writes to global settings, queues save */
 	set(path: string, value: unknown): void {
 		const segments = path.split(".");
-		setByPath(this.globalSettings as Record<string, unknown>, segments, value);
+		pathSet(this.globalSettings as Record<string, unknown>, segments, value);
 		this.markModified(segments[0] as keyof Settings, segments.length > 1 ? segments.slice(1).join(".") : undefined);
 		this.save();
 	}
@@ -449,26 +449,6 @@ export class SettingsManager {
 	}
 
 	// ─────────────────────────────────────────────────────────────────────────
-	// Generic path-based access (uses registry for defaults)
-	// ─────────────────────────────────────────────────────────────────────────
-
-	/** Generic path-based getter — falls back to schema default */
-	getByPath(path: string): unknown {
-		const segments = path.split(".");
-		const value = getByPath(this.settings as Record<string, unknown>, segments);
-		if (value !== undefined) return value;
-		// Fallback to schema default
-		return settingsRegistry.get(path)?.default;
-	}
-
-	/** Generic path-based setter — writes to global, queues save */
-	setByPath(path: string, value: unknown): void {
-		const segments = path.split(".");
-		setByPath(this.globalSettings as Record<string, unknown>, segments, value);
-		const topKey = segments[0] as keyof Settings;
-		this.markModified(topKey, segments.length > 1 ? segments.slice(1).join(".") : undefined);
-		this.save();
-	}
 
 	/** Mark a global field as modified during this session */
 	private markModified(field: keyof Settings, nestedKey?: string): void {
@@ -600,269 +580,104 @@ export class SettingsManager {
 		return drained;
 	}
 
-	getLastChangelogVersion(): string | undefined {
-		return this.settings.lastChangelogVersion;
-	}
+	// ═══════════════════════════════════════════════════════════════════════
+	// Adapter Layer — typed getters/setters delegating to generic get/set
+	// New settings should NOT get their own getter/setter — use get()/set().
+	// ═══════════════════════════════════════════════════════════════════════
 
-	setLastChangelogVersion(version: string): void {
-		this.globalSettings.lastChangelogVersion = version;
-		this.markModified("lastChangelogVersion");
-		this.save();
-	}
+	getLastChangelogVersion = (): string | undefined => this.get("lastChangelogVersion") as string | undefined;
+	setLastChangelogVersion = (version: string) => this.set("lastChangelogVersion", version);
 
-	getSessionDir(): string | undefined {
-		return this.settings.sessionDir;
-	}
+	getSessionDir = (): string | undefined => this.get("sessionDir") as string | undefined;
 
-	getDefaultProvider(): string | undefined {
-		return this.settings.defaultProvider;
-	}
-
-	getDefaultModel(): string | undefined {
-		return this.settings.defaultModel;
-	}
-
-	setDefaultProvider(provider: string): void {
-		this.globalSettings.defaultProvider = provider;
-		this.markModified("defaultProvider");
-		this.save();
-	}
-
-	setDefaultModel(modelId: string): void {
-		this.globalSettings.defaultModel = modelId;
-		this.markModified("defaultModel");
-		this.save();
-	}
+	getDefaultProvider = (): string | undefined => this.get("defaultProvider") as string | undefined;
+	getDefaultModel = (): string | undefined => this.get("defaultModel") as string | undefined;
+	setDefaultProvider = (provider: string) => this.set("defaultProvider", provider);
+	setDefaultModel = (modelId: string) => this.set("defaultModel", modelId);
 
 	setDefaultModelAndProvider(provider: string, modelId: string): void {
-		this.globalSettings.defaultProvider = provider;
-		this.globalSettings.defaultModel = modelId;
-		this.markModified("defaultProvider");
-		this.markModified("defaultModel");
-		this.save();
+		this.set("defaultProvider", provider);
+		this.set("defaultModel", modelId);
 	}
 
-	getSteeringMode(): "all" | "one-at-a-time" {
-		return this.settings.steeringMode || "one-at-a-time";
-	}
+	getSteeringMode = (): "all" | "one-at-a-time" => (this.get("steeringMode") ?? "one-at-a-time") as "all" | "one-at-a-time";
+	setSteeringMode = (mode: "all" | "one-at-a-time") => this.set("steeringMode", mode);
 
-	setSteeringMode(mode: "all" | "one-at-a-time"): void {
-		this.globalSettings.steeringMode = mode;
-		this.markModified("steeringMode");
-		this.save();
-	}
+	getFollowUpMode = (): "all" | "one-at-a-time" => (this.get("followUpMode") ?? "one-at-a-time") as "all" | "one-at-a-time";
+	setFollowUpMode = (mode: "all" | "one-at-a-time") => this.set("followUpMode", mode);
 
-	getFollowUpMode(): "all" | "one-at-a-time" {
-		return this.settings.followUpMode || "one-at-a-time";
-	}
+	getTheme = (): string | undefined => this.get("theme") as string | undefined;
+	setTheme = (theme: string) => this.set("theme", theme);
 
-	setFollowUpMode(mode: "all" | "one-at-a-time"): void {
-		this.globalSettings.followUpMode = mode;
-		this.markModified("followUpMode");
-		this.save();
-	}
+	getDefaultThinkingLevel = (): "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | undefined => this.get("defaultThinkingLevel") as "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | undefined;
+	setDefaultThinkingLevel = (level: "off" | "minimal" | "low" | "medium" | "high" | "xhigh") => this.set("defaultThinkingLevel", level);
 
-	getTheme(): string | undefined {
-		return this.settings.theme;
-	}
+	getTransport = (): TransportSetting => (this.get("transport") ?? "sse") as TransportSetting;
+	setTransport = (transport: TransportSetting) => this.set("transport", transport);
 
-	setTheme(theme: string): void {
-		this.globalSettings.theme = theme;
-		this.markModified("theme");
-		this.save();
-	}
+	getCompactionEnabled = (): boolean => (this.get("compaction.enabled") ?? true) as boolean;
+	setCompactionEnabled = (enabled: boolean) => this.set("compaction.enabled", enabled);
 
-	getDefaultThinkingLevel(): "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | undefined {
-		return this.settings.defaultThinkingLevel;
-	}
+	getCompactionReserveTokens = (): number => (this.get("compaction.reserveTokens") ?? 16384) as number;
+	getCompactionKeepRecentTokens = (): number => (this.get("compaction.keepRecentTokens") ?? 20000) as number;
 
-	setDefaultThinkingLevel(level: "off" | "minimal" | "low" | "medium" | "high" | "xhigh"): void {
-		this.globalSettings.defaultThinkingLevel = level;
-		this.markModified("defaultThinkingLevel");
-		this.save();
-	}
+	getCompactionStrategy = (): CompactionStrategy => (this.get("compaction.strategy") ?? "context-full") as CompactionStrategy;
+	setCompactionStrategy = (strategy: CompactionStrategy) => this.set("compaction.strategy", strategy);
 
-	getTransport(): TransportSetting {
-		return this.settings.transport ?? "sse";
-	}
+	getHandoffAutoContinue = (): boolean => (this.get("compaction.handoffAutoContinue") ?? true) as boolean;
+	setHandoffAutoContinue = (enabled: boolean) => this.set("compaction.handoffAutoContinue", enabled);
 
-	setTransport(transport: TransportSetting): void {
-		this.globalSettings.transport = transport;
-		this.markModified("transport");
-		this.save();
-	}
+	getHandoffSaveToDisk = (): boolean => (this.get("compaction.handoffSaveToDisk") ?? false) as boolean;
+	setHandoffSaveToDisk = (enabled: boolean) => this.set("compaction.handoffSaveToDisk", enabled);
 
-	getCompactionEnabled(): boolean {
-		return this.settings.compaction?.enabled ?? true;
-	}
+	getCompactionSettings = () => ({
+		enabled: this.getCompactionEnabled(),
+		strategy: this.getCompactionStrategy(),
+		reserveTokens: this.getCompactionReserveTokens(),
+		keepRecentTokens: this.getCompactionKeepRecentTokens(),
+		handoffAutoContinue: this.getHandoffAutoContinue(),
+		handoffSaveToDisk: this.getHandoffSaveToDisk(),
+	});
 
-	setCompactionEnabled(enabled: boolean): void {
-		if (!this.globalSettings.compaction) {
-			this.globalSettings.compaction = {};
-		}
-		this.globalSettings.compaction.enabled = enabled;
-		this.markModified("compaction", "enabled");
-		this.save();
-	}
+	getBranchSummarySettings = () => ({
+		reserveTokens: (this.get("branchSummary.reserveTokens") ?? 16384) as number,
+		skipPrompt: (this.get("branchSummary.skipPrompt") ?? false) as boolean,
+	});
 
-	getCompactionReserveTokens(): number {
-		return this.settings.compaction?.reserveTokens ?? 16384;
-	}
+	getBranchSummarySkipPrompt = (): boolean => (this.get("branchSummary.skipPrompt") ?? false) as boolean;
 
-	getCompactionKeepRecentTokens(): number {
-		return this.settings.compaction?.keepRecentTokens ?? 20000;
-	}
+	getRetryEnabled = (): boolean => (this.get("retry.enabled") ?? true) as boolean;
+	setRetryEnabled = (enabled: boolean) => this.set("retry.enabled", enabled);
 
-	getCompactionStrategy(): CompactionStrategy {
-		return this.settings.compaction?.strategy ?? "context-full";
-	}
+	getRetrySettings = () => ({
+		enabled: this.getRetryEnabled(),
+		maxRetries: (this.get("retry.maxRetries") ?? 3) as number,
+		baseDelayMs: (this.get("retry.baseDelayMs") ?? 2000) as number,
+		maxDelayMs: (this.get("retry.maxDelayMs") ?? 60000) as number,
+	});
 
-	setCompactionStrategy(strategy: CompactionStrategy): void {
-		if (!this.globalSettings.compaction) {
-			this.globalSettings.compaction = {};
-		}
-		this.globalSettings.compaction.strategy = strategy;
-		this.markModified("compaction", "strategy");
-		this.save();
-	}
+	getHideThinkingBlock = (): boolean => (this.get("hideThinkingBlock") ?? false) as boolean;
+	setHideThinkingBlock = (hide: boolean) => this.set("hideThinkingBlock", hide);
 
-	getHandoffAutoContinue(): boolean {
-		return this.settings.compaction?.handoffAutoContinue ?? true;
-	}
+	getShellPath = (): string | undefined => this.get("shellPath") as string | undefined;
+	setShellPath = (path: string | undefined) => this.set("shellPath", path);
 
-	setHandoffAutoContinue(enabled: boolean): void {
-		if (!this.globalSettings.compaction) {
-			this.globalSettings.compaction = {};
-		}
-		this.globalSettings.compaction.handoffAutoContinue = enabled;
-		this.markModified("compaction", "handoffAutoContinue");
-		this.save();
-	}
+	getQuietStartup = (): boolean => (this.get("quietStartup") ?? false) as boolean;
+	setQuietStartup = (quiet: boolean) => this.set("quietStartup", quiet);
 
-	getHandoffSaveToDisk(): boolean {
-		return this.settings.compaction?.handoffSaveToDisk ?? false;
-	}
+	getShellCommandPrefix = (): string | undefined => this.get("shellCommandPrefix") as string | undefined;
+	setShellCommandPrefix = (prefix: string | undefined) => this.set("shellCommandPrefix", prefix);
 
-	setHandoffSaveToDisk(enabled: boolean): void {
-		if (!this.globalSettings.compaction) {
-			this.globalSettings.compaction = {};
-		}
-		this.globalSettings.compaction.handoffSaveToDisk = enabled;
-		this.markModified("compaction", "handoffSaveToDisk");
-		this.save();
-	}
+	getNpmCommand = (): string[] | undefined => {
+		const cmd = this.get("npmCommand") as string[] | undefined;
+		return cmd ? [...cmd] : undefined;
+	};
+	setNpmCommand = (command: string[] | undefined) => this.set("npmCommand", command ? [...command] : undefined);
 
-	getCompactionSettings(): {
-		enabled: boolean;
-		strategy: CompactionStrategy;
-		reserveTokens: number;
-		keepRecentTokens: number;
-		handoffAutoContinue: boolean;
-		handoffSaveToDisk: boolean;
-	} {
-		return {
-			enabled: this.getCompactionEnabled(),
-			strategy: this.getCompactionStrategy(),
-			reserveTokens: this.getCompactionReserveTokens(),
-			keepRecentTokens: this.getCompactionKeepRecentTokens(),
-			handoffAutoContinue: this.getHandoffAutoContinue(),
-			handoffSaveToDisk: this.getHandoffSaveToDisk(),
-		};
-	}
+	getCollapseChangelog = (): boolean => (this.get("collapseChangelog") ?? false) as boolean;
+	setCollapseChangelog = (collapse: boolean) => this.set("collapseChangelog", collapse);
 
-	getBranchSummarySettings(): { reserveTokens: number; skipPrompt: boolean } {
-		return {
-			reserveTokens: this.settings.branchSummary?.reserveTokens ?? 16384,
-			skipPrompt: this.settings.branchSummary?.skipPrompt ?? false,
-		};
-	}
-
-	getBranchSummarySkipPrompt(): boolean {
-		return this.settings.branchSummary?.skipPrompt ?? false;
-	}
-
-	getRetryEnabled(): boolean {
-		return this.settings.retry?.enabled ?? true;
-	}
-
-	setRetryEnabled(enabled: boolean): void {
-		if (!this.globalSettings.retry) {
-			this.globalSettings.retry = {};
-		}
-		this.globalSettings.retry.enabled = enabled;
-		this.markModified("retry", "enabled");
-		this.save();
-	}
-
-	getRetrySettings(): { enabled: boolean; maxRetries: number; baseDelayMs: number; maxDelayMs: number } {
-		return {
-			enabled: this.getRetryEnabled(),
-			maxRetries: this.settings.retry?.maxRetries ?? 3,
-			baseDelayMs: this.settings.retry?.baseDelayMs ?? 2000,
-			maxDelayMs: this.settings.retry?.maxDelayMs ?? 60000,
-		};
-	}
-
-	getHideThinkingBlock(): boolean {
-		return this.settings.hideThinkingBlock ?? false;
-	}
-
-	setHideThinkingBlock(hide: boolean): void {
-		this.globalSettings.hideThinkingBlock = hide;
-		this.markModified("hideThinkingBlock");
-		this.save();
-	}
-
-	getShellPath(): string | undefined {
-		return this.settings.shellPath;
-	}
-
-	setShellPath(path: string | undefined): void {
-		this.globalSettings.shellPath = path;
-		this.markModified("shellPath");
-		this.save();
-	}
-
-	getQuietStartup(): boolean {
-		return this.settings.quietStartup ?? false;
-	}
-
-	setQuietStartup(quiet: boolean): void {
-		this.globalSettings.quietStartup = quiet;
-		this.markModified("quietStartup");
-		this.save();
-	}
-
-	getShellCommandPrefix(): string | undefined {
-		return this.settings.shellCommandPrefix;
-	}
-
-	setShellCommandPrefix(prefix: string | undefined): void {
-		this.globalSettings.shellCommandPrefix = prefix;
-		this.markModified("shellCommandPrefix");
-		this.save();
-	}
-
-	getNpmCommand(): string[] | undefined {
-		return this.settings.npmCommand ? [...this.settings.npmCommand] : undefined;
-	}
-
-	setNpmCommand(command: string[] | undefined): void {
-		this.globalSettings.npmCommand = command ? [...command] : undefined;
-		this.markModified("npmCommand");
-		this.save();
-	}
-
-	getCollapseChangelog(): boolean {
-		return this.settings.collapseChangelog ?? false;
-	}
-
-	setCollapseChangelog(collapse: boolean): void {
-		this.globalSettings.collapseChangelog = collapse;
-		this.markModified("collapseChangelog");
-		this.save();
-	}
-
+	// Array/record settings — keep manual implementation for structuredClone + project variants
 	getPackages(): PackageSource[] {
 		return [...(this.settings.packages ?? [])];
 	}
@@ -948,139 +763,49 @@ export class SettingsManager {
 		this.saveProjectSettings(projectSettings);
 	}
 
-	getEnableSkillCommands(): boolean {
-		return this.settings.enableSkillCommands ?? true;
-	}
+	getEnableSkillCommands = (): boolean => (this.get("enableSkillCommands") ?? true) as boolean;
+	setEnableSkillCommands = (enabled: boolean) => this.set("enableSkillCommands", enabled);
 
-	setEnableSkillCommands(enabled: boolean): void {
-		this.globalSettings.enableSkillCommands = enabled;
-		this.markModified("enableSkillCommands");
-		this.save();
-	}
+	getThinkingBudgets = (): ThinkingBudgetsSettings | undefined => this.get("thinkingBudgets") as ThinkingBudgetsSettings | undefined;
 
-	getThinkingBudgets(): ThinkingBudgetsSettings | undefined {
-		return this.settings.thinkingBudgets;
-	}
+	getShowImages = (): boolean => (this.get("terminal.showImages") ?? true) as boolean;
+	setShowImages = (show: boolean) => this.set("terminal.showImages", show);
 
-	getShowImages(): boolean {
-		return this.settings.terminal?.showImages ?? true;
-	}
-
-	setShowImages(show: boolean): void {
-		if (!this.globalSettings.terminal) {
-			this.globalSettings.terminal = {};
-		}
-		this.globalSettings.terminal.showImages = show;
-		this.markModified("terminal", "showImages");
-		this.save();
-	}
-
-	getClearOnShrink(): boolean {
-		// Settings takes precedence, then env var, then default false
-		if (this.settings.terminal?.clearOnShrink !== undefined) {
-			return this.settings.terminal.clearOnShrink;
-		}
+	getClearOnShrink = (): boolean => {
+		const val = this.get("terminal.clearOnShrink");
+		if (val !== undefined) return val as boolean;
 		return process.env.PI_CLEAR_ON_SHRINK === "1";
-	}
+	};
+	setClearOnShrink = (enabled: boolean) => this.set("terminal.clearOnShrink", enabled);
 
-	setClearOnShrink(enabled: boolean): void {
-		if (!this.globalSettings.terminal) {
-			this.globalSettings.terminal = {};
-		}
-		this.globalSettings.terminal.clearOnShrink = enabled;
-		this.markModified("terminal", "clearOnShrink");
-		this.save();
-	}
+	getImageAutoResize = (): boolean => (this.get("images.autoResize") ?? true) as boolean;
+	setImageAutoResize = (enabled: boolean) => this.set("images.autoResize", enabled);
 
-	getImageAutoResize(): boolean {
-		return this.settings.images?.autoResize ?? true;
-	}
+	getBlockImages = (): boolean => (this.get("images.blockImages") ?? false) as boolean;
+	setBlockImages = (blocked: boolean) => this.set("images.blockImages", blocked);
 
-	setImageAutoResize(enabled: boolean): void {
-		if (!this.globalSettings.images) {
-			this.globalSettings.images = {};
-		}
-		this.globalSettings.images.autoResize = enabled;
-		this.markModified("images", "autoResize");
-		this.save();
-	}
+	getEnabledModels = (): string[] | undefined => this.get("enabledModels") as string[] | undefined;
+	setEnabledModels = (patterns: string[] | undefined) => this.set("enabledModels", patterns);
 
-	getBlockImages(): boolean {
-		return this.settings.images?.blockImages ?? false;
-	}
+	getDoubleEscapeAction = (): "fork" | "tree" | "none" => (this.get("doubleEscapeAction") ?? "tree") as "fork" | "tree" | "none";
+	setDoubleEscapeAction = (action: "fork" | "tree" | "none") => this.set("doubleEscapeAction", action);
 
-	setBlockImages(blocked: boolean): void {
-		if (!this.globalSettings.images) {
-			this.globalSettings.images = {};
-		}
-		this.globalSettings.images.blockImages = blocked;
-		this.markModified("images", "blockImages");
-		this.save();
-	}
-
-	getEnabledModels(): string[] | undefined {
-		return this.settings.enabledModels;
-	}
-
-	setEnabledModels(patterns: string[] | undefined): void {
-		this.globalSettings.enabledModels = patterns;
-		this.markModified("enabledModels");
-		this.save();
-	}
-
-	getDoubleEscapeAction(): "fork" | "tree" | "none" {
-		return this.settings.doubleEscapeAction ?? "tree";
-	}
-
-	setDoubleEscapeAction(action: "fork" | "tree" | "none"): void {
-		this.globalSettings.doubleEscapeAction = action;
-		this.markModified("doubleEscapeAction");
-		this.save();
-	}
-
-	getTreeFilterMode(): "default" | "no-tools" | "user-only" | "labeled-only" | "all" {
-		const mode = this.settings.treeFilterMode;
+	getTreeFilterMode = (): "default" | "no-tools" | "user-only" | "labeled-only" | "all" => {
+		const mode = this.get("treeFilterMode") as string | undefined;
 		const valid = ["default", "no-tools", "user-only", "labeled-only", "all"];
-		return mode && valid.includes(mode) ? mode : "default";
-	}
+		return mode && valid.includes(mode) ? (mode as "default" | "no-tools" | "user-only" | "labeled-only" | "all") : "default";
+	};
+	setTreeFilterMode = (mode: "default" | "no-tools" | "user-only" | "labeled-only" | "all") => this.set("treeFilterMode", mode);
 
-	setTreeFilterMode(mode: "default" | "no-tools" | "user-only" | "labeled-only" | "all"): void {
-		this.globalSettings.treeFilterMode = mode;
-		this.markModified("treeFilterMode");
-		this.save();
-	}
+	getShowHardwareCursor = (): boolean => (this.get("showHardwareCursor") ?? process.env.PI_HARDWARE_CURSOR === "1") as boolean;
+	setShowHardwareCursor = (enabled: boolean) => this.set("showHardwareCursor", enabled);
 
-	getShowHardwareCursor(): boolean {
-		return this.settings.showHardwareCursor ?? process.env.PI_HARDWARE_CURSOR === "1";
-	}
+	getEditorPaddingX = (): number => Math.max(0, Math.min(3, Math.floor((this.get("editorPaddingX") ?? 0) as number)));
+	setEditorPaddingX = (padding: number) => this.set("editorPaddingX", Math.max(0, Math.min(3, Math.floor(padding))));
 
-	setShowHardwareCursor(enabled: boolean): void {
-		this.globalSettings.showHardwareCursor = enabled;
-		this.markModified("showHardwareCursor");
-		this.save();
-	}
+	getAutocompleteMaxVisible = (): number => Math.max(3, Math.min(20, Math.floor((this.get("autocompleteMaxVisible") ?? 5) as number)));
+	setAutocompleteMaxVisible = (maxVisible: number) => this.set("autocompleteMaxVisible", Math.max(3, Math.min(20, Math.floor(maxVisible))));
 
-	getEditorPaddingX(): number {
-		return this.settings.editorPaddingX ?? 0;
-	}
+	getCodeBlockIndent = (): string => (this.get("markdown.codeBlockIndent") ?? "  ") as string;
 
-	setEditorPaddingX(padding: number): void {
-		this.globalSettings.editorPaddingX = Math.max(0, Math.min(3, Math.floor(padding)));
-		this.markModified("editorPaddingX");
-		this.save();
-	}
-
-	getAutocompleteMaxVisible(): number {
-		return this.settings.autocompleteMaxVisible ?? 5;
-	}
-
-	setAutocompleteMaxVisible(maxVisible: number): void {
-		this.globalSettings.autocompleteMaxVisible = Math.max(3, Math.min(20, Math.floor(maxVisible)));
-		this.markModified("autocompleteMaxVisible");
-		this.save();
-	}
-
-	getCodeBlockIndent(): string {
-		return this.settings.markdown?.codeBlockIndent ?? "  ";
-	}
 }
