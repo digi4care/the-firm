@@ -56,6 +56,21 @@ The Firm uses its own semantic version line.
 
 See `docs/adr/0002-versioning-strategy.md`.
 
+## Code Quality Doctrine
+
+The Firm enforces code quality through simplicity, boundaries, and deliberate abstraction rather than pattern cargo-culting.
+
+- small local duplication is acceptable until a real shared pattern emerges
+- generic buckets like `utils` or `helpers` should be avoided in favor of responsibility-driven names
+- package and import boundaries should protect the small-kernel architecture
+- SOLID is treated as a heuristic, not a reason to add ceremony
+- new hooks, registries, adapters, or lifecycle seams should be justified explicitly
+
+See:
+
+- `docs/architecture/code-quality.md`
+- `docs/adr/0003-code-quality-doctrine.md`
+
 ## Working in This Repo
 
 Install dependencies:

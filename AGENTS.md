@@ -103,6 +103,17 @@ bd dolt push
 - Do not remove intentional functionality without asking.
 - Keep changes minimal and targeted.
 - Treat upstream code carefully; do not cause broad churn without approval.
+- Prefer small local duplication over premature abstraction.
+- Extract shared abstractions only after a repeated pattern becomes clear, stable, and meaningfully named.
+- Avoid generic module names like `utils`, `helpers`, `misc`, `common`, `manager`, and `processor` unless the scope is tightly local and the intent remains obvious.
+- Respect package and import boundaries. Do not make kernel, platform, extension, and product layers depend on each other arbitrarily.
+- Treat SOLID as a heuristic, not as a mandate for extra interfaces, factories, or layers.
+- New hooks, registries, adapters, contributors, and lifecycle seams require explicit justification: what concrete problem exists now, why simpler code is insufficient, and what reuse or boundary value the seam provides.
+
+For deeper guidance, read:
+
+- `docs/architecture/code-quality.md`
+- `docs/adr/0003-code-quality-doctrine.md`
 
 ## Commands
 
