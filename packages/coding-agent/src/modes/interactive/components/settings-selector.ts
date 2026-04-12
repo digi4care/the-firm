@@ -1,5 +1,16 @@
+/**
+ * Declarative Settings Selector Component
+ *
+ * Auto-generates a tabbed settings UI from the settings registry.
+ * Each tab shows settings grouped by domain. Settings are read from
+ * SettingsProvider objects registered at bootstrap time.
+ *
+ * To add a new setting:
+ * 1. Add it to a provider in features/settings/*.ts
+ * 2. It appears in the UI automatically under the configured tab
+ */
+
 import type { ThinkingLevel } from "@digi4care/the-firm-agent-core";
-import type { Transport } from "@digi4care/the-firm-ai";
 import {
 	Container,
 	getCapabilities,
@@ -11,6 +22,13 @@ import {
 	Spacer,
 	Text,
 } from "@digi4care/the-firm-tui";
+import { settingsRegistry } from "../../../core/settings-registry.js";
+import {
+	type SettingDef,
+	type SettingOption,
+	type SettingTab,
+	TAB_METADATA,
+} from "../../../core/settings-schema.js";
 import { getSelectListTheme, getSettingsListTheme, theme } from "../theme/theme.js";
 import { DynamicBorder } from "./dynamic-border.js";
 
@@ -19,70 +37,10 @@ const SETTINGS_SUBMENU_SELECT_LIST_LAYOUT: SelectListLayoutOptions = {
 	maxPrimaryColumnWidth: 32,
 };
 
-const THINKING_DESCRIPTIONS: Record<ThinkingLevel, string> = {
-	off: "No reasoning",
-	minimal: "Very brief reasoning (~1k tokens)",
-	low: "Light reasoning (~2k tokens)",
-	medium: "Moderate reasoning (~8k tokens)",
-	high: "Deep reasoning (~16k tokens)",
-	xhigh: "Maximum reasoning (~32k tokens)",
-};
+// ═══════════════════════════════════════════════════════════════════════════
+// Submenu Components
+// ═══════════════════════════════════════════════════════════════════════════
 
-export interface SettingsConfig {
-	autoCompact: boolean;
-	compactionStrategy: "context-full" | "handoff" | "off";
-	handoffAutoContinue: boolean;
-	showImages: boolean;
-	autoResizeImages: boolean;
-	blockImages: boolean;
-	enableSkillCommands: boolean;
-	steeringMode: "all" | "one-at-a-time";
-	followUpMode: "all" | "one-at-a-time";
-	transport: Transport;
-	thinkingLevel: ThinkingLevel;
-	availableThinkingLevels: ThinkingLevel[];
-	currentTheme: string;
-	availableThemes: string[];
-	hideThinkingBlock: boolean;
-	collapseChangelog: boolean;
-	doubleEscapeAction: "fork" | "tree" | "none";
-	treeFilterMode: "default" | "no-tools" | "user-only" | "labeled-only" | "all";
-	showHardwareCursor: boolean;
-	editorPaddingX: number;
-	autocompleteMaxVisible: number;
-	quietStartup: boolean;
-	clearOnShrink: boolean;
-}
-
-export interface SettingsCallbacks {
-	onAutoCompactChange: (enabled: boolean) => void;
-	onCompactionStrategyChange: (strategy: "context-full" | "handoff" | "off") => void;
-	onHandoffAutoContinueChange: (enabled: boolean) => void;
-	onShowImagesChange: (enabled: boolean) => void;
-	onAutoResizeImagesChange: (enabled: boolean) => void;
-	onBlockImagesChange: (blocked: boolean) => void;
-	onEnableSkillCommandsChange: (enabled: boolean) => void;
-	onSteeringModeChange: (mode: "all" | "one-at-a-time") => void;
-	onFollowUpModeChange: (mode: "all" | "one-at-a-time") => void;
-	onTransportChange: (transport: Transport) => void;
-	onThinkingLevelChange: (level: ThinkingLevel) => void;
-	onThemeChange: (theme: string) => void;
-	onThemePreview?: (theme: string) => void;
-	onHideThinkingBlockChange: (hidden: boolean) => void;
-	onCollapseChangelogChange: (collapsed: boolean) => void;
-	onDoubleEscapeActionChange: (action: "fork" | "tree" | "none") => void;
-	onTreeFilterModeChange: (mode: "default" | "no-tools" | "user-only" | "labeled-only" | "all") => void;
-	onShowHardwareCursorChange: (enabled: boolean) => void;
-	onEditorPaddingXChange: (padding: number) => void;
-	onAutocompleteMaxVisibleChange: (maxVisible: number) => void;
-	onQuietStartupChange: (enabled: boolean) => void;
-	onClearOnShrinkChange: (enabled: boolean) => void;
-	onCancel: () => void;
-}
-
-/**
- * A submenu component for selecting from a list of options.
- */
 class SelectSubmenu extends Container {
 	private selectList: SelectList;
 
@@ -97,19 +55,15 @@ class SelectSubmenu extends Container {
 	) {
 		super();
 
-		// Title
 		this.addChild(new Text(theme.bold(theme.fg("accent", title)), 0, 0));
 
-		// Description
 		if (description) {
 			this.addChild(new Spacer(1));
 			this.addChild(new Text(theme.fg("muted", description), 0, 0));
 		}
 
-		// Spacer
 		this.addChild(new Spacer(1));
 
-		// Select list
 		this.selectList = new SelectList(
 			options,
 			Math.min(options.length, 10),
@@ -117,27 +71,19 @@ class SelectSubmenu extends Container {
 			SETTINGS_SUBMENU_SELECT_LIST_LAYOUT,
 		);
 
-		// Pre-select current value
 		const currentIndex = options.findIndex((o) => o.value === currentValue);
 		if (currentIndex !== -1) {
 			this.selectList.setSelectedIndex(currentIndex);
 		}
 
-		this.selectList.onSelect = (item) => {
-			onSelect(item.value);
-		};
-
+		this.selectList.onSelect = (item) => onSelect(item.value);
 		this.selectList.onCancel = onCancel;
 
 		if (onSelectionChange) {
-			this.selectList.onSelectionChange = (item) => {
-				onSelectionChange(item.value);
-			};
+			this.selectList.onSelectionChange = (item) => onSelectionChange(item.value);
 		}
 
 		this.addChild(this.selectList);
-
-		// Hint
 		this.addChild(new Spacer(1));
 		this.addChild(new Text(theme.fg("dim", "  Enter to select · Esc to go back"), 0, 0));
 	}
@@ -147,311 +93,272 @@ class SelectSubmenu extends Container {
 	}
 }
 
-/**
- * Main settings selector component.
- */
-export class SettingsSelectorComponent extends Container {
-	private settingsList: SettingsList;
+// ═══════════════════════════════════════════════════════════════════════════
+// Callbacks
+// ═══════════════════════════════════════════════════════════════════════════
 
-	constructor(config: SettingsConfig, callbacks: SettingsCallbacks) {
+export interface SettingsCallbacks {
+	/** Called when any setting value changes via the generic path-based setter */
+	onChange: (path: string, newValue: unknown) => void;
+	/** Called for theme preview while browsing */
+	onThemePreview?: (themeName: string) => void;
+	/** Called when settings panel is closed */
+	onCancel: () => void;
+}
+
+/** Runtime data needed by the settings component that isn't in the registry */
+export interface SettingsRuntimeContext {
+	thinkingLevel: ThinkingLevel;
+	availableThinkingLevels: ThinkingLevel[];
+	currentTheme: string;
+	availableThemes: string[];
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Main Component
+// ═══════════════════════════════════════════════════════════════════════════
+
+export class SettingsSelectorComponent extends Container {
+	private settingsList: SettingsList | null = null;
+	private activeTab: SettingTab;
+	private activeTabs: SettingTab[];
+
+	constructor(
+		private readonly context: SettingsRuntimeContext,
+		private readonly callbacks: SettingsCallbacks,
+		private readonly getSettingValue: (path: string) => unknown,
+	) {
 		super();
 
-		const supportsImages = getCapabilities().images;
+		this.activeTabs = settingsRegistry.getActiveTabs();
+		this.activeTab = this.activeTabs[0] ?? "appearance";
 
-		const items: SettingItem[] = [
-			{
-				id: "autocompact",
-				label: "Auto-compact",
-				description: "Automatically compact context when it gets too large",
-				currentValue: config.autoCompact ? "true" : "false",
-				values: ["true", "false"],
-			},
-			{
-				id: "compaction-strategy",
-				label: "Compaction strategy",
-				description:
-					"How to reduce context: summarize in-place (context-full) or generate handoff document and start a new session (handoff)",
-				currentValue: config.compactionStrategy,
-				values: ["context-full", "handoff", "off"],
-			},
-			{
-				id: "handoff-auto-continue",
-				label: "Handoff auto-continue",
-				description: "After handoff, automatically prompt the agent to continue working in the new session",
-				currentValue: config.handoffAutoContinue ? "true" : "false",
-				values: ["true", "false"],
-			},
-			{
-				id: "steering-mode",
-				label: "Steering mode",
-				description:
-					"Enter while streaming queues steering messages. 'one-at-a-time': deliver one, wait for response. 'all': deliver all at once.",
-				currentValue: config.steeringMode,
-				values: ["one-at-a-time", "all"],
-			},
-			{
-				id: "follow-up-mode",
-				label: "Follow-up mode",
-				description:
-					"Alt+Enter queues follow-up messages until agent stops. 'one-at-a-time': deliver one, wait for response. 'all': deliver all at once.",
-				currentValue: config.followUpMode,
-				values: ["one-at-a-time", "all"],
-			},
-			{
-				id: "transport",
-				label: "Transport",
-				description: "Preferred transport for providers that support multiple transports",
-				currentValue: config.transport,
-				values: ["sse", "websocket", "auto"],
-			},
-			{
-				id: "hide-thinking",
-				label: "Hide thinking",
-				description: "Hide thinking blocks in assistant responses",
-				currentValue: config.hideThinkingBlock ? "true" : "false",
-				values: ["true", "false"],
-			},
-			{
-				id: "collapse-changelog",
-				label: "Collapse changelog",
-				description: "Show condensed changelog after updates",
-				currentValue: config.collapseChangelog ? "true" : "false",
-				values: ["true", "false"],
-			},
-			{
-				id: "quiet-startup",
-				label: "Quiet startup",
-				description: "Disable verbose printing at startup",
-				currentValue: config.quietStartup ? "true" : "false",
-				values: ["true", "false"],
-			},
-			{
-				id: "double-escape-action",
-				label: "Double-escape action",
-				description: "Action when pressing Escape twice with empty editor",
-				currentValue: config.doubleEscapeAction,
-				values: ["tree", "fork", "none"],
-			},
-			{
-				id: "tree-filter-mode",
-				label: "Tree filter mode",
-				description: "Default filter when opening /tree",
-				currentValue: config.treeFilterMode,
-				values: ["default", "no-tools", "user-only", "labeled-only", "all"],
-			},
-			{
-				id: "thinking",
-				label: "Thinking level",
-				description: "Reasoning depth for thinking-capable models",
-				currentValue: config.thinkingLevel,
-				submenu: (currentValue, done) =>
-					new SelectSubmenu(
-						"Thinking Level",
-						"Select reasoning depth for thinking-capable models",
-						config.availableThinkingLevels.map((level) => ({
-							value: level,
-							label: level,
-							description: THINKING_DESCRIPTIONS[level],
-						})),
-						currentValue,
-						(value) => {
-							callbacks.onThinkingLevelChange(value as ThinkingLevel);
-							done(value);
-						},
-						() => done(),
-					),
-			},
-			{
-				id: "theme",
-				label: "Theme",
-				description: "Color theme for the interface",
-				currentValue: config.currentTheme,
-				submenu: (currentValue, done) =>
-					new SelectSubmenu(
-						"Theme",
-						"Select color theme",
-						config.availableThemes.map((t) => ({
-							value: t,
-							label: t,
-						})),
-						currentValue,
-						(value) => {
-							callbacks.onThemeChange(value);
-							done(value);
-						},
-						() => {
-							// Restore original theme on cancel
-							callbacks.onThemePreview?.(currentValue);
-							done();
-						},
-						(value) => {
-							// Preview theme on selection change
-							callbacks.onThemePreview?.(value);
-						},
-					),
-			},
-		];
+		this.addChild(new DynamicBorder());
+		this.renderTab(this.activeTab);
+		this.addChild(new DynamicBorder());
+	}
 
-		// Only show image toggle if terminal supports it
-		if (supportsImages) {
-			// Insert after autocompact
-			items.splice(1, 0, {
-				id: "show-images",
-				label: "Show images",
-				description: "Render images inline in terminal",
-				currentValue: config.showImages ? "true" : "false",
-				values: ["true", "false"],
-			});
+	// ── Tab Header Rendering ───────────────────────────────────────────────
+
+	private renderTabHeader(): string {
+		const parts = this.activeTabs.map((tab) => {
+			const meta = TAB_METADATA[tab];
+			if (tab === this.activeTab) {
+				return theme.bg("selectedBg", theme.fg("accent", ` ${meta.icon} ${meta.label} `));
+			}
+			return theme.fg("muted", ` ${meta.icon} ${meta.label} `);
+		});
+		return parts.join(theme.fg("dim", " │ "));
+	}
+
+	// ── Schema → SettingItem Conversion ────────────────────────────────────
+
+	private defToItem(path: string, def: SettingDef): SettingItem | null {
+		const ui = settingsRegistry.getUi(path);
+		if (!ui) return null;
+
+		// Check condition
+		if (ui.condition && !ui.condition()) return null;
+
+		const currentValue = this.getSettingValue(path);
+		const displayValue = this.toDisplayString(currentValue);
+
+		// Submenu types: enum/number/string with submenu flag, or has registered options
+		const options = settingsRegistry.getOptions(path);
+		if (ui.submenu || options) {
+			return {
+				id: path,
+				label: ui.label,
+				description: ui.description,
+				currentValue: displayValue,
+				submenu: (cv, done) => this.createSubmenu(path, def, cv, done),
+			};
 		}
 
-		// Image auto-resize toggle (always available, affects both attached and read images)
-		items.splice(supportsImages ? 2 : 1, 0, {
-			id: "auto-resize-images",
-			label: "Auto-resize images",
-			description: "Resize large images to 2000x2000 max for better model compatibility",
-			currentValue: config.autoResizeImages ? "true" : "false",
-			values: ["true", "false"],
-		});
+		// Boolean: inline toggle
+		if (def.type === "boolean") {
+			return {
+				id: path,
+				label: ui.label,
+				description: ui.description,
+				currentValue: displayValue,
+				values: ["true", "false"],
+			};
+		}
 
-		// Block images toggle (always available, insert after auto-resize-images)
-		const autoResizeIndex = items.findIndex((item) => item.id === "auto-resize-images");
-		items.splice(autoResizeIndex + 1, 0, {
-			id: "block-images",
-			label: "Block images",
-			description: "Prevent images from being sent to LLM providers",
-			currentValue: config.blockImages ? "true" : "false",
-			values: ["true", "false"],
-		});
+		// Enum: inline cycle if ≤ 5 values
+		if (def.type === "enum") {
+			return {
+				id: path,
+				label: ui.label,
+				description: ui.description,
+				currentValue: displayValue,
+				values: [...def.values],
+			};
+		}
 
-		// Skill commands toggle (insert after block-images)
-		const blockImagesIndex = items.findIndex((item) => item.id === "block-images");
-		items.splice(blockImagesIndex + 1, 0, {
-			id: "skill-commands",
-			label: "Skill commands",
-			description: "Register skills as /skill:name commands",
-			currentValue: config.enableSkillCommands ? "true" : "false",
-			values: ["true", "false"],
-		});
+		// Number/string without submenu: skip (no free-text UI for now)
+		return null;
+	}
 
-		// Hardware cursor toggle (insert after skill-commands)
-		const skillCommandsIndex = items.findIndex((item) => item.id === "skill-commands");
-		items.splice(skillCommandsIndex + 1, 0, {
-			id: "show-hardware-cursor",
-			label: "Show hardware cursor",
-			description: "Show the terminal cursor while still positioning it for IME support",
-			currentValue: config.showHardwareCursor ? "true" : "false",
-			values: ["true", "false"],
-		});
+	private toDisplayString(value: unknown): string {
+		if (value === undefined || value === null) return "";
+		if (typeof value === "boolean") return value ? "true" : "false";
+		return String(value);
+	}
 
-		// Editor padding toggle (insert after show-hardware-cursor)
-		const hardwareCursorIndex = items.findIndex((item) => item.id === "show-hardware-cursor");
-		items.splice(hardwareCursorIndex + 1, 0, {
-			id: "editor-padding",
-			label: "Editor padding",
-			description: "Horizontal padding for input editor (0-3)",
-			currentValue: String(config.editorPaddingX),
-			values: ["0", "1", "2", "3"],
-		});
+	// ── Submenu Creation ───────────────────────────────────────────────────
 
-		// Autocomplete max visible toggle (insert after editor-padding)
-		const editorPaddingIndex = items.findIndex((item) => item.id === "editor-padding");
-		items.splice(editorPaddingIndex + 1, 0, {
-			id: "autocomplete-max-visible",
-			label: "Autocomplete max items",
-			description: "Max visible items in autocomplete dropdown (3-20)",
-			currentValue: String(config.autocompleteMaxVisible),
-			values: ["3", "5", "7", "10", "15", "20"],
-		});
+	private createSubmenu(
+		path: string,
+		def: SettingDef,
+		currentValue: string,
+		done: (value?: string) => void,
+	): Container {
+		let options: SelectItem[] = [];
 
-		// Clear on shrink toggle (insert after autocomplete-max-visible)
-		const autocompleteIndex = items.findIndex((item) => item.id === "autocomplete-max-visible");
-		items.splice(autocompleteIndex + 1, 0, {
-			id: "clear-on-shrink",
-			label: "Clear on shrink",
-			description: "Clear empty rows when content shrinks (may cause flicker)",
-			currentValue: config.clearOnShrink ? "true" : "false",
-			values: ["true", "false"],
-		});
+		// Theme: dynamic options from runtime context
+		if (path === "theme") {
+			options = this.context.availableThemes.map((t) => ({ value: t, label: t }));
+		}
+		// Thinking level: dynamic from session
+		else if (path === "defaultThinkingLevel") {
+			const descriptions: Record<string, string> = {
+				off: "No reasoning",
+				minimal: "Very brief reasoning (~1k tokens)",
+				low: "Light reasoning (~2k tokens)",
+				medium: "Moderate reasoning (~8k tokens)",
+				high: "Deep reasoning (~16k tokens)",
+				xhigh: "Maximum reasoning (~32k tokens)",
+			};
+			options = this.context.availableThinkingLevels.map((level) => ({
+				value: level,
+				label: level,
+				description: descriptions[level],
+			}));
+		}
+		// Registered options
+		else {
+			const registeredOpts = settingsRegistry.getOptions(path);
+			if (registeredOpts) {
+				const resolved =
+					typeof registeredOpts === "function" ? registeredOpts() : registeredOpts;
+				options = resolved.map((o: SettingOption) => ({
+					value: o.value,
+					label: o.label,
+					description: o.description,
+				}));
+			}
+			// Enum values as fallback
+			else if (def.type === "enum") {
+				options = def.values.map((v) => ({ value: v, label: v }));
+			}
+		}
 
-		// Add borders
-		this.addChild(new DynamicBorder());
+		const ui = settingsRegistry.getUi(path);
+		const label = ui?.label ?? path;
+		const description = ui?.description ?? "";
+
+		// Preview support
+		let onSelectionChange: ((value: string) => void) | undefined;
+		if (path === "theme") {
+			onSelectionChange = (value) => this.callbacks.onThemePreview?.(value);
+		}
+
+		return new SelectSubmenu(
+			label,
+			description,
+			options,
+			currentValue,
+			(value) => {
+				this.callbacks.onChange(path, value);
+				done(value);
+			},
+			() => {
+				if (path === "theme") {
+					this.callbacks.onThemePreview?.(currentValue);
+				}
+				done();
+			},
+			onSelectionChange,
+		);
+	}
+
+	// ── Tab Rendering ──────────────────────────────────────────────────────
+
+	private renderTab(tab: SettingTab): void {
+		const paths = settingsRegistry.getPathsForTab(tab);
+		const items: SettingItem[] = [];
+
+		for (const path of paths) {
+			const def = settingsRegistry.get(path);
+			if (!def) continue;
+			const item = this.defToItem(path, def);
+			if (item) items.push(item);
+		}
+
+		// Add tab header
+		this.addChild(new Text(this.renderTabHeader(), 0, 0));
+		this.addChild(new Spacer(1));
+
+		if (items.length === 0) {
+			this.addChild(new Text(theme.fg("dim", "  No settings available"), 0, 0));
+			return;
+		}
 
 		this.settingsList = new SettingsList(
 			items,
 			10,
 			getSettingsListTheme(),
 			(id, newValue) => {
-				switch (id) {
-					case "autocompact":
-						callbacks.onAutoCompactChange(newValue === "true");
-						break;
-					case "compaction-strategy":
-						callbacks.onCompactionStrategyChange(newValue as "context-full" | "handoff" | "off");
-						break;
-					case "handoff-auto-continue":
-						callbacks.onHandoffAutoContinueChange(newValue === "true");
-						break;
-					case "show-images":
-						callbacks.onShowImagesChange(newValue === "true");
-						break;
-					case "auto-resize-images":
-						callbacks.onAutoResizeImagesChange(newValue === "true");
-						break;
-					case "block-images":
-						callbacks.onBlockImagesChange(newValue === "true");
-						break;
-					case "skill-commands":
-						callbacks.onEnableSkillCommandsChange(newValue === "true");
-						break;
-					case "steering-mode":
-						callbacks.onSteeringModeChange(newValue as "all" | "one-at-a-time");
-						break;
-					case "follow-up-mode":
-						callbacks.onFollowUpModeChange(newValue as "all" | "one-at-a-time");
-						break;
-					case "transport":
-						callbacks.onTransportChange(newValue as Transport);
-						break;
-					case "hide-thinking":
-						callbacks.onHideThinkingBlockChange(newValue === "true");
-						break;
-					case "collapse-changelog":
-						callbacks.onCollapseChangelogChange(newValue === "true");
-						break;
-					case "quiet-startup":
-						callbacks.onQuietStartupChange(newValue === "true");
-						break;
-					case "double-escape-action":
-						callbacks.onDoubleEscapeActionChange(newValue as "fork" | "tree");
-						break;
-					case "tree-filter-mode":
-						callbacks.onTreeFilterModeChange(
-							newValue as "default" | "no-tools" | "user-only" | "labeled-only" | "all",
-						);
-						break;
-					case "show-hardware-cursor":
-						callbacks.onShowHardwareCursorChange(newValue === "true");
-						break;
-					case "editor-padding":
-						callbacks.onEditorPaddingXChange(parseInt(newValue, 10));
-						break;
-					case "autocomplete-max-visible":
-						callbacks.onAutocompleteMaxVisibleChange(parseInt(newValue, 10));
-						break;
-					case "clear-on-shrink":
-						callbacks.onClearOnShrinkChange(newValue === "true");
-						break;
-				}
+				this.callbacks.onChange(id, newValue);
 			},
-			callbacks.onCancel,
+			this.callbacks.onCancel,
 			{ enableSearch: true },
 		);
 
 		this.addChild(this.settingsList);
-		this.addChild(new DynamicBorder());
 	}
 
-	getSettingsList(): SettingsList {
+	private switchTab(tab: SettingTab): void {
+		// Remove everything between borders (DynamicBorder at 0 and last child)
+		const children = [...this.children];
+		// Keep first (top border) and last (bottom border)
+		for (let i = 1; i < children.length - 1; i++) {
+			this.removeChild(children[i]);
+		}
+
+		this.activeTab = tab;
+		this.settingsList = null;
+		this.renderTab(tab);
+	}
+
+	// ── Input Handling ─────────────────────────────────────────────────────
+
+	getSettingsList(): SettingsList | null {
 		return this.settingsList;
+	}
+
+	handleInput(data: string): void {
+		// Tab switching with Shift+Left/Right or Ctrl+Left/Right
+		if (data === "\x1b[1;5C" || data === "\x1b[1;2C") {
+			const idx = this.activeTabs.indexOf(this.activeTab);
+			if (idx < this.activeTabs.length - 1) {
+				this.switchTab(this.activeTabs[idx + 1]);
+			}
+			return;
+		}
+		if (data === "\x1b[1;5D" || data === "\x1b[1;2D") {
+			const idx = this.activeTabs.indexOf(this.activeTab);
+			if (idx > 0) {
+				this.switchTab(this.activeTabs[idx - 1]);
+			}
+			return;
+		}
+
+		// Delegate to current settings list
+		if (this.settingsList) {
+			this.settingsList.handleInput(data);
+		}
 	}
 }

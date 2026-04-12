@@ -326,7 +326,7 @@ export {
 	renderDiff,
 	SessionSelectorComponent,
 	type SettingsCallbacks,
-	type SettingsConfig,
+	type SettingsRuntimeContext,
 	SettingsSelectorComponent,
 	ShowImagesSelectorComponent,
 	SkillInvocationMessageComponent,
