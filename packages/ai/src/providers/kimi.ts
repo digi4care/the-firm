@@ -84,6 +84,25 @@ export const streamKimi: StreamFunction<"openai-completions", KimiOptions> = (
 				});
 
 				for await (const event of innerStream) {
+					// Fix api/provider/model to match the original model, not the synthetic Anthropic model.
+					// Without this, the assistant message gets api="anthropic-messages" but the model
+					// has api="openai-completions", causing isSameModel=false in transformMessages
+					// which normalizes tool call IDs and breaks Kimi's tool_use_id matching.
+					if ("partial" in event && event.partial) {
+						event.partial.api = model.api;
+						event.partial.provider = model.provider;
+						event.partial.model = model.id;
+					}
+					if ("message" in event && event.message) {
+						event.message.api = model.api;
+						event.message.provider = model.provider;
+						event.message.model = model.id;
+					}
+					if ("error" in event && event.error) {
+						event.error.api = model.api;
+						event.error.provider = model.provider;
+						event.error.model = model.id;
+					}
 					stream.push(event);
 				}
 			} else {
