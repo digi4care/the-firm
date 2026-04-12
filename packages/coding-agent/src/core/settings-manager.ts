@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
 import lockfile from "proper-lockfile";
 import { CONFIG_DIR_NAME, getAgentDir } from "../config.js";
+import { settingsRegistry } from "./settings-registry.js";
 
 export type CompactionStrategy = "context-full" | "handoff" | "off";
 
@@ -228,6 +229,35 @@ export class InMemorySettingsStorage implements SettingsStorage {
 	}
 }
 
+// ═══════════════════════════════════════════════════════════════════════════
+// Path Utilities for generic get/set
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Get a nested value from an object by dot-path segments */
+function getByPath(obj: Record<string, unknown>, segments: string[]): unknown {
+	let current: unknown = obj;
+	for (const segment of segments) {
+		if (current === null || current === undefined || typeof current !== "object") {
+			return undefined;
+		}
+		current = (current as Record<string, unknown>)[segment];
+	}
+	return current;
+}
+
+/** Set a nested value in an object by dot-path segments. Creates intermediate objects as needed. */
+function setByPath(obj: Record<string, unknown>, segments: string[], value: unknown): void {
+	let current = obj;
+	for (let i = 0; i < segments.length - 1; i++) {
+		const segment = segments[i];
+		if (!(segment in current) || typeof current[segment] !== "object" || current[segment] === null) {
+			current[segment] = {};
+		}
+		current = current[segment] as Record<string, unknown>;
+	}
+	current[segments[segments.length - 1]] = value;
+}
+
 export class SettingsManager {
 	private storage: SettingsStorage;
 	private globalSettings: Settings;
@@ -392,9 +422,52 @@ export class SettingsManager {
 		this.settings = deepMergeSettings(this.globalSettings, this.projectSettings);
 	}
 
+	// ═══════════════════════════════════════════════════════════════════════
+	// Generic Path-Based Access (registry-aware)
+	// ═══════════════════════════════════════════════════════════════════════
+
+	/** Generic path-based getter — uses registry for default fallback */
+	get(path: string): unknown {
+		const segments = path.split(".");
+		const value = getByPath(this.settings as Record<string, unknown>, segments);
+		if (value !== undefined) return value;
+		// Fallback to schema default
+		return settingsRegistry.get(path)?.default;
+	}
+
+	/** Generic path-based setter — writes to global settings, queues save */
+	set(path: string, value: unknown): void {
+		const segments = path.split(".");
+		setByPath(this.globalSettings as Record<string, unknown>, segments, value);
+		this.markModified(segments[0] as keyof Settings, segments.length > 1 ? segments.slice(1).join(".") : undefined);
+		this.save();
+	}
+
 	/** Apply additional overrides on top of current settings */
 	applyOverrides(overrides: Partial<Settings>): void {
 		this.settings = deepMergeSettings(this.settings, overrides);
+	}
+
+	// ─────────────────────────────────────────────────────────────────────────
+	// Generic path-based access (uses registry for defaults)
+	// ─────────────────────────────────────────────────────────────────────────
+
+	/** Generic path-based getter — falls back to schema default */
+	getByPath(path: string): unknown {
+		const segments = path.split(".");
+		const value = getByPath(this.settings as Record<string, unknown>, segments);
+		if (value !== undefined) return value;
+		// Fallback to schema default
+		return settingsRegistry.get(path)?.default;
+	}
+
+	/** Generic path-based setter — writes to global, queues save */
+	setByPath(path: string, value: unknown): void {
+		const segments = path.split(".");
+		setByPath(this.globalSettings as Record<string, unknown>, segments, value);
+		const topKey = segments[0] as keyof Settings;
+		this.markModified(topKey, segments.length > 1 ? segments.slice(1).join(".") : undefined);
+		this.save();
 	}
 
 	/** Mark a global field as modified during this session */
