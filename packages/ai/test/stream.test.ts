@@ -1313,20 +1313,20 @@ describe("Generate E2E Tests", () => {
 		}
 	}
 
-	describe.skipIf(!ollamaInstalled)("Ollama Provider (gpt-oss-20b via OpenAI Completions)", () => {
+	describe.skipIf(!ollamaInstalled)("Ollama Provider (glm-5:cloud via OpenAI Completions)", () => {
 		let llm: Model<"openai-completions">;
 		let ollamaProcess: ChildProcess | null = null;
 
 		beforeAll(async () => {
 			// Check if model is available, if not pull it
 			try {
-				execSync("ollama list | grep -q 'gpt-oss:20b'", { stdio: "ignore" });
+				execSync("ollama list | grep -q 'glm-5.*cloud'", { stdio: "ignore" });
 			} catch {
-				console.log("Pulling gpt-oss:20b model for Ollama tests...");
+				console.log("Pulling glm-5:cloud model for Ollama tests...");
 				try {
-					execSync("ollama pull gpt-oss:20b", { stdio: "inherit" });
+					execSync("ollama pull glm-5:cloud", { stdio: "inherit" });
 				} catch (_e) {
-					console.warn("Failed to pull gpt-oss:20b model, tests will be skipped");
+					console.warn("Failed to pull glm-5:cloud model, tests will be skipped");
 					return;
 				}
 			}
@@ -1355,13 +1355,13 @@ describe("Generate E2E Tests", () => {
 			});
 
 			llm = {
-				id: "gpt-oss:20b",
+				id: "glm-5:cloud",
 				api: "openai-completions",
 				provider: "ollama",
 				baseUrl: "http://localhost:11434/v1",
 				reasoning: true,
 				input: ["text"],
-				contextWindow: 128000,
+				contextWindow: 200000,
 				maxTokens: 16000,
 				cost: {
 					input: 0,
@@ -1369,7 +1369,7 @@ describe("Generate E2E Tests", () => {
 					cacheRead: 0,
 					cacheWrite: 0,
 				},
-				name: "Ollama GPT-OSS 20B",
+				name: "Ollama GLM-5 Cloud",
 			};
 		}, 30000); // 30 second timeout for setup
 

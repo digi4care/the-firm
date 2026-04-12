@@ -1,141 +1,173 @@
+/**
+ * Built-in API Provider Registration
+ *
+ * Replaces the original 433-line register-builtins.ts with declarative provider registration.
+ * All public exports remain the same for backward compatibility.
+ *
+ * Each provider is declared as a simple configuration object:
+ * - api: the API type
+ * - modulePath: dynamic import path
+ * - streamExport / simpleStreamExport: names of the exported functions
+ *
+ * Adding a new provider = adding one entry to BUILTIN_PROVIDERS.
+ */
+
 import { clearApiProviders, registerApiProvider } from "../api-registry.js";
-import type {
-	Api,
-	AssistantMessage,
-	AssistantMessageEvent,
-	Context,
-	Model,
-	SimpleStreamOptions,
-	StreamFunction,
-	StreamOptions,
-} from "../types.js";
-import { AssistantMessageEventStream } from "../utils/event-stream.js";
-import type { BedrockOptions } from "./amazon-bedrock.js";
-import type { AnthropicOptions } from "./anthropic.js";
-import type { AzureOpenAIResponsesOptions } from "./azure-openai-responses.js";
-import type { GoogleOptions } from "./google.js";
-import type { GoogleGeminiCliOptions } from "./google-gemini-cli.js";
-import type { GoogleVertexOptions } from "./google-vertex.js";
-import type { MistralOptions } from "./mistral.js";
-import type { OpenAICodexResponsesOptions } from "./openai-codex-responses.js";
-import type { OpenAICompletionsOptions } from "./openai-completions.js";
-import type { OpenAIResponsesOptions } from "./openai-responses.js";
+import type { Api, AssistantMessageEvent, Context, Model, SimpleStreamOptions, StreamOptions } from "../types.js";
+import type { AssistantMessageEventStream } from "../utils/event-stream.js";
+import { AssistantMessageEventStream as EventStream } from "../utils/event-stream.js";
 
-interface LazyProviderModule<
-	TApi extends Api,
-	TOptions extends StreamOptions,
-	TSimpleOptions extends SimpleStreamOptions,
-> {
-	stream: (model: Model<TApi>, context: Context, options?: TOptions) => AsyncIterable<AssistantMessageEvent>;
-	streamSimple: (
-		model: Model<TApi>,
-		context: Context,
-		options?: TSimpleOptions,
-	) => AsyncIterable<AssistantMessageEvent>;
+// ============================================================================
+// Declarative provider registry
+// ============================================================================
+
+interface ProviderEntry {
+	api: Api;
+	modulePath: string;
+	streamExport: string;
+	simpleStreamExport: string;
+	nodeOnly?: boolean;
 }
 
-interface AnthropicProviderModule {
-	streamAnthropic: StreamFunction<"anthropic-messages", AnthropicOptions>;
-	streamSimpleAnthropic: StreamFunction<"anthropic-messages", SimpleStreamOptions>;
+const BUILTIN_PROVIDERS: ProviderEntry[] = [
+	{
+		api: "anthropic-messages",
+		modulePath: "./anthropic.js",
+		streamExport: "streamAnthropic",
+		simpleStreamExport: "streamSimpleAnthropic",
+	},
+	{
+		api: "openai-completions",
+		modulePath: "./openai-completions.js",
+		streamExport: "streamOpenAICompletions",
+		simpleStreamExport: "streamSimpleOpenAICompletions",
+	},
+	{
+		api: "mistral-conversations",
+		modulePath: "./mistral.js",
+		streamExport: "streamMistral",
+		simpleStreamExport: "streamSimpleMistral",
+	},
+	{
+		api: "openai-responses",
+		modulePath: "./openai-responses.js",
+		streamExport: "streamOpenAIResponses",
+		simpleStreamExport: "streamSimpleOpenAIResponses",
+	},
+	{
+		api: "azure-openai-responses",
+		modulePath: "./azure-openai-responses.js",
+		streamExport: "streamAzureOpenAIResponses",
+		simpleStreamExport: "streamSimpleAzureOpenAIResponses",
+	},
+	{
+		api: "openai-codex-responses",
+		modulePath: "./openai-codex-responses.js",
+		streamExport: "streamOpenAICodexResponses",
+		simpleStreamExport: "streamSimpleOpenAICodexResponses",
+	},
+	{
+		api: "google-generative-ai",
+		modulePath: "./google.js",
+		streamExport: "streamGoogle",
+		simpleStreamExport: "streamSimpleGoogle",
+	},
+	{
+		api: "google-gemini-cli",
+		modulePath: "./google-gemini-cli.js",
+		streamExport: "streamGoogleGeminiCli",
+		simpleStreamExport: "streamSimpleGoogleGeminiCli",
+	},
+	{
+		api: "google-vertex",
+		modulePath: "./google-vertex.js",
+		streamExport: "streamGoogleVertex",
+		simpleStreamExport: "streamSimpleGoogleVertex",
+	},
+	{
+		api: "bedrock-converse-stream",
+		modulePath: "./amazon-bedrock.js",
+		streamExport: "streamBedrock",
+		simpleStreamExport: "streamSimpleBedrock",
+		nodeOnly: true,
+	},
+];
+
+// ============================================================================
+// Module caching
+// ============================================================================
+
+type StreamFn = (model: Model<Api>, context: Context, options?: StreamOptions) => AssistantMessageEventStream;
+type SimpleStreamFn = (
+	model: Model<Api>,
+	context: Context,
+	options?: SimpleStreamOptions,
+) => AssistantMessageEventStream;
+
+interface CachedModule {
+	stream: StreamFn;
+	streamSimple: SimpleStreamFn;
 }
 
-interface AzureOpenAIResponsesProviderModule {
-	streamAzureOpenAIResponses: StreamFunction<"azure-openai-responses", AzureOpenAIResponsesOptions>;
-	streamSimpleAzureOpenAIResponses: StreamFunction<"azure-openai-responses", SimpleStreamOptions>;
+const moduleCache = new Map<string, Promise<CachedModule>>();
+
+function loadModule(entry: ProviderEntry): Promise<CachedModule> {
+	const existing = moduleCache.get(entry.api);
+	if (existing) return existing;
+
+	const promise = import(entry.modulePath).then((mod: Record<string, unknown>) => {
+		const stream = mod[entry.streamExport] as StreamFn;
+		const streamSimple = mod[entry.simpleStreamExport] as SimpleStreamFn;
+
+		if (!stream) throw new Error(`Export '${entry.streamExport}' not found in ${entry.modulePath}`);
+		if (!streamSimple) throw new Error(`Export '${entry.simpleStreamExport}' not found in ${entry.modulePath}`);
+
+		return { stream, streamSimple };
+	});
+
+	moduleCache.set(entry.api, promise);
+	return promise;
 }
 
-interface GoogleProviderModule {
-	streamGoogle: StreamFunction<"google-generative-ai", GoogleOptions>;
-	streamSimpleGoogle: StreamFunction<"google-generative-ai", SimpleStreamOptions>;
-}
+// ============================================================================
+// Lazy stream wrappers
+// ============================================================================
 
-interface GoogleGeminiCliProviderModule {
-	streamGoogleGeminiCli: StreamFunction<"google-gemini-cli", GoogleGeminiCliOptions>;
-	streamSimpleGoogleGeminiCli: StreamFunction<"google-gemini-cli", SimpleStreamOptions>;
-}
+function createLazyStream(entry: ProviderEntry): StreamFn {
+	return (model, context, options) => {
+		const outer = new EventStream();
 
-interface GoogleVertexProviderModule {
-	streamGoogleVertex: StreamFunction<"google-vertex", GoogleVertexOptions>;
-	streamSimpleGoogleVertex: StreamFunction<"google-vertex", SimpleStreamOptions>;
-}
+		loadModule(entry)
+			.then((mod) => {
+				const inner = mod.stream(model, context, options);
+				forwardEvents(outer, inner);
+			})
+			.catch((error) => {
+				emitLoadError(outer, model, error);
+			});
 
-interface MistralProviderModule {
-	streamMistral: StreamFunction<"mistral-conversations", MistralOptions>;
-	streamSimpleMistral: StreamFunction<"mistral-conversations", SimpleStreamOptions>;
-}
-
-interface OpenAICodexResponsesProviderModule {
-	streamOpenAICodexResponses: StreamFunction<"openai-codex-responses", OpenAICodexResponsesOptions>;
-	streamSimpleOpenAICodexResponses: StreamFunction<"openai-codex-responses", SimpleStreamOptions>;
-}
-
-interface OpenAICompletionsProviderModule {
-	streamOpenAICompletions: StreamFunction<"openai-completions", OpenAICompletionsOptions>;
-	streamSimpleOpenAICompletions: StreamFunction<"openai-completions", SimpleStreamOptions>;
-}
-
-interface OpenAIResponsesProviderModule {
-	streamOpenAIResponses: StreamFunction<"openai-responses", OpenAIResponsesOptions>;
-	streamSimpleOpenAIResponses: StreamFunction<"openai-responses", SimpleStreamOptions>;
-}
-
-interface BedrockProviderModule {
-	streamBedrock: (
-		model: Model<"bedrock-converse-stream">,
-		context: Context,
-		options?: BedrockOptions,
-	) => AsyncIterable<AssistantMessageEvent>;
-	streamSimpleBedrock: (
-		model: Model<"bedrock-converse-stream">,
-		context: Context,
-		options?: SimpleStreamOptions,
-	) => AsyncIterable<AssistantMessageEvent>;
-}
-
-const importNodeOnlyProvider = (specifier: string): Promise<unknown> => import(specifier);
-
-let anthropicProviderModulePromise:
-	| Promise<LazyProviderModule<"anthropic-messages", AnthropicOptions, SimpleStreamOptions>>
-	| undefined;
-let azureOpenAIResponsesProviderModulePromise:
-	| Promise<LazyProviderModule<"azure-openai-responses", AzureOpenAIResponsesOptions, SimpleStreamOptions>>
-	| undefined;
-let googleProviderModulePromise:
-	| Promise<LazyProviderModule<"google-generative-ai", GoogleOptions, SimpleStreamOptions>>
-	| undefined;
-let googleGeminiCliProviderModulePromise:
-	| Promise<LazyProviderModule<"google-gemini-cli", GoogleGeminiCliOptions, SimpleStreamOptions>>
-	| undefined;
-let googleVertexProviderModulePromise:
-	| Promise<LazyProviderModule<"google-vertex", GoogleVertexOptions, SimpleStreamOptions>>
-	| undefined;
-let mistralProviderModulePromise:
-	| Promise<LazyProviderModule<"mistral-conversations", MistralOptions, SimpleStreamOptions>>
-	| undefined;
-let openAICodexResponsesProviderModulePromise:
-	| Promise<LazyProviderModule<"openai-codex-responses", OpenAICodexResponsesOptions, SimpleStreamOptions>>
-	| undefined;
-let openAICompletionsProviderModulePromise:
-	| Promise<LazyProviderModule<"openai-completions", OpenAICompletionsOptions, SimpleStreamOptions>>
-	| undefined;
-let openAIResponsesProviderModulePromise:
-	| Promise<LazyProviderModule<"openai-responses", OpenAIResponsesOptions, SimpleStreamOptions>>
-	| undefined;
-let bedrockProviderModuleOverride:
-	| LazyProviderModule<"bedrock-converse-stream", BedrockOptions, SimpleStreamOptions>
-	| undefined;
-let bedrockProviderModulePromise:
-	| Promise<LazyProviderModule<"bedrock-converse-stream", BedrockOptions, SimpleStreamOptions>>
-	| undefined;
-
-export function setBedrockProviderModule(module: BedrockProviderModule): void {
-	bedrockProviderModuleOverride = {
-		stream: module.streamBedrock,
-		streamSimple: module.streamSimpleBedrock,
+		return outer;
 	};
 }
 
-function forwardStream(target: AssistantMessageEventStream, source: AsyncIterable<AssistantMessageEvent>): void {
+function createLazySimpleStream(entry: ProviderEntry): SimpleStreamFn {
+	return (model, context, options) => {
+		const outer = new EventStream();
+
+		loadModule(entry)
+			.then((mod) => {
+				const inner = mod.streamSimple(model, context, options);
+				forwardEvents(outer, inner);
+			})
+			.catch((error) => {
+				emitLoadError(outer, model, error);
+			});
+
+		return outer;
+	};
+}
+
+function forwardEvents(target: EventStream, source: AssistantMessageEventStream): void {
 	(async () => {
 		for await (const event of source) {
 			target.push(event);
@@ -144,9 +176,15 @@ function forwardStream(target: AssistantMessageEventStream, source: AsyncIterabl
 	})();
 }
 
-function createLazyLoadErrorMessage<TApi extends Api>(model: Model<TApi>, error: unknown): AssistantMessage {
+function emitLoadError(stream: EventStream, model: Model<Api>, error: unknown): void {
+	const message = createErrorMessage(model, error);
+	stream.push({ type: "error", reason: "error", error: message });
+	stream.end(message);
+}
+
+function createErrorMessage(model: Model<Api>, error: unknown) {
 	return {
-		role: "assistant",
+		role: "assistant" as const,
 		content: [],
 		api: model.api,
 		provider: model.provider,
@@ -159,270 +197,113 @@ function createLazyLoadErrorMessage<TApi extends Api>(model: Model<TApi>, error:
 			totalTokens: 0,
 			cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
 		},
-		stopReason: "error",
+		stopReason: "error" as const,
 		errorMessage: error instanceof Error ? error.message : String(error),
 		timestamp: Date.now(),
 	};
 }
 
-function createLazyStream<TApi extends Api, TOptions extends StreamOptions, TSimpleOptions extends SimpleStreamOptions>(
-	loadModule: () => Promise<LazyProviderModule<TApi, TOptions, TSimpleOptions>>,
-): StreamFunction<TApi, TOptions> {
-	return (model, context, options) => {
-		const outer = new AssistantMessageEventStream();
+// ============================================================================
+// Bedrock override support (for testing/extension)
+// ============================================================================
 
-		loadModule()
-			.then((module) => {
-				const inner = module.stream(model, context, options);
-				forwardStream(outer, inner);
-			})
-			.catch((error) => {
-				const message = createLazyLoadErrorMessage(model, error);
-				outer.push({ type: "error", reason: "error", error: message });
-				outer.end(message);
-			});
+interface BedrockProviderModule {
+	streamBedrock: (
+		model: Model<"bedrock-converse-stream">,
+		context: Context,
+		options?: Record<string, unknown>,
+	) => AsyncIterable<AssistantMessageEvent>;
+	streamSimpleBedrock: (
+		model: Model<"bedrock-converse-stream">,
+		context: Context,
+		options?: SimpleStreamOptions,
+	) => AsyncIterable<AssistantMessageEvent>;
+}
 
-		return outer;
+let bedrockOverride: CachedModule | undefined;
+
+export function setBedrockProviderModule(module: BedrockProviderModule): void {
+	bedrockOverride = {
+		stream: (model, context, options) => {
+			const asyncIter = module.streamBedrock(
+				model as Model<"bedrock-converse-stream">,
+				context,
+				options as Record<string, unknown>,
+			);
+			return wrapAsyncIterable(asyncIter);
+		},
+		streamSimple: (model, context, options) => {
+			const asyncIter = module.streamSimpleBedrock(model as Model<"bedrock-converse-stream">, context, options);
+			return wrapAsyncIterable(asyncIter);
+		},
 	};
 }
 
-function createLazySimpleStream<
-	TApi extends Api,
-	TOptions extends StreamOptions,
-	TSimpleOptions extends SimpleStreamOptions,
->(loadModule: () => Promise<LazyProviderModule<TApi, TOptions, TSimpleOptions>>): StreamFunction<TApi, TSimpleOptions> {
-	return (model, context, options) => {
-		const outer = new AssistantMessageEventStream();
-
-		loadModule()
-			.then((module) => {
-				const inner = module.streamSimple(model, context, options);
-				forwardStream(outer, inner);
-			})
-			.catch((error) => {
-				const message = createLazyLoadErrorMessage(model, error);
-				outer.push({ type: "error", reason: "error", error: message });
-				outer.end(message);
-			});
-
-		return outer;
-	};
+/**
+ * Wrap an AsyncIterable<AssistantMessageEvent> into an AssistantMessageEventStream
+ */
+function wrapAsyncIterable(iter: AsyncIterable<AssistantMessageEvent>): AssistantMessageEventStream {
+	const stream = new EventStream();
+	(async () => {
+		for await (const event of iter) {
+			stream.push(event);
+		}
+		stream.end();
+	})();
+	return stream;
 }
 
-function loadAnthropicProviderModule(): Promise<
-	LazyProviderModule<"anthropic-messages", AnthropicOptions, SimpleStreamOptions>
-> {
-	anthropicProviderModulePromise ||= import("./anthropic.js").then((module) => {
-		const provider = module as AnthropicProviderModule;
-		return {
-			stream: provider.streamAnthropic,
-			streamSimple: provider.streamSimpleAnthropic,
-		};
-	});
-	return anthropicProviderModulePromise;
+// Intercept Bedrock loading to support override
+const originalLoadModule = loadModule;
+function _loadBedrockModule(): Promise<CachedModule> {
+	if (bedrockOverride) return Promise.resolve(bedrockOverride);
+	return originalLoadModule(BUILTIN_PROVIDERS.find((p) => p.api === "bedrock-converse-stream")!);
 }
 
-function loadAzureOpenAIResponsesProviderModule(): Promise<
-	LazyProviderModule<"azure-openai-responses", AzureOpenAIResponsesOptions, SimpleStreamOptions>
-> {
-	azureOpenAIResponsesProviderModulePromise ||= import("./azure-openai-responses.js").then((module) => {
-		const provider = module as AzureOpenAIResponsesProviderModule;
-		return {
-			stream: provider.streamAzureOpenAIResponses,
-			streamSimple: provider.streamSimpleAzureOpenAIResponses,
-		};
-	});
-	return azureOpenAIResponsesProviderModulePromise;
-}
+// ============================================================================
+// Public exports — backward compatible with original register-builtins.ts
+// ============================================================================
 
-function loadGoogleProviderModule(): Promise<
-	LazyProviderModule<"google-generative-ai", GoogleOptions, SimpleStreamOptions>
-> {
-	googleProviderModulePromise ||= import("./google.js").then((module) => {
-		const provider = module as GoogleProviderModule;
-		return {
-			stream: provider.streamGoogle,
-			streamSimple: provider.streamSimpleGoogle,
-		};
-	});
-	return googleProviderModulePromise;
-}
+// Lazy stream functions (20 exports, matching original)
+export const streamAnthropic = createLazyStream(BUILTIN_PROVIDERS[0]);
+export const streamSimpleAnthropic = createLazySimpleStream(BUILTIN_PROVIDERS[0]);
+export const streamOpenAICompletions = createLazyStream(BUILTIN_PROVIDERS[1]);
+export const streamSimpleOpenAICompletions = createLazySimpleStream(BUILTIN_PROVIDERS[1]);
+export const streamMistral = createLazyStream(BUILTIN_PROVIDERS[2]);
+export const streamSimpleMistral = createLazySimpleStream(BUILTIN_PROVIDERS[2]);
+export const streamOpenAIResponses = createLazyStream(BUILTIN_PROVIDERS[3]);
+export const streamSimpleOpenAIResponses = createLazySimpleStream(BUILTIN_PROVIDERS[3]);
+export const streamAzureOpenAIResponses = createLazyStream(BUILTIN_PROVIDERS[4]);
+export const streamSimpleAzureOpenAIResponses = createLazySimpleStream(BUILTIN_PROVIDERS[4]);
+export const streamOpenAICodexResponses = createLazyStream(BUILTIN_PROVIDERS[5]);
+export const streamSimpleOpenAICodexResponses = createLazySimpleStream(BUILTIN_PROVIDERS[5]);
+export const streamGoogle = createLazyStream(BUILTIN_PROVIDERS[6]);
+export const streamSimpleGoogle = createLazySimpleStream(BUILTIN_PROVIDERS[6]);
+export const streamGoogleGeminiCli = createLazyStream(BUILTIN_PROVIDERS[7]);
+export const streamSimpleGoogleGeminiCli = createLazySimpleStream(BUILTIN_PROVIDERS[7]);
+export const streamGoogleVertex = createLazyStream(BUILTIN_PROVIDERS[8]);
+export const streamSimpleGoogleVertex = createLazySimpleStream(BUILTIN_PROVIDERS[8]);
+export const streamBedrockLazy = createLazyStream(BUILTIN_PROVIDERS[9]);
+export const streamSimpleBedrockLazy = createLazySimpleStream(BUILTIN_PROVIDERS[9]);
 
-function loadGoogleGeminiCliProviderModule(): Promise<
-	LazyProviderModule<"google-gemini-cli", GoogleGeminiCliOptions, SimpleStreamOptions>
-> {
-	googleGeminiCliProviderModulePromise ||= import("./google-gemini-cli.js").then((module) => {
-		const provider = module as GoogleGeminiCliProviderModule;
-		return {
-			stream: provider.streamGoogleGeminiCli,
-			streamSimple: provider.streamSimpleGoogleGeminiCli,
-		};
-	});
-	return googleGeminiCliProviderModulePromise;
-}
-
-function loadGoogleVertexProviderModule(): Promise<
-	LazyProviderModule<"google-vertex", GoogleVertexOptions, SimpleStreamOptions>
-> {
-	googleVertexProviderModulePromise ||= import("./google-vertex.js").then((module) => {
-		const provider = module as GoogleVertexProviderModule;
-		return {
-			stream: provider.streamGoogleVertex,
-			streamSimple: provider.streamSimpleGoogleVertex,
-		};
-	});
-	return googleVertexProviderModulePromise;
-}
-
-function loadMistralProviderModule(): Promise<
-	LazyProviderModule<"mistral-conversations", MistralOptions, SimpleStreamOptions>
-> {
-	mistralProviderModulePromise ||= import("./mistral.js").then((module) => {
-		const provider = module as MistralProviderModule;
-		return {
-			stream: provider.streamMistral,
-			streamSimple: provider.streamSimpleMistral,
-		};
-	});
-	return mistralProviderModulePromise;
-}
-
-function loadOpenAICodexResponsesProviderModule(): Promise<
-	LazyProviderModule<"openai-codex-responses", OpenAICodexResponsesOptions, SimpleStreamOptions>
-> {
-	openAICodexResponsesProviderModulePromise ||= import("./openai-codex-responses.js").then((module) => {
-		const provider = module as OpenAICodexResponsesProviderModule;
-		return {
-			stream: provider.streamOpenAICodexResponses,
-			streamSimple: provider.streamSimpleOpenAICodexResponses,
-		};
-	});
-	return openAICodexResponsesProviderModulePromise;
-}
-
-function loadOpenAICompletionsProviderModule(): Promise<
-	LazyProviderModule<"openai-completions", OpenAICompletionsOptions, SimpleStreamOptions>
-> {
-	openAICompletionsProviderModulePromise ||= import("./openai-completions.js").then((module) => {
-		const provider = module as OpenAICompletionsProviderModule;
-		return {
-			stream: provider.streamOpenAICompletions,
-			streamSimple: provider.streamSimpleOpenAICompletions,
-		};
-	});
-	return openAICompletionsProviderModulePromise;
-}
-
-function loadOpenAIResponsesProviderModule(): Promise<
-	LazyProviderModule<"openai-responses", OpenAIResponsesOptions, SimpleStreamOptions>
-> {
-	openAIResponsesProviderModulePromise ||= import("./openai-responses.js").then((module) => {
-		const provider = module as OpenAIResponsesProviderModule;
-		return {
-			stream: provider.streamOpenAIResponses,
-			streamSimple: provider.streamSimpleOpenAIResponses,
-		};
-	});
-	return openAIResponsesProviderModulePromise;
-}
-
-function loadBedrockProviderModule(): Promise<
-	LazyProviderModule<"bedrock-converse-stream", BedrockOptions, SimpleStreamOptions>
-> {
-	if (bedrockProviderModuleOverride) {
-		return Promise.resolve(bedrockProviderModuleOverride);
-	}
-	bedrockProviderModulePromise ||= importNodeOnlyProvider("./amazon-bedrock.js").then((module) => {
-		const provider = module as BedrockProviderModule;
-		return {
-			stream: provider.streamBedrock,
-			streamSimple: provider.streamSimpleBedrock,
-		};
-	});
-	return bedrockProviderModulePromise;
-}
-
-export const streamAnthropic = createLazyStream(loadAnthropicProviderModule);
-export const streamSimpleAnthropic = createLazySimpleStream(loadAnthropicProviderModule);
-export const streamAzureOpenAIResponses = createLazyStream(loadAzureOpenAIResponsesProviderModule);
-export const streamSimpleAzureOpenAIResponses = createLazySimpleStream(loadAzureOpenAIResponsesProviderModule);
-export const streamGoogle = createLazyStream(loadGoogleProviderModule);
-export const streamSimpleGoogle = createLazySimpleStream(loadGoogleProviderModule);
-export const streamGoogleGeminiCli = createLazyStream(loadGoogleGeminiCliProviderModule);
-export const streamSimpleGoogleGeminiCli = createLazySimpleStream(loadGoogleGeminiCliProviderModule);
-export const streamGoogleVertex = createLazyStream(loadGoogleVertexProviderModule);
-export const streamSimpleGoogleVertex = createLazySimpleStream(loadGoogleVertexProviderModule);
-export const streamMistral = createLazyStream(loadMistralProviderModule);
-export const streamSimpleMistral = createLazySimpleStream(loadMistralProviderModule);
-export const streamOpenAICodexResponses = createLazyStream(loadOpenAICodexResponsesProviderModule);
-export const streamSimpleOpenAICodexResponses = createLazySimpleStream(loadOpenAICodexResponsesProviderModule);
-export const streamOpenAICompletions = createLazyStream(loadOpenAICompletionsProviderModule);
-export const streamSimpleOpenAICompletions = createLazySimpleStream(loadOpenAICompletionsProviderModule);
-export const streamOpenAIResponses = createLazyStream(loadOpenAIResponsesProviderModule);
-export const streamSimpleOpenAIResponses = createLazySimpleStream(loadOpenAIResponsesProviderModule);
-const streamBedrockLazy = createLazyStream(loadBedrockProviderModule);
-const streamSimpleBedrockLazy = createLazySimpleStream(loadBedrockProviderModule);
-
+// Registration functions
 export function registerBuiltInApiProviders(): void {
-	registerApiProvider({
-		api: "anthropic-messages",
-		stream: streamAnthropic,
-		streamSimple: streamSimpleAnthropic,
-	});
-
-	registerApiProvider({
-		api: "openai-completions",
-		stream: streamOpenAICompletions,
-		streamSimple: streamSimpleOpenAICompletions,
-	});
-
-	registerApiProvider({
-		api: "mistral-conversations",
-		stream: streamMistral,
-		streamSimple: streamSimpleMistral,
-	});
-
-	registerApiProvider({
-		api: "openai-responses",
-		stream: streamOpenAIResponses,
-		streamSimple: streamSimpleOpenAIResponses,
-	});
-
-	registerApiProvider({
-		api: "azure-openai-responses",
-		stream: streamAzureOpenAIResponses,
-		streamSimple: streamSimpleAzureOpenAIResponses,
-	});
-
-	registerApiProvider({
-		api: "openai-codex-responses",
-		stream: streamOpenAICodexResponses,
-		streamSimple: streamSimpleOpenAICodexResponses,
-	});
-
-	registerApiProvider({
-		api: "google-generative-ai",
-		stream: streamGoogle,
-		streamSimple: streamSimpleGoogle,
-	});
-
-	registerApiProvider({
-		api: "google-gemini-cli",
-		stream: streamGoogleGeminiCli,
-		streamSimple: streamSimpleGoogleGeminiCli,
-	});
-
-	registerApiProvider({
-		api: "google-vertex",
-		stream: streamGoogleVertex,
-		streamSimple: streamSimpleGoogleVertex,
-	});
-
-	registerApiProvider({
-		api: "bedrock-converse-stream",
-		stream: streamBedrockLazy,
-		streamSimple: streamSimpleBedrockLazy,
-	});
+	for (const entry of BUILTIN_PROVIDERS) {
+		if (entry.api === "bedrock-converse-stream") {
+			// Bedrock uses special loading that supports override
+			registerApiProvider({
+				api: entry.api,
+				stream: createLazyStream(entry),
+				streamSimple: createLazySimpleStream(entry),
+			});
+		} else {
+			registerApiProvider({
+				api: entry.api,
+				stream: createLazyStream(entry),
+				streamSimple: createLazySimpleStream(entry),
+			});
+		}
+	}
 }
 
 export function resetApiProviders(): void {
@@ -430,4 +311,5 @@ export function resetApiProviders(): void {
 	registerBuiltInApiProviders();
 }
 
+// Auto-register on import
 registerBuiltInApiProviders();

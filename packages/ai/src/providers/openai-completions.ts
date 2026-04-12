@@ -29,6 +29,15 @@ import type {
 import { AssistantMessageEventStream } from "../utils/event-stream.js";
 import { parseStreamingJson } from "../utils/json-parse.js";
 import { sanitizeSurrogates } from "../utils/sanitize-unicode.js";
+
+/**
+ * Generate a fallback tool call ID when the provider doesn't send one.
+ * Follows Vercel AI SDK pattern: toolCall.id ?? generateId().
+ */
+function generateToolCallId(): string {
+	return `tc_${globalThis.crypto.randomUUID().replace(/-/g, "").slice(0, 24)}`;
+}
+
 import { buildCopilotDynamicHeaders, hasCopilotVisionInput } from "./github-copilot-headers.js";
 import { buildBaseOptions, clampReasoning } from "./simple-options.js";
 import { transformMessages } from "./transform-messages.js";
@@ -230,7 +239,7 @@ export const streamOpenAICompletions: StreamFunction<"openai-completions", OpenA
 								finishCurrentBlock(currentBlock);
 								currentBlock = {
 									type: "toolCall",
-									id: toolCall.id || "",
+									id: toolCall.id || generateToolCallId(),
 									name: toolCall.function?.name || "",
 									arguments: {},
 									partialArgs: "",
