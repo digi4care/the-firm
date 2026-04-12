@@ -11,7 +11,7 @@
  * Ported from oh-my-pi's dedicated kimi.ts provider.
  */
 
-import type { Api, AssistantMessage, Context, Model, SimpleStreamOptions, StreamFunction } from "../types.js";
+import type { Api, AssistantMessage, Context, Message, Model, SimpleStreamOptions, StreamFunction } from "../types.js";
 import { AssistantMessageEventStream } from "../utils/event-stream.js";
 import { getKimiCommonHeaders } from "../utils/oauth/index.js";
 import { streamAnthropic } from "./anthropic.js";
@@ -71,7 +71,28 @@ export const streamKimi: StreamFunction<"openai-completions", KimiOptions> = (
 					options?.thinkingBudgets,
 				);
 
-				const innerStream = streamAnthropic(anthropicModel, context, {
+				// Normalize message api/provider/model to match the synthetic Anthropic model.
+				// Without this, transformMessages sees isSameModel=false (because stored messages
+				// have api="openai-completions" but the synthetic model has api="anthropic-messages"),
+				// which causes it to drop thinking blocks from tool-call assistant messages.
+				// Kimi's Anthropic API then rejects the request: "reasoning_content is missing in
+				// assistant tool call message at index N".
+				const anthropicContext: Context = {
+					...context,
+					messages: context.messages.map((msg) => {
+						if (msg.role === "assistant") {
+							return {
+								...msg,
+								api: "anthropic-messages" as Api,
+								provider: model.provider,
+								model: model.id,
+							};
+						}
+						return msg;
+					}),
+				};
+
+				const innerStream = streamAnthropic(anthropicModel, anthropicContext, {
 					apiKey: options?.apiKey,
 					temperature: options?.temperature,
 					maxTokens: adjusted.maxTokens,
