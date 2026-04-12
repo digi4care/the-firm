@@ -1,0 +1,38 @@
+config:
+  line-length:
+    line_length: 300
+    heading_line_length: 300
+    code_block_line_length: 300
+    code_blocks: true
+    tables: false
+    headings: true
+    strict: false
+    stern: false
+
+  ul-style: false
+  blanks-around-headings: false
+  no-duplicate-heading: false
+  ol-prefix: false
+  blanks-around-fences: false
+  blanks-around-lists: false
+  no-inline-html: false
+  no-bare-urls: false
+  no-emphasis-as-heading: false
+  no-space-in-code: false
+  fenced-code-language: false
+  first-line-heading: false
+  table-column-count: false
+  blanks-around-tables: false
+  table-column-style: false
+
+ignores:
+  - node_modules/**
+  - dist/**
+  - build/**
+  - coverage/**
+  - docs/archive/**
+
+globs:
+  - "README.md"
+  - "AGENTS.md"
+  - "docs/**/*.md"
