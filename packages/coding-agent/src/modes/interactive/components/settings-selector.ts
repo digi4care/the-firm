@@ -14,6 +14,8 @@ import type { ThinkingLevel } from "@digi4care/the-firm-agent-core";
 import {
 	Container,
 	getCapabilities,
+	getKeybindings,
+	matchesKey,
 	type SelectItem,
 	SelectList,
 	type SelectListLayoutOptions,
@@ -340,23 +342,24 @@ export class SettingsSelectorComponent extends Container {
 	}
 
 	handleInput(data: string): void {
-		// Tab switching with Shift+Left/Right or Ctrl+Left/Right
-		if (data === "\x1b[1;5C" || data === "\x1b[1;2C") {
+		// Tab switching: Tab/Shift+Tab cycle tabs, Left/Right arrows
+		// Only switch tabs when not in a submenu (submenus need their own arrow handling)
+		if (
+			matchesKey(data, "tab") ||
+			matchesKey(data, "shift+tab") ||
+			matchesKey(data, "left") ||
+			matchesKey(data, "right")
+		) {
+			const direction = matchesKey(data, "tab") || matchesKey(data, "right") ? 1 : -1;
 			const idx = this.activeTabs.indexOf(this.activeTab);
-			if (idx < this.activeTabs.length - 1) {
-				this.switchTab(this.activeTabs[idx + 1]);
-			}
-			return;
-		}
-		if (data === "\x1b[1;5D" || data === "\x1b[1;2D") {
-			const idx = this.activeTabs.indexOf(this.activeTab);
-			if (idx > 0) {
-				this.switchTab(this.activeTabs[idx - 1]);
+			const nextIdx = idx + direction;
+			if (nextIdx >= 0 && nextIdx < this.activeTabs.length) {
+				this.switchTab(this.activeTabs[nextIdx]);
 			}
 			return;
 		}
 
-		// Delegate to current settings list
+		// Delegate all other input to current settings list
 		if (this.settingsList) {
 			this.settingsList.handleInput(data);
 		}

@@ -3365,7 +3365,7 @@ export class InteractiveMode {
 				// Value reader: reads from settings manager (falls back to registry default)
 				(path) => this.settingsManager.get(path),
 			);
-			return { component: selector, focus: selector.getSettingsList()! };
+			return { component: selector, focus: selector };
 		});
 	}
 
