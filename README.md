@@ -102,6 +102,8 @@ npm run lint:md
 
 This repository uses Beads (`bd`) for persistent issue tracking.
 
+Beads is currently configured in local-only mode for this repository, so a missing Dolt remote is expected unless that setup is changed later.
+
 Common commands:
 
 ```bash
@@ -109,10 +111,10 @@ bd ready
 bd show <id> --long
 bd update <id> --claim
 bd close <id>
-bd dolt push
 ```
 
 Run `bd prime` for the current workflow guide.
+Use `bd dolt push` only if a Beads remote is configured later.
 
 ## Archived Upstream Docs
 

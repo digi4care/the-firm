@@ -85,7 +85,9 @@ bd dolt push
 - Use `bd` for tracked work instead of ad-hoc markdown task lists.
 - Read the issue before changing code.
 - Leave resumable notes when stopping mid-stream.
-- Push Beads state with `bd dolt push` when finishing tracked work.
+- In this repo, Beads is intentionally configured in local-only mode. `.beads/` is not repo-tracked.
+- Do not treat a missing Dolt remote as an error condition unless the user explicitly changes the setup.
+- Use `bd dolt push` only if the user later configures a Beads remote for this repository.
 
 ## Git Workflow
 
