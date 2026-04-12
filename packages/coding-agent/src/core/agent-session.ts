@@ -122,10 +122,11 @@ export type AgentSessionEvent =
 			steering: readonly string[];
 			followUp: readonly string[];
 	  }
-	| { type: "compaction_start"; reason: "manual" | "threshold" | "overflow" }
+	| { type: "compaction_start"; reason: "manual" | "threshold" | "overflow"; action?: "context-full" | "handoff" }
 	| {
 			type: "compaction_end";
 			reason: "manual" | "threshold" | "overflow";
+			action?: "context-full" | "handoff";
 			result: CompactionResult | undefined;
 			aborted: boolean;
 			willRetry: boolean;
@@ -1844,11 +1845,34 @@ export class AgentSession {
 	 */
 	private async _runAutoCompaction(reason: "overflow" | "threshold", willRetry: boolean): Promise<void> {
 		const settings = this.settingsManager.getCompactionSettings();
+		const strategy = settings.strategy;
 
-		this._emit({ type: "compaction_start", reason });
+		if (strategy === "off") return;
+
+		// Strategy dispatch: handoff for threshold, context-full for overflow
+		const action = strategy === "handoff" && reason !== "overflow" ? "handoff" : "context-full";
+
+		this._emit({ type: "compaction_start", reason, action });
 		this._autoCompactionAbortController = new AbortController();
 
 		try {
+			// Handoff strategy: generate document and start new session
+			if (action === "handoff") {
+				try {
+					const handoffResult = await this.handoff(AUTO_HANDOFF_THRESHOLD_FOCUS, {
+						autoTriggered: true,
+						signal: this._autoCompactionAbortController.signal,
+					});
+					if (handoffResult) {
+						this._emit({ type: "compaction_end", reason, action, result: undefined, aborted: false, willRetry: false });
+						return;
+					}
+					// Handoff failed — fall through to context-full
+				} catch {
+					// Handoff threw — fall through to context-full
+				}
+			}
+
 			if (!this.model) {
 				this._emit({
 					type: "compaction_end",
@@ -1978,7 +2002,7 @@ export class AgentSession {
 				tokensBefore,
 				details,
 			};
-			this._emit({ type: "compaction_end", reason, result, aborted: false, willRetry });
+			this._emit({ type: "compaction_end", reason, action, result, aborted: false, willRetry });
 
 			if (willRetry) {
 				const messages = this.agent.state.messages;
