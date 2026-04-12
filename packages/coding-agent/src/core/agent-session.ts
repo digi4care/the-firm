@@ -33,6 +33,7 @@ import { type BashResult, executeBashWithOperations } from "./bash-executor.js";
 import {
 	AUTO_HANDOFF_THRESHOLD_FOCUS,
 	DEFAULT_HANDOFF_GOAL,
+	HANDOFF_AUTO_CONTINUE_PROMPT,
 	HANDOFF_SYSTEM_PROMPT,
 	wrapHandoffContext,
 } from "./compaction/handoff-prompts.js";
@@ -1865,6 +1866,16 @@ export class AgentSession {
 					});
 					if (handoffResult) {
 						this._emit({ type: "compaction_end", reason, action, result: undefined, aborted: false, willRetry: false });
+
+						// Auto-continue in the new session if enabled
+						if (this.settingsManager.getHandoffAutoContinue()) {
+							setTimeout(() => {
+								this.prompt(HANDOFF_AUTO_CONTINUE_PROMPT, {
+									expandPromptTemplates: false,
+								}).catch(() => {});
+							}, 200);
+						}
+
 						return;
 					}
 					// Handoff failed — fall through to context-full
