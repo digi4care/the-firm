@@ -1,0 +1,12 @@
+{
+  "cooldown": "7d",
+  "reject": [
+    "@digi4care/the-firm",
+    "@mariozechner/pi",
+    "@mariozechner/pi-agent-core",
+    "@mariozechner/pi-ai",
+    "@mariozechner/pi-mom",
+    "@mariozechner/pi-tui",
+    "@mariozechner/pi-web-ui"
+  ]
+}

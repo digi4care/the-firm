@@ -98,6 +98,30 @@ npm run check
 npm run lint:md
 ```
 
+## Dependency Updates
+
+This repository uses `npm-check-updates` (`ncu`) for external npm dependency review and updates.
+
+Review available updates across the root project and all workspaces:
+
+```bash
+npm run deps:check
+```
+
+Apply updates interactively:
+
+```bash
+npm run deps:update:interactive
+```
+
+Apply all allowed updates and regenerate the lockfile:
+
+```bash
+npm run deps:update
+```
+
+The repo-level `.ncurc.json` excludes internal workspace packages from this workflow. Use the versioning workflow separately for the monorepo's own lockstep package version line.
+
 ## Issue Tracking
 
 This repository uses Beads (`bd`) for persistent issue tracking.

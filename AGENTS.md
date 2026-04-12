@@ -149,6 +149,21 @@ Run markdown lint for active project docs:
 npm run lint:md
 ```
 
+Review external npm dependency updates with npm-check-updates:
+
+```bash
+npm run deps:check
+```
+
+Apply external npm dependency updates with npm-check-updates:
+
+```bash
+npm run deps:update:interactive
+npm run deps:update
+```
+
+Internal workspace package versions are managed separately from external dependency updates. Do not use npm-check-updates to rewrite the monorepo's own lockstep version line.
+
 ## GitHub and PRs
 
 When reading GitHub issues:

@@ -18,6 +18,9 @@
     "dev:tsc": "concurrently --names \"ai,web-ui\" --prefix-colors \"cyan,green\" \"cd packages/ai && npm run dev:tsc\" \"cd packages/web-ui && npm run dev:tsc\"",
     "check": "biome check --write --error-on-warnings . && tsgo --noEmit && npm run check:browser-smoke && cd packages/web-ui && npm run check",
     "check:browser-smoke": "node scripts/check-browser-smoke.mjs",
+    "deps:check": "ncu --workspaces --root --format group,installedVersion",
+    "deps:update": "ncu -u --workspaces --root --install never && npm install",
+    "deps:update:interactive": "ncu -i --workspaces --root --install never && npm install",
     "lint:md": "markdownlint-cli2 \"README.md\" \"AGENTS.md\" \"docs/**/*.md\" \"#docs/archive/**\" \"#node_modules\"",
     "lint:md:fix": "markdownlint-cli2 \"README.md\" \"AGENTS.md\" \"docs/**/*.md\" \"#docs/archive/**\" \"#node_modules\" --fix",
     "firm": "firm",
@@ -53,6 +56,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.4.0",
     "markdownlint-cli2": "^0.22.0",
+    "npm-check-updates": "^19.6.5",
     "shx": "^0.4.0",
     "tsx": "^4.20.3",
     "typescript": "^5.9.2"
