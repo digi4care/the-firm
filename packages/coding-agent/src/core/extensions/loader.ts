@@ -530,11 +530,15 @@ export async function discoverAndLoadExtensions(
 		}
 	};
 
-	// 1. Project-local extensions: cwd/.pi/extensions/
+	// 1. Project-local extensions: cwd/.the-firm/extensions/ (Firm SDK)
+	const firmExtDir = path.join(cwd, ".the-firm", "extensions");
+	addPaths(discoverExtensionsInDir(firmExtDir));
+
+	// 2. Project-local extensions: cwd/.pi/extensions/ (upstream pi SDK)
 	const localExtDir = path.join(cwd, ".pi", "extensions");
 	addPaths(discoverExtensionsInDir(localExtDir));
 
-	// 2. Global extensions: agentDir/extensions/
+	// 3. Global extensions: agentDir/extensions/
 	const globalExtDir = path.join(agentDir, "extensions");
 	addPaths(discoverExtensionsInDir(globalExtDir));
 

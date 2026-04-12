@@ -37,7 +37,8 @@ todo.md
 plans/
 .pi/hf-sessions/
 .pi/hf-sessions-backup/
-.the-firm/
+.the-firm/*
+!.the-firm/extensions/
 collect.sh
 
 # Beads / Dolt files (added by bd init)
