@@ -215,6 +215,25 @@ export {
 	type RetrySettings,
 	SettingsManager,
 } from "./core/settings-manager.js";
+
+// Declarative settings API
+export { settingsRegistry, type SettingsProvider } from "./core/settings-registry.js";
+export {
+	type SettingDef,
+	type SettingTab,
+	type SettingOption,
+	type UiMeta,
+	type BooleanDef,
+	type StringDef,
+	type NumberDef,
+	type EnumDef,
+	type ArrayDef,
+	type RecordDef,
+	SETTING_TABS,
+	TAB_METADATA,
+} from "./core/settings-schema.js";
+export { bootstrapSettings } from "./core/settings-bootstrap.js";
+
 // Skills
 export {
 	formatSkillsForPrompt,
