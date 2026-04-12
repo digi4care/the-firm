@@ -66,6 +66,9 @@ const ANTIGRAVITY_ENDPOINT_FALLBACKS = [
 	DEFAULT_ENDPOINT,
 ] as const;
 // Headers for Gemini CLI (prod endpoint)
+export function getGeminiCliHeaders() {
+	return GEMINI_CLI_HEADERS;
+}
 const GEMINI_CLI_HEADERS = {
 	"User-Agent": "google-cloud-sdk vscode_cloudshelleditor/0.1",
 	"X-Goog-Api-Client": "gl-node/22.17.0",
@@ -78,6 +81,10 @@ const GEMINI_CLI_HEADERS = {
 
 // Headers for Antigravity (sandbox endpoint) - requires specific User-Agent
 const DEFAULT_ANTIGRAVITY_VERSION = "1.21.9";
+
+export function getAntigravityAuthHeaders() {
+	return getAntigravityHeaders();
+}
 
 function getAntigravityHeaders() {
 	const version = process.env.PI_AI_ANTIGRAVITY_VERSION || DEFAULT_ANTIGRAVITY_VERSION;
