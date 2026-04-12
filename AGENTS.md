@@ -57,10 +57,15 @@ original -> development -> production
 
 For rationale, read `docs/adr/0002-versioning-strategy.md`.
 
+Release workflow reference:
+
+- `docs/releasing.md`
+
 Track upstream separately from The Firm releases:
 
 - `docs/upstream/BASELINE.md` records the current upstream base commit or tag.
 - `docs/upstream/ADOPTION-LOG.md` records relevant upstream issues, PRs, commits, and whether The Firm adopted, adapted, or rejected them.
+- `docs/upstream/WATCH-WORKFLOW.md` defines how to monitor and triage upstream issues and PRs.
 - Do not collapse upstream lineage into The Firm's own version number.
 
 ### Branch rules

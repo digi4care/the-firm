@@ -64,6 +64,7 @@ See:
 
 - `docs/upstream/BASELINE.md`
 - `docs/upstream/ADOPTION-LOG.md`
+- `docs/upstream/WATCH-WORKFLOW.md`
 - `docs/adr/0004-upstream-lineage-and-adoption.md`
 
 ## Code Quality Doctrine
@@ -107,6 +108,14 @@ Run checks:
 npm run check
 npm run lint:md
 ```
+
+## Release Workflow
+
+The Firm releases from `production`, not from `development`.
+
+See:
+
+- `docs/releasing.md`
 
 ## Dependency Updates
 
