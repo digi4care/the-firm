@@ -1,6 +1,7 @@
 import "./providers/register-builtins.js";
 
 import { getApiProvider } from "./api-registry.js";
+import { isKimiModel, streamKimi } from "./providers/kimi.js";
 import type {
 	Api,
 	AssistantMessage,
@@ -45,6 +46,9 @@ export function streamSimple<TApi extends Api>(
 	context: Context,
 	options?: SimpleStreamOptions,
 ): AssistantMessageEventStream {
+	if (isKimiModel(model)) {
+		return streamKimi(model as Model<"anthropic-messages">, context, options);
+	}
 	const provider = resolveApiProvider(model.api);
 	return provider.streamSimple(model, context, options);
 }
