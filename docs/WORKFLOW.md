@@ -89,6 +89,19 @@ git branch -d feat/42-add-sso-login
 
 Track all serious work with Beads, not ad-hoc lists.
 
+**What counts as serious work?** Any task that involves:
+- Changing code (bugfix, feature, refactor)
+- Changing documentation
+- Investigating a bug or error
+- Setting up infrastructure
+- Porting code from another repo
+
+**What does NOT need a Beads issue?**
+- Quick lookups ("what does this function do?")
+- Reading documentation
+- Answering questions about the codebase
+- Running a single command the user asked for
+
 ```bash
 bd prime                    # init
 bd ready                    # available work
@@ -103,19 +116,24 @@ bd close <id>               # close
 - Local-only mode. `.beads/` not tracked. Missing Dolt remote is not an error.
 - `bd dolt push` only if user configured a remote.
 
-### Start-of-Work (mandatory, in order)
+### Start-of-Work (mandatory, in order, no skipping)
 
-1. **Search Beads** — `bd search`, `bd ready`. Search broadly: similar bugs, regressions, symptoms, providers, past fixes.
-2. **If found** — `bd show <id> --long`. If bug is returning, treat as regression, note it.
-3. **If not found** — `bd create` with detail. Reference similar past issues.
-4. **Claim** — `bd update <id> --claim`.
-5. **Create worktree** — one per task, always:
-   ```bash
-   git worktree add .worktrees/the-firm-<id> -b <type>/<id>-<slug> development
-   ```
-   If `.worktrees/the-firm-<id>` already exists, reuse it.
-6. **Now** you may edit code/docs/config.
-7. **Update notes** during work — `bd update <id> --notes "…"`.
+> **⛔ STOP. Do not open files, run commands, edit code, or investigate anything until steps 1–5 are complete.**
+> Every serious task (bugfix, feature, refactor, docs change, investigation) must start here.
+
+| Step | Action | Evidence to record |
+|------|--------|--------------------|
+| 1. **Search** | `bd search <terms>`, `bd ready`. Search broadly: similar bugs, regressions, symptoms, provider names, model names, past fixes. Try multiple search terms. | Search terms used, issue IDs checked |
+| 2. **Read if found** | `bd show <id> --long`. If the bug returned after an earlier fix, treat as **regression**. | Relationship to earlier fix, regression status |
+| 3. **Create if missing** | `bd create` with enough detail to explain *why* the work exists. Reference related earlier issues. | New issue ID, related issue references |
+| 4. **Claim** | `bd update <id> --claim`. | — |
+| 5. **Worktree** | Create isolated workspace from `development`: | Worktree path, branch name |
+|    | ```bash | |
+|    | git worktree add .worktrees/the-firm-<id> -b <type>/<id>-<slug> development | |
+|    | ``` | |
+|    | If `.worktrees/the-firm-<id>` already exists, reuse it. | |
+| 6. **Now implement** | Only after steps 1–5. Edit code/docs/config. | Files changed, key decisions |
+| 7. **Keep notes** | `bd update <id> --notes "…"` during work. Leave resumable state if stopping mid-stream. | What was done, what remains |
 
 ### Traceability
 
