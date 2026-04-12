@@ -88,7 +88,7 @@ export abstract class OAuthCallbackFlow {
 	 */
 	async login(): Promise<OAuthCredentials> {
 		const state = this.generateState();
-		const { server, redirectUri, close } = await this.startCallbackServer(state);
+		const { redirectUri, close } = await this.startCallbackServer(state);
 
 		try {
 			const { url: authUrl, instructions } = await this.generateAuthUrl(state, redirectUri);
