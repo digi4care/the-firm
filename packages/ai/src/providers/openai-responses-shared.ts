@@ -73,6 +73,7 @@ export interface OpenAIResponsesStreamOptions {
 
 export interface ConvertResponsesMessagesOptions {
 	includeSystemPrompt?: boolean;
+	strictResponsesPairing?: boolean;
 }
 
 export interface ConvertResponsesToolsOptions {
@@ -117,6 +118,8 @@ export function convertResponsesMessages<TApi extends Api>(
 	};
 
 	const transformedMessages = transformMessages(context.messages, model, normalizeToolCallId);
+	const strictResponsesPairing = options?.strictResponsesPairing ?? true;
+	const knownCallIds = new Set<string>();
 
 	const includeSystemPrompt = options?.includeSystemPrompt ?? true;
 	if (includeSystemPrompt && context.systemPrompt) {
@@ -202,6 +205,7 @@ export function convertResponsesMessages<TApi extends Api>(
 						itemId = undefined;
 					}
 
+					knownCallIds.add(callId);
 					output.push({
 						type: "function_call",
 						id: itemId,
@@ -221,6 +225,10 @@ export function convertResponsesMessages<TApi extends Api>(
 			const hasImages = msg.content.some((c): c is ImageContent => c.type === "image");
 			const hasText = textResult.length > 0;
 			const [callId] = msg.toolCallId.split("|");
+
+			if (strictResponsesPairing && !knownCallIds.has(callId)) {
+				continue;
+			}
 
 			let output: string | ResponseFunctionCallOutputItemList;
 			if (hasImages && model.input.includes("image")) {
