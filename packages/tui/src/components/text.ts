@@ -1,5 +1,5 @@
+import { applyBackgroundToLine, visibleWidth, wrapTextWithAnsi } from "../text-layout.js";
 import type { Component } from "../tui.js";
-import { applyBackgroundToLine, visibleWidth, wrapTextWithAnsi } from "../utils.js";
 
 /**
  * Text component - displays multi-line text with word wrapping

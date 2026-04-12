@@ -1,6 +1,6 @@
 import { getKeybindings } from "../keybindings.js";
+import { truncateToWidth, visibleWidth } from "../text-layout.js";
 import type { Component } from "../tui.js";
-import { truncateToWidth, visibleWidth } from "../utils.js";
 
 const DEFAULT_PRIMARY_COLUMN_WIDTH = 32;
 const PRIMARY_COLUMN_GAP = 2;

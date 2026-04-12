@@ -2,9 +2,9 @@ import type { AutocompleteProvider, AutocompleteSuggestions, CombinedAutocomplet
 import { getKeybindings } from "../keybindings.js";
 import { decodeKittyPrintable, matchesKey } from "../keys.js";
 import { KillRing } from "../kill-ring.js";
+import { getSegmenter, isPunctuationChar, isWhitespaceChar, truncateToWidth, visibleWidth } from "../text-layout.js";
 import { type Component, CURSOR_MARKER, type Focusable, type TUI } from "../tui.js";
 import { UndoStack } from "../undo-stack.js";
-import { getSegmenter, isPunctuationChar, isWhitespaceChar, truncateToWidth, visibleWidth } from "../utils.js";
 import { SelectList, type SelectListLayoutOptions, type SelectListTheme } from "./select-list.js";
 
 const baseSegmenter = getSegmenter();
