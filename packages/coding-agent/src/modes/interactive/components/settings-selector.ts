@@ -30,6 +30,8 @@ const THINKING_DESCRIPTIONS: Record<ThinkingLevel, string> = {
 
 export interface SettingsConfig {
 	autoCompact: boolean;
+	compactionStrategy: "context-full" | "handoff" | "off";
+	handoffAutoContinue: boolean;
 	showImages: boolean;
 	autoResizeImages: boolean;
 	blockImages: boolean;
@@ -54,6 +56,8 @@ export interface SettingsConfig {
 
 export interface SettingsCallbacks {
 	onAutoCompactChange: (enabled: boolean) => void;
+	onCompactionStrategyChange: (strategy: "context-full" | "handoff" | "off") => void;
+	onHandoffAutoContinueChange: (enabled: boolean) => void;
 	onShowImagesChange: (enabled: boolean) => void;
 	onAutoResizeImagesChange: (enabled: boolean) => void;
 	onBlockImagesChange: (blocked: boolean) => void;
@@ -160,6 +164,21 @@ export class SettingsSelectorComponent extends Container {
 				label: "Auto-compact",
 				description: "Automatically compact context when it gets too large",
 				currentValue: config.autoCompact ? "true" : "false",
+				values: ["true", "false"],
+			},
+			{
+				id: "compaction-strategy",
+				label: "Compaction strategy",
+				description:
+					"How to reduce context: summarize in-place (context-full) or generate handoff document and start a new session (handoff)",
+				currentValue: config.compactionStrategy,
+				values: ["context-full", "handoff", "off"],
+			},
+			{
+				id: "handoff-auto-continue",
+				label: "Handoff auto-continue",
+				description: "After handoff, automatically prompt the agent to continue working in the new session",
+				currentValue: config.handoffAutoContinue ? "true" : "false",
 				values: ["true", "false"],
 			},
 			{
@@ -365,6 +384,12 @@ export class SettingsSelectorComponent extends Container {
 				switch (id) {
 					case "autocompact":
 						callbacks.onAutoCompactChange(newValue === "true");
+						break;
+					case "compaction-strategy":
+						callbacks.onCompactionStrategyChange(newValue as "context-full" | "handoff" | "off");
+						break;
+					case "handoff-auto-continue":
+						callbacks.onHandoffAutoContinueChange(newValue === "true");
 						break;
 					case "show-images":
 						callbacks.onShowImagesChange(newValue === "true");
