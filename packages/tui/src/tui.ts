@@ -9,7 +9,7 @@ import { performance } from "node:perf_hooks";
 import { isKeyRelease, matchesKey } from "./keys.js";
 import type { Terminal } from "./terminal.js";
 import { getCapabilities, isImageLine, setCellDimensions } from "./terminal-image.js";
-import { extractSegments, sliceByColumn, sliceWithWidth, visibleWidth } from "./utils.js";
+import { extractSegments, sliceByColumn, sliceWithWidth, visibleWidth } from "./text-layout.js";
 
 /**
  * Component interface - all components must implement this

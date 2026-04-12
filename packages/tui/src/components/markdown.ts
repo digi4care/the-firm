@@ -1,7 +1,7 @@
 import { marked, type Token } from "marked";
 import { isImageLine } from "../terminal-image.js";
+import { applyBackgroundToLine, visibleWidth, wrapTextWithAnsi } from "../text-layout.js";
 import type { Component } from "../tui.js";
-import { applyBackgroundToLine, visibleWidth, wrapTextWithAnsi } from "../utils.js";
 
 /**
  * Default text styling for markdown content.

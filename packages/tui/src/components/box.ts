@@ -1,5 +1,5 @@
+import { applyBackgroundToLine, visibleWidth } from "../text-layout.js";
 import type { Component } from "../tui.js";
-import { applyBackgroundToLine, visibleWidth } from "../utils.js";
 
 type RenderCache = {
 	childLines: string[];

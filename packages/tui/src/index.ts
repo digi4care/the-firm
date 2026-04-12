@@ -30,7 +30,7 @@ export { TruncatedText } from "./components/truncated-text.js";
 // Editor component interface (for custom editors)
 export type { EditorComponent } from "./editor-component.js";
 // Fuzzy matching
-export { type FuzzyMatch, fuzzyFilter, fuzzyMatch } from "./fuzzy.js";
+export { type FuzzyMatch, fuzzyFilter, fuzzyMatch } from "./fuzzy-matcher.js";
 // Keybindings
 export {
 	getKeybindings,
@@ -87,6 +87,8 @@ export {
 	setCellDimensions,
 	type TerminalCapabilities,
 } from "./terminal-image.js";
+// Utilities
+export { truncateToWidth, visibleWidth, wrapTextWithAnsi } from "./text-layout.js";
 export {
 	type Component,
 	Container,
@@ -100,5 +102,3 @@ export {
 	type SizeValue,
 	TUI,
 } from "./tui.js";
-// Utilities
-export { truncateToWidth, visibleWidth, wrapTextWithAnsi } from "./utils.js";

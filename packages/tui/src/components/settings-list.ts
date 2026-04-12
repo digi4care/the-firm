@@ -1,7 +1,7 @@
-import { fuzzyFilter } from "../fuzzy.js";
+import { fuzzyFilter } from "../fuzzy-matcher.js";
 import { getKeybindings } from "../keybindings.js";
+import { truncateToWidth, visibleWidth, wrapTextWithAnsi } from "../text-layout.js";
 import type { Component } from "../tui.js";
-import { truncateToWidth, visibleWidth, wrapTextWithAnsi } from "../utils.js";
 import { Input } from "./input.js";
 
 export interface SettingItem {
