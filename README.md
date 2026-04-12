@@ -40,7 +40,8 @@ development -> production
 ```
 
 - `development`: daily work branch and PR target for implementation work
-- `production`: stable release branch
+- `production`: stable release branch and release target
+- `main` is not part of the active workflow and should not be used for implementation or release work
 
 Do day-to-day work from branches created off `development`.
 

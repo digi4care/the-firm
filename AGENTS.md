@@ -71,7 +71,8 @@ Track upstream separately from The Firm releases:
 ### Branch rules
 
 - `development` is the daily work branch and the default branch for implementation work.
-- `production` is the stable release branch.
+- `production` is the stable release branch and release target.
+- `main` is not part of the active workflow and must not be used for implementation or release work.
 - Start implementation work from `development` unless the user explicitly asks otherwise.
 
 ## Beads Workflow

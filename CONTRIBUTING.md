@@ -29,6 +29,8 @@ Use Beads (`bd`) locally for execution tracking, resumable notes, and AI session
 ### Rules
 
 - Never work directly on `development`.
+- `production` is the release target.
+- `main` is not part of the active workflow and should not be used.
 - Never reintroduce the removed `original` branch.
 - Every completed change goes through a PR to `development`.
 - Close the local Beads task only after the PR is merged or the work is explicitly stopped.
