@@ -9,7 +9,7 @@ The Firm does **not** use upstream version numbers as its own release versions. 
 - Upstream repository: `badlogic/pi-mono`
 - Upstream branch reference: `main`
 - Current recorded upstream base commit: `c779c14e91bc2ea65143e59b0dc1baf3646ba8c9`
-- Current local mirror branch: `original`
+- Upstream baseline is tracked by repository, branch reference, and commit hash.
 - Daily integration branch: `development`
 
 ## How to Update This File
