@@ -56,6 +56,16 @@ The Firm uses its own semantic version line.
 
 See `docs/adr/0002-versioning-strategy.md`.
 
+## Upstream Lineage
+
+The Firm versions itself independently, but it still tracks its upstream pi baseline and relevant adopted upstream fixes separately.
+
+See:
+
+- `docs/upstream/BASELINE.md`
+- `docs/upstream/ADOPTION-LOG.md`
+- `docs/adr/0004-upstream-lineage-and-adoption.md`
+
 ## Code Quality Doctrine
 
 The Firm enforces code quality through simplicity, boundaries, and deliberate abstraction rather than pattern cargo-culting.

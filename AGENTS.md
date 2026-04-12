@@ -57,6 +57,12 @@ original -> development -> production
 
 For rationale, read `docs/adr/0002-versioning-strategy.md`.
 
+Track upstream separately from The Firm releases:
+
+- `docs/upstream/BASELINE.md` records the current upstream base commit or tag.
+- `docs/upstream/ADOPTION-LOG.md` records relevant upstream issues, PRs, commits, and whether The Firm adopted, adapted, or rejected them.
+- Do not collapse upstream lineage into The Firm's own version number.
+
 ### Branch rules
 
 - `original` is the upstream mirror branch. Do not do product work there.
