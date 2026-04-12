@@ -1,92 +1,99 @@
 /**
  * OpenAI Codex (ChatGPT OAuth) flow
+ *
+ * NOTE: This module uses Node.js crypto and http for the OAuth callback.
+ * It is only intended for CLI use, not browser environments.
  */
-import { OAuthCallbackFlow } from "./callback-server.js";
+
+// NEVER convert to top-level imports - breaks browser/Vite builds (web-ui)
+let _randomBytes: typeof import("node:crypto").randomBytes | null = null;
+let _http: typeof import("node:http") | null = null;
+if (typeof process !== "undefined" && (process.versions?.node || process.versions?.bun)) {
+	import("node:crypto").then((m) => {
+		_randomBytes = m.randomBytes;
+	});
+	import("node:http").then((m) => {
+		_http = m;
+	});
+}
+
+import { oauthErrorHtml, oauthSuccessHtml } from "./oauth-page.js";
 import { generatePKCE } from "./pkce.js";
-import type { OAuthController, OAuthCredentials, OAuthLoginCallbacks, OAuthProviderInterface } from "./types.js";
+import type { OAuthCredentials, OAuthLoginCallbacks, OAuthPrompt, OAuthProviderInterface } from "./types.js";
 
 const CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann";
 const AUTHORIZE_URL = "https://auth.openai.com/oauth/authorize";
 const TOKEN_URL = "https://auth.openai.com/oauth/token";
-const CALLBACK_PORT = 1455;
-const CALLBACK_PATH = "/auth/callback";
+const REDIRECT_URI = "http://localhost:1455/auth/callback";
 const SCOPE = "openid profile email offline_access";
 const JWT_CLAIM_PATH = "https://api.openai.com/auth";
-const JWT_PROFILE_CLAIM = "https://api.openai.com/profile";
-const TOKEN_REQUEST_TIMEOUT_MS = 15_000;
+
+type TokenSuccess = { type: "success"; access: string; refresh: string; expires: number };
+type TokenFailure = { type: "failed" };
+type TokenResult = TokenSuccess | TokenFailure;
 
 type JwtPayload = {
 	[JWT_CLAIM_PATH]?: {
 		chatgpt_account_id?: string;
 	};
-	[JWT_PROFILE_CLAIM]?: {
-		email?: string;
-	};
 	[key: string]: unknown;
 };
+
+function createState(): string {
+	if (!_randomBytes) {
+		throw new Error("OpenAI Codex OAuth is only available in Node.js environments");
+	}
+	return _randomBytes(16).toString("hex");
+}
+
+function parseAuthorizationInput(input: string): { code?: string; state?: string } {
+	const value = input.trim();
+	if (!value) return {};
+
+	try {
+		const url = new URL(value);
+		return {
+			code: url.searchParams.get("code") ?? undefined,
+			state: url.searchParams.get("state") ?? undefined,
+		};
+	} catch {
+		// not a URL
+	}
+
+	if (value.includes("#")) {
+		const [code, state] = value.split("#", 2);
+		return { code, state };
+	}
+
+	if (value.includes("code=")) {
+		const params = new URLSearchParams(value);
+		return {
+			code: params.get("code") ?? undefined,
+			state: params.get("state") ?? undefined,
+		};
+	}
+
+	return { code: value };
+}
 
 function decodeJwt(token: string): JwtPayload | null {
 	try {
 		const parts = token.split(".");
 		if (parts.length !== 3) return null;
 		const payload = parts[1] ?? "";
-		const decoded = Buffer.from(payload, "base64").toString("utf-8");
+		const decoded = atob(payload);
 		return JSON.parse(decoded) as JwtPayload;
 	} catch {
 		return null;
 	}
 }
 
-function getTokenProfile(accessToken: string): { accountId?: string; email?: string } {
-	const payload = decodeJwt(accessToken);
-	const auth = payload?.[JWT_CLAIM_PATH];
-	const accountId = auth?.chatgpt_account_id;
-	const email = payload?.[JWT_PROFILE_CLAIM]?.email?.trim().toLowerCase();
-	return {
-		accountId: typeof accountId === "string" && accountId.length > 0 ? accountId : undefined,
-		email: typeof email === "string" && email.length > 0 ? email : undefined,
-	};
-}
-
-interface PKCE {
-	verifier: string;
-	challenge: string;
-}
-
-class OpenAICodexOAuthFlow extends OAuthCallbackFlow {
-	constructor(
-		ctrl: OAuthController,
-		private readonly pkce: PKCE,
-		private readonly originator: string,
-	) {
-		super(ctrl, CALLBACK_PORT, CALLBACK_PATH);
-	}
-
-	async generateAuthUrl(state: string, redirectUri: string): Promise<{ url: string; instructions?: string }> {
-		const searchParams = new URLSearchParams({
-			response_type: "code",
-			client_id: CLIENT_ID,
-			redirect_uri: redirectUri,
-			scope: SCOPE,
-			code_challenge: this.pkce.challenge,
-			code_challenge_method: "S256",
-			state,
-			id_token_add_organizations: "true",
-			codex_cli_simplified_flow: "true",
-			originator: this.originator,
-		});
-
-		const url = `${AUTHORIZE_URL}?${searchParams.toString()}`;
-		return { url, instructions: "A browser window should open. Complete login to finish." };
-	}
-
-	async exchangeToken(code: string, _state: string, redirectUri: string): Promise<OAuthCredentials> {
-		return exchangeCodeForToken(code, this.pkce.verifier, redirectUri);
-	}
-}
-
-async function exchangeCodeForToken(code: string, verifier: string, redirectUri: string): Promise<OAuthCredentials> {
-	const tokenResponse = await fetch(TOKEN_URL, {
+async function exchangeAuthorizationCode(
+	code: string,
+	verifier: string,
+	redirectUri: string = REDIRECT_URI,
+): Promise<TokenResult> {
+	const response = await fetch(TOKEN_URL, {
 		method: "POST",
 		headers: { "Content-Type": "application/x-www-form-urlencoded" },
 		body: new URLSearchParams({
@@ -96,102 +103,332 @@ async function exchangeCodeForToken(code: string, verifier: string, redirectUri:
 			code_verifier: verifier,
 			redirect_uri: redirectUri,
 		}),
-		signal: AbortSignal.timeout(TOKEN_REQUEST_TIMEOUT_MS),
 	});
 
-	if (!tokenResponse.ok) {
-		throw new Error(`Token exchange failed: ${tokenResponse.status}`);
+	if (!response.ok) {
+		const text = await response.text().catch(() => "");
+		console.error("[openai-codex] code->token failed:", response.status, text);
+		return { type: "failed" };
 	}
 
-	const tokenData = (await tokenResponse.json()) as {
+	const json = (await response.json()) as {
 		access_token?: string;
 		refresh_token?: string;
 		expires_in?: number;
 	};
 
-	if (!tokenData.access_token || !tokenData.refresh_token || typeof tokenData.expires_in !== "number") {
-		throw new Error("Token response missing required fields");
-	}
-
-	const { accountId, email } = getTokenProfile(tokenData.access_token);
-	if (!accountId) {
-		throw new Error("Failed to extract accountId from token");
+	if (!json.access_token || !json.refresh_token || typeof json.expires_in !== "number") {
+		console.error("[openai-codex] token response missing fields:", json);
+		return { type: "failed" };
 	}
 
 	return {
-		access: tokenData.access_token,
-		refresh: tokenData.refresh_token,
-		expires: Date.now() + tokenData.expires_in * 1000,
-		accountId,
-		email,
+		type: "success",
+		access: json.access_token,
+		refresh: json.refresh_token,
+		expires: Date.now() + json.expires_in * 1000,
 	};
+}
+
+async function refreshAccessToken(refreshToken: string): Promise<TokenResult> {
+	try {
+		const response = await fetch(TOKEN_URL, {
+			method: "POST",
+			headers: { "Content-Type": "application/x-www-form-urlencoded" },
+			body: new URLSearchParams({
+				grant_type: "refresh_token",
+				refresh_token: refreshToken,
+				client_id: CLIENT_ID,
+			}),
+		});
+
+		if (!response.ok) {
+			const text = await response.text().catch(() => "");
+			console.error("[openai-codex] Token refresh failed:", response.status, text);
+			return { type: "failed" };
+		}
+
+		const json = (await response.json()) as {
+			access_token?: string;
+			refresh_token?: string;
+			expires_in?: number;
+		};
+
+		if (!json.access_token || !json.refresh_token || typeof json.expires_in !== "number") {
+			console.error("[openai-codex] Token refresh response missing fields:", json);
+			return { type: "failed" };
+		}
+
+		return {
+			type: "success",
+			access: json.access_token,
+			refresh: json.refresh_token,
+			expires: Date.now() + json.expires_in * 1000,
+		};
+	} catch (error) {
+		console.error("[openai-codex] Token refresh error:", error);
+		return { type: "failed" };
+	}
+}
+
+async function createAuthorizationFlow(
+	originator: string = "pi",
+): Promise<{ verifier: string; state: string; url: string }> {
+	const { verifier, challenge } = await generatePKCE();
+	const state = createState();
+
+	const url = new URL(AUTHORIZE_URL);
+	url.searchParams.set("response_type", "code");
+	url.searchParams.set("client_id", CLIENT_ID);
+	url.searchParams.set("redirect_uri", REDIRECT_URI);
+	url.searchParams.set("scope", SCOPE);
+	url.searchParams.set("code_challenge", challenge);
+	url.searchParams.set("code_challenge_method", "S256");
+	url.searchParams.set("state", state);
+	url.searchParams.set("id_token_add_organizations", "true");
+	url.searchParams.set("codex_cli_simplified_flow", "true");
+	url.searchParams.set("originator", originator);
+
+	return { verifier, state, url: url.toString() };
+}
+
+type OAuthServerInfo = {
+	close: () => void;
+	cancelWait: () => void;
+	waitForCode: () => Promise<{ code: string } | null>;
+};
+
+function startLocalOAuthServer(state: string): Promise<OAuthServerInfo> {
+	if (!_http) {
+		throw new Error("OpenAI Codex OAuth is only available in Node.js environments");
+	}
+
+	let settleWait: ((value: { code: string } | null) => void) | undefined;
+	const waitForCodePromise = new Promise<{ code: string } | null>((resolve) => {
+		let settled = false;
+		settleWait = (value) => {
+			if (settled) return;
+			settled = true;
+			resolve(value);
+		};
+	});
+
+	const server = _http.createServer((req, res) => {
+		try {
+			const url = new URL(req.url || "", "http://localhost");
+			if (url.pathname !== "/auth/callback") {
+				res.statusCode = 404;
+				res.setHeader("Content-Type", "text/html; charset=utf-8");
+				res.end(oauthErrorHtml("Callback route not found."));
+				return;
+			}
+			if (url.searchParams.get("state") !== state) {
+				res.statusCode = 400;
+				res.setHeader("Content-Type", "text/html; charset=utf-8");
+				res.end(oauthErrorHtml("State mismatch."));
+				return;
+			}
+			const code = url.searchParams.get("code");
+			if (!code) {
+				res.statusCode = 400;
+				res.setHeader("Content-Type", "text/html; charset=utf-8");
+				res.end(oauthErrorHtml("Missing authorization code."));
+				return;
+			}
+			res.statusCode = 200;
+			res.setHeader("Content-Type", "text/html; charset=utf-8");
+			res.end(oauthSuccessHtml("OpenAI authentication completed. You can close this window."));
+			settleWait?.({ code });
+		} catch {
+			res.statusCode = 500;
+			res.setHeader("Content-Type", "text/html; charset=utf-8");
+			res.end(oauthErrorHtml("Internal error while processing OAuth callback."));
+		}
+	});
+
+	return new Promise((resolve) => {
+		server
+			.listen(1455, "127.0.0.1", () => {
+				resolve({
+					close: () => server.close(),
+					cancelWait: () => {
+						settleWait?.(null);
+					},
+					waitForCode: () => waitForCodePromise,
+				});
+			})
+			.on("error", (err: NodeJS.ErrnoException) => {
+				console.error(
+					"[openai-codex] Failed to bind http://127.0.0.1:1455 (",
+					err.code,
+					") Falling back to manual paste.",
+				);
+				settleWait?.(null);
+				resolve({
+					close: () => {
+						try {
+							server.close();
+						} catch {
+							// ignore
+						}
+					},
+					cancelWait: () => {},
+					waitForCode: async () => null,
+				});
+			});
+	});
+}
+
+function getAccountId(accessToken: string): string | null {
+	const payload = decodeJwt(accessToken);
+	const auth = payload?.[JWT_CLAIM_PATH];
+	const accountId = auth?.chatgpt_account_id;
+	return typeof accountId === "string" && accountId.length > 0 ? accountId : null;
 }
 
 /**
  * Login with OpenAI Codex OAuth
+ *
+ * @param options.onAuth - Called with URL and instructions when auth starts
+ * @param options.onPrompt - Called to prompt user for manual code paste (fallback if no onManualCodeInput)
+ * @param options.onProgress - Optional progress messages
+ * @param options.onManualCodeInput - Optional promise that resolves with user-pasted code.
+ *                                    Races with browser callback - whichever completes first wins.
+ *                                    Useful for showing paste input immediately alongside browser flow.
+ * @param options.originator - OAuth originator parameter (defaults to "pi")
  */
-export type OpenAICodexLoginOptions = OAuthController & {
-	/** Optional originator value for OpenAI Codex OAuth. Default: "opencode". */
+export async function loginOpenAICodex(options: {
+	onAuth: (info: { url: string; instructions?: string }) => void;
+	onPrompt: (prompt: OAuthPrompt) => Promise<string>;
+	onProgress?: (message: string) => void;
+	onManualCodeInput?: () => Promise<string>;
 	originator?: string;
-};
+}): Promise<OAuthCredentials> {
+	const { verifier, state, url } = await createAuthorizationFlow(options.originator);
+	const server = await startLocalOAuthServer(state);
 
-export async function loginOpenAICodex(options: OpenAICodexLoginOptions): Promise<OAuthCredentials> {
-	const pkce = await generatePKCE();
-	const originator = options.originator?.trim() || "opencode";
-	const flow = new OpenAICodexOAuthFlow(options, pkce, originator);
+	options.onAuth({ url, instructions: "A browser window should open. Complete login to finish." });
 
-	return flow.login();
+	let code: string | undefined;
+	try {
+		if (options.onManualCodeInput) {
+			// Race between browser callback and manual input
+			let manualCode: string | undefined;
+			let manualError: Error | undefined;
+			const manualPromise = options
+				.onManualCodeInput()
+				.then((input) => {
+					manualCode = input;
+					server.cancelWait();
+				})
+				.catch((err) => {
+					manualError = err instanceof Error ? err : new Error(String(err));
+					server.cancelWait();
+				});
+
+			const result = await server.waitForCode();
+
+			// If manual input was cancelled, throw that error
+			if (manualError) {
+				throw manualError;
+			}
+
+			if (result?.code) {
+				// Browser callback won
+				code = result.code;
+			} else if (manualCode) {
+				// Manual input won (or callback timed out and user had entered code)
+				const parsed = parseAuthorizationInput(manualCode);
+				if (parsed.state && parsed.state !== state) {
+					throw new Error("State mismatch");
+				}
+				code = parsed.code;
+			}
+
+			// If still no code, wait for manual promise to complete and try that
+			if (!code) {
+				await manualPromise;
+				if (manualError) {
+					throw manualError;
+				}
+				if (manualCode) {
+					const parsed = parseAuthorizationInput(manualCode);
+					if (parsed.state && parsed.state !== state) {
+						throw new Error("State mismatch");
+					}
+					code = parsed.code;
+				}
+			}
+		} else {
+			// Original flow: wait for callback, then prompt if needed
+			const result = await server.waitForCode();
+			if (result?.code) {
+				code = result.code;
+			}
+		}
+
+		// Fallback to onPrompt if still no code
+		if (!code) {
+			const input = await options.onPrompt({
+				message: "Paste the authorization code (or full redirect URL):",
+			});
+			const parsed = parseAuthorizationInput(input);
+			if (parsed.state && parsed.state !== state) {
+				throw new Error("State mismatch");
+			}
+			code = parsed.code;
+		}
+
+		if (!code) {
+			throw new Error("Missing authorization code");
+		}
+
+		const tokenResult = await exchangeAuthorizationCode(code, verifier);
+		if (tokenResult.type !== "success") {
+			throw new Error("Token exchange failed");
+		}
+
+		const accountId = getAccountId(tokenResult.access);
+		if (!accountId) {
+			throw new Error("Failed to extract accountId from token");
+		}
+
+		return {
+			access: tokenResult.access,
+			refresh: tokenResult.refresh,
+			expires: tokenResult.expires,
+			accountId,
+		};
+	} finally {
+		server.close();
+	}
 }
 
 /**
  * Refresh OpenAI Codex OAuth token
  */
 export async function refreshOpenAICodexToken(refreshToken: string): Promise<OAuthCredentials> {
-	const response = await fetch(TOKEN_URL, {
-		method: "POST",
-		headers: { "Content-Type": "application/x-www-form-urlencoded" },
-		body: new URLSearchParams({
-			grant_type: "refresh_token",
-			refresh_token: refreshToken,
-			client_id: CLIENT_ID,
-		}),
-		signal: AbortSignal.timeout(TOKEN_REQUEST_TIMEOUT_MS),
-	});
-
-	if (!response.ok) {
-		let detail = `${response.status}`;
-		try {
-			const body = (await response.json()) as { error?: string; error_description?: string };
-			if (body.error)
-				detail = `${response.status} ${body.error}${body.error_description ? `: ${body.error_description}` : ""}`;
-		} catch {}
-		throw new Error(`OpenAI Codex token refresh failed: ${detail}`);
+	const result = await refreshAccessToken(refreshToken);
+	if (result.type !== "success") {
+		throw new Error("Failed to refresh OpenAI Codex token");
 	}
 
-	const tokenData = (await response.json()) as {
-		access_token?: string;
-		refresh_token?: string;
-		expires_in?: number;
-	};
-
-	if (!tokenData.access_token || !tokenData.refresh_token || typeof tokenData.expires_in !== "number") {
-		throw new Error("Token response missing required fields");
+	const accountId = getAccountId(result.access);
+	if (!accountId) {
+		throw new Error("Failed to extract accountId from token");
 	}
-
-	const { accountId, email } = getTokenProfile(tokenData.access_token);
 
 	return {
-		access: tokenData.access_token,
-		refresh: tokenData.refresh_token || refreshToken,
-		expires: Date.now() + tokenData.expires_in * 1000,
-		accountId: accountId ?? undefined,
-		email,
+		access: result.access,
+		refresh: result.refresh,
+		expires: result.expires,
+		accountId,
 	};
 }
 
 export const openaiCodexOAuthProvider: OAuthProviderInterface = {
 	id: "openai-codex",
-	name: "OpenAI Codex (ChatGPT)",
+	name: "ChatGPT Plus/Pro (Codex Subscription)",
 	usesCallbackServer: true,
 
 	async login(callbacks: OAuthLoginCallbacks): Promise<OAuthCredentials> {
@@ -200,7 +437,6 @@ export const openaiCodexOAuthProvider: OAuthProviderInterface = {
 			onPrompt: callbacks.onPrompt,
 			onProgress: callbacks.onProgress,
 			onManualCodeInput: callbacks.onManualCodeInput,
-			signal: callbacks.signal,
 		});
 	},
 

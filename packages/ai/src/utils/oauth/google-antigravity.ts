@@ -1,19 +1,37 @@
 /**
  * Antigravity OAuth flow (Gemini 3, Claude, GPT-OSS via Google Cloud)
  * Uses different OAuth credentials than google-gemini-cli for access to additional models.
+ *
+ * NOTE: This module uses Node.js http.createServer for the OAuth callback.
+ * It is only intended for CLI use, not browser environments.
  */
-import { getAntigravityAuthHeaders } from "../../providers/google-gemini-cli.js";
-import { OAuthCallbackFlow } from "./callback-server.js";
-import type { OAuthController, OAuthCredentials, OAuthLoginCallbacks, OAuthProviderInterface } from "./types.js";
 
+import type { Server } from "node:http";
+import { oauthErrorHtml, oauthSuccessHtml } from "./oauth-page.js";
+import { generatePKCE } from "./pkce.js";
+import type { OAuthCredentials, OAuthLoginCallbacks, OAuthProviderInterface } from "./types.js";
+
+type AntigravityCredentials = OAuthCredentials & {
+	projectId: string;
+};
+
+let _createServer: typeof import("node:http").createServer | null = null;
+let _httpImportPromise: Promise<void> | null = null;
+if (typeof process !== "undefined" && (process.versions?.node || process.versions?.bun)) {
+	_httpImportPromise = import("node:http").then((m) => {
+		_createServer = m.createServer;
+	});
+}
+
+// Antigravity OAuth credentials (different from Gemini CLI)
 const decode = (s: string) => atob(s);
 const CLIENT_ID = decode(
 	"MTA3MTAwNjA2MDU5MS10bWhzc2luMmgyMWxjcmUyMzV2dG9sb2poNGc0MDNlcC5hcHBzLmdvb2dsZXVzZXJjb250ZW50LmNvbQ==",
 );
 const CLIENT_SECRET = decode("R09DU1BYLUs1OEZXUjQ4NkxkTEoxbUxCOHNYQzR6NnFEQWY=");
-const CALLBACK_PORT = 51121;
-const CALLBACK_PATH = "/oauth-callback";
+const REDIRECT_URI = "http://localhost:51121/oauth-callback";
 
+// Antigravity requires additional scopes
 const SCOPES = [
 	"https://www.googleapis.com/auth/cloud-platform",
 	"https://www.googleapis.com/auth/userinfo.email",
@@ -24,10 +42,104 @@ const SCOPES = [
 
 const AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL = "https://oauth2.googleapis.com/token";
-const CLOUD_CODE_ENDPOINT = "https://cloudcode-pa.googleapis.com";
-const TIER_LEGACY = "legacy-tier";
-const PROJECT_ONBOARD_MAX_ATTEMPTS = 5;
-const PROJECT_ONBOARD_INTERVAL_MS = 2000;
+
+// Fallback project ID when discovery fails
+const DEFAULT_PROJECT_ID = "rising-fact-p41fc";
+
+type CallbackServerInfo = {
+	server: Server;
+	cancelWait: () => void;
+	waitForCode: () => Promise<{ code: string; state: string } | null>;
+};
+
+/**
+ * Start a local HTTP server to receive the OAuth callback
+ */
+async function getNodeCreateServer(): Promise<typeof import("node:http").createServer> {
+	if (_createServer) return _createServer;
+	if (_httpImportPromise) {
+		await _httpImportPromise;
+	}
+	if (_createServer) return _createServer;
+	throw new Error("Antigravity OAuth is only available in Node.js environments");
+}
+
+async function startCallbackServer(): Promise<CallbackServerInfo> {
+	const createServer = await getNodeCreateServer();
+
+	return new Promise((resolve, reject) => {
+		let settleWait: ((value: { code: string; state: string } | null) => void) | undefined;
+		const waitForCodePromise = new Promise<{ code: string; state: string } | null>((resolveWait) => {
+			let settled = false;
+			settleWait = (value) => {
+				if (settled) return;
+				settled = true;
+				resolveWait(value);
+			};
+		});
+
+		const server = createServer((req, res) => {
+			const url = new URL(req.url || "", `http://localhost:51121`);
+
+			if (url.pathname === "/oauth-callback") {
+				const code = url.searchParams.get("code");
+				const state = url.searchParams.get("state");
+				const error = url.searchParams.get("error");
+
+				if (error) {
+					res.writeHead(400, { "Content-Type": "text/html; charset=utf-8" });
+					res.end(oauthErrorHtml("Google authentication did not complete.", `Error: ${error}`));
+					return;
+				}
+
+				if (code && state) {
+					res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+					res.end(oauthSuccessHtml("Google authentication completed. You can close this window."));
+					settleWait?.({ code, state });
+				} else {
+					res.writeHead(400, { "Content-Type": "text/html; charset=utf-8" });
+					res.end(oauthErrorHtml("Missing code or state parameter."));
+				}
+			} else {
+				res.writeHead(404, { "Content-Type": "text/html; charset=utf-8" });
+				res.end(oauthErrorHtml("Callback route not found."));
+			}
+		});
+
+		server.on("error", (err) => {
+			reject(err);
+		});
+
+		server.listen(51121, "127.0.0.1", () => {
+			resolve({
+				server,
+				cancelWait: () => {
+					settleWait?.(null);
+				},
+				waitForCode: () => waitForCodePromise,
+			});
+		});
+	});
+}
+
+/**
+ * Parse redirect URL to extract code and state
+ */
+function parseRedirectUrl(input: string): { code?: string; state?: string } {
+	const value = input.trim();
+	if (!value) return {};
+
+	try {
+		const url = new URL(value);
+		return {
+			code: url.searchParams.get("code") ?? undefined,
+			state: url.searchParams.get("state") ?? undefined,
+		};
+	} catch {
+		// Not a URL, return empty
+		return {};
+	}
+}
 
 interface LoadCodeAssistPayload {
 	cloudaicompanionProject?: string | { id?: string };
@@ -35,127 +147,75 @@ interface LoadCodeAssistPayload {
 	allowedTiers?: Array<{ id?: string; isDefault?: boolean }>;
 }
 
-interface LongRunningOperationResponse {
-	done?: boolean;
-	response?: {
-		cloudaicompanionProject?: string | { id?: string };
-	};
-}
-
-export const ANTIGRAVITY_LOAD_CODE_ASSIST_METADATA = Object.freeze({
-	ideType: "ANTIGRAVITY",
-	platform: "PLATFORM_UNSPECIFIED",
-	pluginType: "GEMINI",
-});
-
-function readProjectId(value: string | { id?: string } | undefined): string | undefined {
-	if (typeof value === "string" && value.length > 0) {
-		return value;
-	}
-	if (value && typeof value === "object" && typeof value.id === "string" && value.id.length > 0) {
-		return value.id;
-	}
-	return undefined;
-}
-
-function getDefaultTierId(allowedTiers?: Array<{ id?: string; isDefault?: boolean }>): string {
-	if (!allowedTiers || allowedTiers.length === 0) {
-		return TIER_LEGACY;
-	}
-	const defaultTier = allowedTiers.find(tier => tier.isDefault && typeof tier.id === "string" && tier.id.length > 0);
-	if (defaultTier?.id) {
-		return defaultTier.id;
-	}
-	return TIER_LEGACY;
-}
-
-async function onboardProjectWithRetries(
-	endpoint: string,
-	headers: Record<string, string>,
-	onboardBody: { tierId: string; metadata: typeof ANTIGRAVITY_LOAD_CODE_ASSIST_METADATA },
-	onProgress?: (message: string) => void,
-): Promise<string> {
-	for (let attempt = 1; attempt <= PROJECT_ONBOARD_MAX_ATTEMPTS; attempt += 1) {
-		if (attempt > 1) {
-			onProgress?.(`Waiting for project provisioning (attempt ${attempt}/${PROJECT_ONBOARD_MAX_ATTEMPTS})...`);
-			await new Promise(r => setTimeout(r, PROJECT_ONBOARD_INTERVAL_MS));
-		}
-
-		const onboardResponse = await fetch(`${endpoint}/v1internal:onboardUser`, {
-			method: "POST",
-			headers,
-			body: JSON.stringify(onboardBody),
-		});
-
-		if (!onboardResponse.ok) {
-			const errorText = await onboardResponse.text();
-			throw new Error(`onboardUser failed: ${onboardResponse.status} ${onboardResponse.statusText}: ${errorText}`);
-		}
-
-		const operation = (await onboardResponse.json()) as LongRunningOperationResponse;
-		if (!operation.done) {
-			continue;
-		}
-
-		const projectId = readProjectId(operation.response?.cloudaicompanionProject);
-		if (projectId) {
-			return projectId;
-		}
-	}
-
-	throw new Error(
-		`onboardUser did not return a provisioned project id after ${PROJECT_ONBOARD_MAX_ATTEMPTS} attempts`,
-	);
-}
-
+/**
+ * Discover or provision a project for the user
+ */
 async function discoverProject(accessToken: string, onProgress?: (message: string) => void): Promise<string> {
 	const headers = {
 		Authorization: `Bearer ${accessToken}`,
 		"Content-Type": "application/json",
-		...getAntigravityAuthHeaders(),
+		"User-Agent": "google-api-nodejs-client/9.15.1",
+		"X-Goog-Api-Client": "google-cloud-sdk vscode_cloudshelleditor/0.1",
+		"Client-Metadata": JSON.stringify({
+			ideType: "IDE_UNSPECIFIED",
+			platform: "PLATFORM_UNSPECIFIED",
+			pluginType: "GEMINI",
+		}),
 	};
 
+	// Try endpoints in order: prod first, then sandbox
+	const endpoints = ["https://cloudcode-pa.googleapis.com", "https://daily-cloudcode-pa.sandbox.googleapis.com"];
+
 	onProgress?.("Checking for existing project...");
-	const endpoint = CLOUD_CODE_ENDPOINT;
-	try {
-		const loadResponse = await fetch(`${endpoint}/v1internal:loadCodeAssist`, {
-			method: "POST",
-			headers,
-			body: JSON.stringify({
-				metadata: ANTIGRAVITY_LOAD_CODE_ASSIST_METADATA,
-			}),
-		});
 
-		if (!loadResponse.ok) {
-			const errorText = await loadResponse.text();
-			throw new Error(`loadCodeAssist failed: ${loadResponse.status} ${loadResponse.statusText}: ${errorText}`);
+	for (const endpoint of endpoints) {
+		try {
+			const loadResponse = await fetch(`${endpoint}/v1internal:loadCodeAssist`, {
+				method: "POST",
+				headers,
+				body: JSON.stringify({
+					metadata: {
+						ideType: "IDE_UNSPECIFIED",
+						platform: "PLATFORM_UNSPECIFIED",
+						pluginType: "GEMINI",
+					},
+				}),
+			});
+
+			if (loadResponse.ok) {
+				const data = (await loadResponse.json()) as LoadCodeAssistPayload;
+
+				// Handle both string and object formats
+				if (typeof data.cloudaicompanionProject === "string" && data.cloudaicompanionProject) {
+					return data.cloudaicompanionProject;
+				}
+				if (
+					data.cloudaicompanionProject &&
+					typeof data.cloudaicompanionProject === "object" &&
+					data.cloudaicompanionProject.id
+				) {
+					return data.cloudaicompanionProject.id;
+				}
+			}
+		} catch {
+			// Try next endpoint
 		}
-
-		const loadPayload = (await loadResponse.json()) as LoadCodeAssistPayload;
-		const existingProject = readProjectId(loadPayload.cloudaicompanionProject);
-		if (existingProject) {
-			return existingProject;
-		}
-
-		const tierId = getDefaultTierId(loadPayload.allowedTiers);
-		onProgress?.("Provisioning project...");
-		const onboardBody = {
-			tierId,
-			metadata: ANTIGRAVITY_LOAD_CODE_ASSIST_METADATA,
-		};
-		const provisionedProject = await onboardProjectWithRetries(endpoint, headers, onboardBody, onProgress);
-		return provisionedProject;
-	} catch (error) {
-		throw new Error(
-			`Could not discover or provision an Antigravity project. ${error instanceof Error ? error.message : String(error)}`,
-		);
 	}
+
+	// Use fallback project ID
+	onProgress?.("Using default project...");
+	return DEFAULT_PROJECT_ID;
 }
 
+/**
+ * Get user email from the access token
+ */
 async function getUserEmail(accessToken: string): Promise<string | undefined> {
 	try {
 		const response = await fetch("https://www.googleapis.com/oauth2/v1/userinfo?alt=json", {
-			headers: { Authorization: `Bearer ${accessToken}` },
+			headers: {
+				Authorization: `Bearer ${accessToken}`,
+			},
 		});
 
 		if (response.ok) {
@@ -166,78 +226,6 @@ async function getUserEmail(accessToken: string): Promise<string | undefined> {
 		// Ignore errors, email is optional
 	}
 	return undefined;
-}
-
-class AntigravityOAuthFlow extends OAuthCallbackFlow {
-	constructor(ctrl: OAuthController) {
-		super(ctrl, CALLBACK_PORT, CALLBACK_PATH);
-	}
-
-	async generateAuthUrl(state: string, redirectUri: string): Promise<{ url: string; instructions?: string }> {
-		const authParams = new URLSearchParams({
-			client_id: CLIENT_ID,
-			response_type: "code",
-			redirect_uri: redirectUri,
-			scope: SCOPES.join(" "),
-			state,
-			access_type: "offline",
-			prompt: "consent",
-		});
-
-		const url = `${AUTH_URL}?${authParams.toString()}`;
-		return { url, instructions: "Complete the sign-in in your browser." };
-	}
-
-	async exchangeToken(code: string, _state: string, redirectUri: string): Promise<OAuthCredentials> {
-		this.ctrl.onProgress?.("Exchanging authorization code for tokens...");
-
-		const tokenResponse = await fetch(TOKEN_URL, {
-			method: "POST",
-			headers: { "Content-Type": "application/x-www-form-urlencoded" },
-			body: new URLSearchParams({
-				client_id: CLIENT_ID,
-				client_secret: CLIENT_SECRET,
-				code,
-				grant_type: "authorization_code",
-				redirect_uri: redirectUri,
-			}),
-		});
-
-		if (!tokenResponse.ok) {
-			const error = await tokenResponse.text();
-			throw new Error(`Token exchange failed: ${error}`);
-		}
-
-		const tokenData = (await tokenResponse.json()) as {
-			access_token: string;
-			refresh_token: string;
-			expires_in: number;
-		};
-
-		if (!tokenData.refresh_token) {
-			throw new Error("No refresh token received. Please try again.");
-		}
-
-		this.ctrl.onProgress?.("Getting user info...");
-		const email = await getUserEmail(tokenData.access_token);
-		const projectId = await discoverProject(tokenData.access_token, this.ctrl.onProgress);
-
-		return {
-			refresh: tokenData.refresh_token,
-			access: tokenData.access_token,
-			expires: Date.now() + tokenData.expires_in * 1000 - 5 * 60 * 1000,
-			projectId,
-			email,
-		};
-	}
-}
-
-/**
- * Login with Antigravity OAuth
- */
-export async function loginAntigravity(ctrl: OAuthController): Promise<OAuthCredentials> {
-	const flow = new AntigravityOAuthFlow(ctrl);
-	return flow.login();
 }
 
 /**
@@ -274,32 +262,192 @@ export async function refreshAntigravityToken(refreshToken: string, projectId: s
 	};
 }
 
+/**
+ * Login with Antigravity OAuth
+ *
+ * @param onAuth - Callback with URL and optional instructions
+ * @param onProgress - Optional progress callback
+ * @param onManualCodeInput - Optional promise that resolves with user-pasted redirect URL.
+ *                            Races with browser callback - whichever completes first wins.
+ */
+export async function loginAntigravity(
+	onAuth: (info: { url: string; instructions?: string }) => void,
+	onProgress?: (message: string) => void,
+	onManualCodeInput?: () => Promise<string>,
+): Promise<OAuthCredentials> {
+	const { verifier, challenge } = await generatePKCE();
+
+	// Start local server for callback
+	onProgress?.("Starting local server for OAuth callback...");
+	const server = await startCallbackServer();
+
+	let code: string | undefined;
+
+	try {
+		// Build authorization URL
+		const authParams = new URLSearchParams({
+			client_id: CLIENT_ID,
+			response_type: "code",
+			redirect_uri: REDIRECT_URI,
+			scope: SCOPES.join(" "),
+			code_challenge: challenge,
+			code_challenge_method: "S256",
+			state: verifier,
+			access_type: "offline",
+			prompt: "consent",
+		});
+
+		const authUrl = `${AUTH_URL}?${authParams.toString()}`;
+
+		// Notify caller with URL to open
+		onAuth({
+			url: authUrl,
+			instructions: "Complete the sign-in in your browser.",
+		});
+
+		// Wait for the callback, racing with manual input if provided
+		onProgress?.("Waiting for OAuth callback...");
+
+		if (onManualCodeInput) {
+			// Race between browser callback and manual input
+			let manualInput: string | undefined;
+			let manualError: Error | undefined;
+			const manualPromise = onManualCodeInput()
+				.then((input) => {
+					manualInput = input;
+					server.cancelWait();
+				})
+				.catch((err) => {
+					manualError = err instanceof Error ? err : new Error(String(err));
+					server.cancelWait();
+				});
+
+			const result = await server.waitForCode();
+
+			// If manual input was cancelled, throw that error
+			if (manualError) {
+				throw manualError;
+			}
+
+			if (result?.code) {
+				// Browser callback won - verify state
+				if (result.state !== verifier) {
+					throw new Error("OAuth state mismatch - possible CSRF attack");
+				}
+				code = result.code;
+			} else if (manualInput) {
+				// Manual input won
+				const parsed = parseRedirectUrl(manualInput);
+				if (parsed.state && parsed.state !== verifier) {
+					throw new Error("OAuth state mismatch - possible CSRF attack");
+				}
+				code = parsed.code;
+			}
+
+			// If still no code, wait for manual promise and try that
+			if (!code) {
+				await manualPromise;
+				if (manualError) {
+					throw manualError;
+				}
+				if (manualInput) {
+					const parsed = parseRedirectUrl(manualInput);
+					if (parsed.state && parsed.state !== verifier) {
+						throw new Error("OAuth state mismatch - possible CSRF attack");
+					}
+					code = parsed.code;
+				}
+			}
+		} else {
+			// Original flow: just wait for callback
+			const result = await server.waitForCode();
+			if (result?.code) {
+				if (result.state !== verifier) {
+					throw new Error("OAuth state mismatch - possible CSRF attack");
+				}
+				code = result.code;
+			}
+		}
+
+		if (!code) {
+			throw new Error("No authorization code received");
+		}
+
+		// Exchange code for tokens
+		onProgress?.("Exchanging authorization code for tokens...");
+		const tokenResponse = await fetch(TOKEN_URL, {
+			method: "POST",
+			headers: {
+				"Content-Type": "application/x-www-form-urlencoded",
+			},
+			body: new URLSearchParams({
+				client_id: CLIENT_ID,
+				client_secret: CLIENT_SECRET,
+				code,
+				grant_type: "authorization_code",
+				redirect_uri: REDIRECT_URI,
+				code_verifier: verifier,
+			}),
+		});
+
+		if (!tokenResponse.ok) {
+			const error = await tokenResponse.text();
+			throw new Error(`Token exchange failed: ${error}`);
+		}
+
+		const tokenData = (await tokenResponse.json()) as {
+			access_token: string;
+			refresh_token: string;
+			expires_in: number;
+		};
+
+		if (!tokenData.refresh_token) {
+			throw new Error("No refresh token received. Please try again.");
+		}
+
+		// Get user email
+		onProgress?.("Getting user info...");
+		const email = await getUserEmail(tokenData.access_token);
+
+		// Discover project
+		const projectId = await discoverProject(tokenData.access_token, onProgress);
+
+		// Calculate expiry time (current time + expires_in seconds - 5 min buffer)
+		const expiresAt = Date.now() + tokenData.expires_in * 1000 - 5 * 60 * 1000;
+
+		const credentials: OAuthCredentials = {
+			refresh: tokenData.refresh_token,
+			access: tokenData.access_token,
+			expires: expiresAt,
+			projectId,
+			email,
+		};
+
+		return credentials;
+	} finally {
+		server.server.close();
+	}
+}
+
 export const antigravityOAuthProvider: OAuthProviderInterface = {
 	id: "google-antigravity",
 	name: "Antigravity (Gemini 3, Claude, GPT-OSS)",
 	usesCallbackServer: true,
 
 	async login(callbacks: OAuthLoginCallbacks): Promise<OAuthCredentials> {
-		return loginAntigravity({
-			onAuth: callbacks.onAuth,
-			onPrompt: callbacks.onPrompt,
-			onProgress: callbacks.onProgress,
-			onManualCodeInput: callbacks.onManualCodeInput,
-			signal: callbacks.signal,
-		});
+		return loginAntigravity(callbacks.onAuth, callbacks.onProgress, callbacks.onManualCodeInput);
 	},
 
 	async refreshToken(credentials: OAuthCredentials): Promise<OAuthCredentials> {
-		return refreshAntigravityToken(credentials.refresh, (credentials as any).projectId);
+		const creds = credentials as AntigravityCredentials;
+		if (!creds.projectId) {
+			throw new Error("Antigravity credentials missing projectId");
+		}
+		return refreshAntigravityToken(creds.refresh, creds.projectId);
 	},
 
 	getApiKey(credentials: OAuthCredentials): string {
-		const projectId = (credentials as any).projectId;
-		return JSON.stringify({
-			token: credentials.access,
-			projectId,
-			refreshToken: credentials.refresh,
-			expiresAt: credentials.expires,
-		});
+		const creds = credentials as AntigravityCredentials;
+		return JSON.stringify({ token: creds.access, projectId: creds.projectId });
 	},
 };

@@ -1,9 +1,14 @@
 /**
  * GitHub Copilot OAuth flow
  */
-import { abortableSleep } from "./shims.js";
+
 import { getModels } from "../../models.js";
+import type { Api, Model } from "../../types.js";
 import type { OAuthCredentials, OAuthLoginCallbacks, OAuthProviderInterface } from "./types.js";
+
+type CopilotCredentials = OAuthCredentials & {
+	enterpriseUrl?: string;
+};
 
 const decode = (s: string) => atob(s);
 const CLIENT_ID = decode("SXYxLmI1MDdhMDhjODdlY2ZlOTg=");
@@ -17,6 +22,7 @@ const COPILOT_HEADERS = {
 
 const INITIAL_POLL_INTERVAL_MULTIPLIER = 1.2;
 const SLOW_DOWN_POLL_INTERVAL_MULTIPLIER = 1.4;
+
 type DeviceCodeResponse = {
 	device_code: string;
 	user_code: string;
@@ -138,12 +144,27 @@ async function startDeviceFlow(domain: string): Promise<DeviceCodeResponse> {
 	};
 }
 
-async function sleepForGitHubAccessTokenPoll(ms: number, signal?: AbortSignal): Promise<void> {
-	try {
-		await abortableSleep(ms, signal);
-	} catch {
-		throw new Error("Login cancelled");
-	}
+/**
+ * Sleep that can be interrupted by an AbortSignal
+ */
+function abortableSleep(ms: number, signal?: AbortSignal): Promise<void> {
+	return new Promise((resolve, reject) => {
+		if (signal?.aborted) {
+			reject(new Error("Login cancelled"));
+			return;
+		}
+
+		const timeout = setTimeout(resolve, ms);
+
+		signal?.addEventListener(
+			"abort",
+			() => {
+				clearTimeout(timeout);
+				reject(new Error("Login cancelled"));
+			},
+			{ once: true },
+		);
+	});
 }
 
 async function pollForGitHubAccessToken(
@@ -166,7 +187,7 @@ async function pollForGitHubAccessToken(
 
 		const remainingMs = deadline - Date.now();
 		const waitMs = Math.min(Math.ceil(intervalMs * intervalMultiplier), remainingMs);
-		await sleepForGitHubAccessTokenPoll(waitMs, signal);
+		await abortableSleep(waitMs, signal);
 
 		const raw = await fetchJson(urls.accessTokenUrl, {
 			method: "POST",
@@ -288,7 +309,7 @@ async function enableAllGitHubCopilotModels(
 ): Promise<void> {
 	const models = getModels("github-copilot");
 	await Promise.all(
-		models.map(async model => {
+		models.map(async (model) => {
 			const success = await enableGitHubCopilotModel(token, model.id, enterpriseDomain);
 			onProgress?.(model.id, success);
 		}),
@@ -347,7 +368,6 @@ export async function loginGitHubCopilot(options: {
 export const githubCopilotOAuthProvider: OAuthProviderInterface = {
 	id: "github-copilot",
 	name: "GitHub Copilot",
-	usesCallbackServer: false,
 
 	async login(callbacks: OAuthLoginCallbacks): Promise<OAuthCredentials> {
 		return loginGitHubCopilot({
@@ -359,10 +379,18 @@ export const githubCopilotOAuthProvider: OAuthProviderInterface = {
 	},
 
 	async refreshToken(credentials: OAuthCredentials): Promise<OAuthCredentials> {
-		return refreshGitHubCopilotToken(credentials.refresh, (credentials as any).enterpriseUrl);
+		const creds = credentials as CopilotCredentials;
+		return refreshGitHubCopilotToken(creds.refresh, creds.enterpriseUrl);
 	},
 
 	getApiKey(credentials: OAuthCredentials): string {
 		return credentials.access;
+	},
+
+	modifyModels(models: Model<Api>[], credentials: OAuthCredentials): Model<Api>[] {
+		const creds = credentials as CopilotCredentials;
+		const domain = creds.enterpriseUrl ? (normalizeDomain(creds.enterpriseUrl) ?? undefined) : undefined;
+		const baseUrl = getGitHubCopilotBaseUrl(creds.access, domain);
+		return models.map((m) => (m.provider === "github-copilot" ? { ...m, baseUrl } : m));
 	},
 };
