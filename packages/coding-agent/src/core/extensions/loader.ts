@@ -47,6 +47,12 @@ const VIRTUAL_MODULES: Record<string, unknown> = {
 	"@digi4care/the-firm-ai": _bundledPiAi,
 	"@digi4care/the-firm-ai/oauth": _bundledPiAiOauth,
 	"@digi4care/the-firm": _bundledPiCodingAgent,
+	// Upstream Pi compatibility for shared ~/.pi extensions.
+	"@mariozechner/pi-agent-core": _bundledPiAgentCore,
+	"@mariozechner/pi-tui": _bundledPiTui,
+	"@mariozechner/pi-ai": _bundledPiAi,
+	"@mariozechner/pi-ai/oauth": _bundledPiAiOauth,
+	"@mariozechner/pi-coding-agent": _bundledPiCodingAgent,
 };
 
 const require = createRequire(import.meta.url);
@@ -74,15 +80,23 @@ function getAliases(): Record<string, string> {
 		return fileURLToPath(import.meta.resolve(specifier));
 	};
 
+	const firmAgentCore = resolveWorkspaceOrImport("agent/dist/index.js", "@digi4care/the-firm-agent-core");
+	const firmTui = resolveWorkspaceOrImport("tui/dist/index.js", "@digi4care/the-firm-tui");
+	const firmAi = resolveWorkspaceOrImport("ai/dist/index.js", "@digi4care/the-firm-ai");
+	const firmAiOauth = resolveWorkspaceOrImport("ai/dist/oauth.js", "@digi4care/the-firm-ai/oauth");
+
 	_aliases = {
 		"@digi4care/the-firm": packageIndex,
-		"@digi4care/the-firm-agent-core": resolveWorkspaceOrImport(
-			"agent/dist/index.js",
-			"@digi4care/the-firm-agent-core",
-		),
-		"@digi4care/the-firm-tui": resolveWorkspaceOrImport("tui/dist/index.js", "@digi4care/the-firm-tui"),
-		"@digi4care/the-firm-ai": resolveWorkspaceOrImport("ai/dist/index.js", "@digi4care/the-firm-ai"),
-		"@digi4care/the-firm-ai/oauth": resolveWorkspaceOrImport("ai/dist/oauth.js", "@digi4care/the-firm-ai/oauth"),
+		"@digi4care/the-firm-agent-core": firmAgentCore,
+		"@digi4care/the-firm-tui": firmTui,
+		"@digi4care/the-firm-ai": firmAi,
+		"@digi4care/the-firm-ai/oauth": firmAiOauth,
+		// Upstream Pi compatibility for shared ~/.pi extensions.
+		"@mariozechner/pi-coding-agent": packageIndex,
+		"@mariozechner/pi-agent-core": firmAgentCore,
+		"@mariozechner/pi-tui": firmTui,
+		"@mariozechner/pi-ai": firmAi,
+		"@mariozechner/pi-ai/oauth": firmAiOauth,
 		"@sinclair/typebox": typeboxRoot,
 	};
 

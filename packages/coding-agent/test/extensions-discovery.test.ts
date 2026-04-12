@@ -310,6 +310,52 @@ describe("extensions discovery", () => {
 		expect(result.extensions[0].tools.has("parse_duration")).toBe(true);
 	});
 
+	it("supports upstream Pi package imports for shared .pi extensions", async () => {
+		const subdir = path.join(extensionsDir, "legacy-compat");
+		const coreDir = path.join(subdir, "core");
+		fs.mkdirSync(coreDir, { recursive: true });
+
+		fs.writeFileSync(
+			path.join(coreDir, "helper.ts"),
+			`
+				import { BorderedLoader, convertToLlm, serializeConversation } from "@mariozechner/pi-coding-agent";
+				import { Type, complete } from "@mariozechner/pi-ai";
+				import { getOAuthProviders } from "@mariozechner/pi-ai/oauth";
+				import { Text } from "@mariozechner/pi-tui";
+				import { Agent } from "@mariozechner/pi-agent-core";
+
+				export const helperOk =
+					typeof BorderedLoader === "function" &&
+					typeof convertToLlm === "function" &&
+					typeof serializeConversation === "function" &&
+					typeof complete === "function" &&
+					typeof getOAuthProviders === "function" &&
+					typeof Text === "function" &&
+					typeof Agent === "function" &&
+					typeof Type.Object === "function";
+			`,
+		);
+		fs.writeFileSync(
+			path.join(subdir, "index.ts"),
+			`
+				import { helperOk } from "./core/helper.ts";
+
+				export default function(pi) {
+					if (!helperOk) {
+						throw new Error("Legacy Pi aliases unavailable");
+					}
+					pi.registerCommand("legacy-compat", { handler: async () => {} });
+				}
+			`,
+		);
+
+		const result = await discoverAndLoadExtensions([], tempDir, tempDir);
+
+		expect(result.errors).toHaveLength(0);
+		expect(result.extensions).toHaveLength(1);
+		expect(result.extensions[0].commands.has("legacy-compat")).toBe(true);
+	});
+
 	it("registers message renderers", async () => {
 		const extCode = `
 			export default function(pi) {

@@ -112,4 +112,100 @@ describe("OpenAI to Anthropic session migration for Copilot Claude", () => {
 
 		expect(toolCall.thoughtSignature).toBeUndefined();
 	});
+
+	it("keeps aborted assistant turns when they contain tool calls needed by later tool results", () => {
+		const model = makeCopilotClaudeModel();
+		const messages: Message[] = [
+			{ role: "user", content: "run a command", timestamp: Date.now() - 3000 },
+			{
+				role: "assistant",
+				content: [
+					{
+						type: "thinking",
+						thinking: "",
+						thinkingSignature: "",
+					},
+					{
+						type: "toolCall",
+						id: "call_123",
+						name: "bash",
+						arguments: { command: "ls" },
+					},
+				],
+				api: "openai-responses",
+				provider: "github-copilot",
+				model: "gpt-5",
+				usage: {
+					input: 0,
+					output: 0,
+					cacheRead: 0,
+					cacheWrite: 0,
+					totalTokens: 0,
+					cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+				},
+				stopReason: "aborted",
+				timestamp: Date.now() - 2000,
+			},
+			{
+				role: "toolResult",
+				toolCallId: "call_123",
+				toolName: "bash",
+				content: [{ type: "text", text: "output" }],
+				isError: false,
+				timestamp: Date.now() - 1000,
+			},
+		];
+
+		const result = transformMessages(messages, model, anthropicNormalizeToolCallId);
+		const assistantMsg = result.find((m) => m.role === "assistant") as AssistantMessage | undefined;
+
+		expect(assistantMsg).toBeDefined();
+		expect(assistantMsg?.stopReason).toBe("aborted");
+		expect(assistantMsg?.content.some((block) => block.type === "toolCall")).toBe(true);
+	});
+
+	it("strips incomplete thinking signatures from aborted same-model turns", () => {
+		const model = makeCopilotClaudeModel();
+		const messages: Message[] = [
+			{ role: "user", content: "run a command", timestamp: Date.now() - 3000 },
+			{
+				role: "assistant",
+				content: [
+					{
+						type: "thinking",
+						thinking: "partial reasoning",
+						thinkingSignature: "",
+					},
+					{
+						type: "toolCall",
+						id: "call_999",
+						name: "bash",
+						arguments: { command: "pwd" },
+					},
+				],
+				api: "anthropic-messages",
+				provider: "github-copilot",
+				model: "claude-sonnet-4",
+				usage: {
+					input: 0,
+					output: 0,
+					cacheRead: 0,
+					cacheWrite: 0,
+					totalTokens: 0,
+					cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+				},
+				stopReason: "aborted",
+				timestamp: Date.now() - 2000,
+			},
+		];
+
+		const result = transformMessages(messages, model, anthropicNormalizeToolCallId);
+		const assistantMsg = result.find((m) => m.role === "assistant") as AssistantMessage | undefined;
+		const thinkingBlock = assistantMsg?.content.find((block) => block.type === "thinking");
+
+		expect(thinkingBlock).toBeDefined();
+		expect(
+			thinkingBlock && "thinkingSignature" in thinkingBlock ? thinkingBlock.thinkingSignature : undefined,
+		).toBeUndefined();
+	});
 });

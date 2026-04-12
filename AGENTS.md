@@ -10,7 +10,7 @@ The Firm is an independent product fork built on pi's philosophy. Work in this r
 - Main package: `@digi4care/the-firm`
 - Production binary: `firm`
 - Development binary: `firm-dev`
-- Config directory: `.the-firm/`
+- Config directory: `.pi/`
 - Conversation language: Dutch
 - Code and documentation language: English
 
@@ -42,7 +42,7 @@ For deeper guidance, read:
 ## Branch Model
 
 ```text
-original -> development -> production
+development -> production
 ```
 
 ## Versioning and Releases
@@ -70,8 +70,7 @@ Track upstream separately from The Firm releases:
 
 ### Branch rules
 
-- `original` is the upstream mirror branch. Do not do product work there.
-- `development` is the daily work branch.
+- `development` is the daily work branch and the default branch for implementation work.
 - `production` is the stable release branch.
 - Start implementation work from `development` unless the user explicitly asks otherwise.
 
@@ -102,12 +101,46 @@ bd dolt push
 
 ## Git Workflow
 
-- Work on `development`.
+- Start implementation work from `development`.
+- Never work directly on `development`. Create a focused branch for each issue.
 - Keep commits focused and atomic.
 - Use explicit staging only.
 - Never use `git add .` or `git add -A`.
 - Review `git status` before every commit.
 - Do not use destructive commands like `git reset --hard`, `git checkout .`, or `git clean -fd`.
+
+## Team Workflow
+
+Use **GitHub Issues** as the shared team tracker.
+
+Use **Beads (`bd`)** for local execution tracking, resumable notes, and AI session continuity.
+
+### Rules
+
+- Before changing code, make sure the work is linked to:
+  - a GitHub Issue
+  - a claimed Beads task
+- Read the task before changing code.
+- Leave resumable notes in Beads when stopping mid-stream.
+- Run relevant verification before claiming work is complete.
+- Open a PR to `development` for every completed change.
+- Every PR must reference:
+  - the GitHub Issue
+  - the Beads task ID
+  - the verification performed
+- Close the Beads task only after the PR is merged or the work is explicitly stopped.
+- `production` is release-only.
+- The removed `original` branch is not part of the workflow and must not be reintroduced.
+
+### Standard Local Flow
+
+```bash
+bd show <id> --long
+bd update <id> --claim
+git checkout development
+git pull origin development
+git checkout -b <type>/<issue-or-scope>
+```
 
 ## Code Quality
 
