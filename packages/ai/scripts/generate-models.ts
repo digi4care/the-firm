@@ -613,10 +613,9 @@ async function loadModelsDevData(): Promise<Model<any>[]> {
 				models.push({
 					id: modelId,
 					name: m.name || modelId,
-					api: "anthropic-messages",
+					api: "openai-completions",
+					baseUrl: "https://api.kimi.com/coding/v1",
 					provider: "kimi-coding",
-					// Kimi For Coding's Anthropic-compatible API - SDK appends /v1/messages
-					baseUrl: "https://api.kimi.com/coding",
 					reasoning: m.reasoning === true,
 					input: m.modalities?.input?.includes("image") ? ["text", "image"] : ["text"],
 					cost: {
