@@ -320,19 +320,21 @@ export class SettingsSelectorComponent extends Container {
 		);
 
 		this.addChild(this.settingsList);
+		this.addChild(new Spacer(1));
+		this.addChild(new Text(theme.fg("dim", "  Tab/Shift+Tab or ←/→ to switch tabs · Esc to close"), 0, 0));
 	}
 
 	private switchTab(tab: SettingTab): void {
-		// Remove everything between borders (DynamicBorder at 0 and last child)
-		const children = [...this.children];
-		// Keep first (top border) and last (bottom border)
-		for (let i = 1; i < children.length - 1; i++) {
-			this.removeChild(children[i]);
-		}
+		// Remove all children (borders + content) and rebuild from scratch
+		this.clear();
 
 		this.activeTab = tab;
 		this.settingsList = null;
+
+		// Re-add structure: top border → tab content → bottom border
+		this.addChild(new DynamicBorder());
 		this.renderTab(tab);
+		this.addChild(new DynamicBorder());
 	}
 
 	// ── Input Handling ─────────────────────────────────────────────────────
