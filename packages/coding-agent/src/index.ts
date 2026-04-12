@@ -209,6 +209,7 @@ export {
 } from "./core/session-manager.js";
 export {
 	type CompactionSettings,
+	type CompactionStrategy,
 	type ImageSettings,
 	type PackageSource,
 	type RetrySettings,

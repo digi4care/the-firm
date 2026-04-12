@@ -2506,7 +2506,9 @@ export class InteractiveMode {
 				const label =
 					event.reason === "manual"
 						? `Compacting context... ${cancelHint}`
-						: `${event.reason === "overflow" ? "Context overflow detected, " : ""}Auto-compacting... ${cancelHint}`;
+						: event.action === "handoff"
+							? `Generating handoff document... ${cancelHint}`
+							: `${event.reason === "overflow" ? "Context overflow detected, " : ""}Auto-compacting... ${cancelHint}`;
 				this.autoCompactionLoader = new Loader(
 					this.ui,
 					(spinner) => theme.fg("accent", spinner),
@@ -3338,6 +3340,8 @@ export class InteractiveMode {
 			const selector = new SettingsSelectorComponent(
 				{
 					autoCompact: this.session.autoCompactionEnabled,
+					compactionStrategy: this.settingsManager.getCompactionStrategy(),
+					handoffAutoContinue: this.settingsManager.getHandoffAutoContinue(),
 					showImages: this.settingsManager.getShowImages(),
 					autoResizeImages: this.settingsManager.getImageAutoResize(),
 					blockImages: this.settingsManager.getBlockImages(),
@@ -3363,6 +3367,12 @@ export class InteractiveMode {
 					onAutoCompactChange: (enabled) => {
 						this.session.setAutoCompactionEnabled(enabled);
 						this.footer.setAutoCompactEnabled(enabled);
+					},
+					onCompactionStrategyChange: (strategy) => {
+						this.settingsManager.setCompactionStrategy(strategy);
+					},
+					onHandoffAutoContinueChange: (enabled) => {
+						this.settingsManager.setHandoffAutoContinue(enabled);
 					},
 					onShowImagesChange: (enabled) => {
 						this.settingsManager.setShowImages(enabled);

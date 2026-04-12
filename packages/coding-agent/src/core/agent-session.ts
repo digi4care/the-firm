@@ -31,6 +31,13 @@ import { stripFrontmatter } from "../utils/frontmatter.js";
 import { sleep } from "../utils/sleep.js";
 import { type BashResult, executeBashWithOperations } from "./bash-executor.js";
 import {
+	AUTO_HANDOFF_THRESHOLD_FOCUS,
+	DEFAULT_HANDOFF_GOAL,
+	HANDOFF_AUTO_CONTINUE_PROMPT,
+	HANDOFF_SYSTEM_PROMPT,
+	wrapHandoffContext,
+} from "./compaction/handoff-prompts.js";
+import {
 	type CompactionResult,
 	calculateContextTokens,
 	collectEntriesForBranchSummary,
@@ -116,10 +123,11 @@ export type AgentSessionEvent =
 			steering: readonly string[];
 			followUp: readonly string[];
 	  }
-	| { type: "compaction_start"; reason: "manual" | "threshold" | "overflow" }
+	| { type: "compaction_start"; reason: "manual" | "threshold" | "overflow"; action?: "context-full" | "handoff" }
 	| {
 			type: "compaction_end";
 			reason: "manual" | "threshold" | "overflow";
+			action?: "context-full" | "handoff";
 			result: CompactionResult | undefined;
 			aborted: boolean;
 			willRetry: boolean;
@@ -180,6 +188,22 @@ export interface PromptOptions {
 	streamingBehavior?: "steer" | "followUp";
 	/** Source of input for extension input event handlers. Defaults to "interactive". */
 	source?: InputSource;
+}
+
+/** Result from handoff() */
+export interface HandoffResult {
+	/** The generated handoff document text */
+	document: string;
+	/** Path where the document was saved (only set when autoTriggered + handoffSaveToDisk) */
+	savedPath?: string;
+}
+
+/** Options for handoff() */
+export interface HandoffOptions {
+	/** Whether this was auto-triggered (affects save-to-disk behavior) */
+	autoTriggered?: boolean;
+	/** External abort signal */
+	signal?: AbortSignal;
 }
 
 /** Result from cycleModel() */
@@ -251,6 +275,7 @@ export class AgentSession {
 	// Compaction state
 	private _compactionAbortController: AbortController | undefined = undefined;
 	private _autoCompactionAbortController: AbortController | undefined = undefined;
+	private _handoffAbortController: AbortController | undefined = undefined;
 	private _overflowRecoveryAttempted = false;
 
 	// Branch summarization state
@@ -1821,11 +1846,44 @@ export class AgentSession {
 	 */
 	private async _runAutoCompaction(reason: "overflow" | "threshold", willRetry: boolean): Promise<void> {
 		const settings = this.settingsManager.getCompactionSettings();
+		const strategy = settings.strategy;
 
-		this._emit({ type: "compaction_start", reason });
+		if (strategy === "off") return;
+
+		// Strategy dispatch: handoff for threshold, context-full for overflow
+		const action = strategy === "handoff" && reason !== "overflow" ? "handoff" : "context-full";
+
+		this._emit({ type: "compaction_start", reason, action });
 		this._autoCompactionAbortController = new AbortController();
 
 		try {
+			// Handoff strategy: generate document and start new session
+			if (action === "handoff") {
+				try {
+					const handoffResult = await this.handoff(AUTO_HANDOFF_THRESHOLD_FOCUS, {
+						autoTriggered: true,
+						signal: this._autoCompactionAbortController.signal,
+					});
+					if (handoffResult) {
+						this._emit({ type: "compaction_end", reason, action, result: undefined, aborted: false, willRetry: false });
+
+						// Auto-continue in the new session if enabled
+						if (this.settingsManager.getHandoffAutoContinue()) {
+							setTimeout(() => {
+								this.prompt(HANDOFF_AUTO_CONTINUE_PROMPT, {
+									expandPromptTemplates: false,
+								}).catch(() => {});
+							}, 200);
+						}
+
+						return;
+					}
+					// Handoff failed — fall through to context-full
+				} catch {
+					// Handoff threw — fall through to context-full
+				}
+			}
+
 			if (!this.model) {
 				this._emit({
 					type: "compaction_end",
@@ -1955,7 +2013,7 @@ export class AgentSession {
 				tokensBefore,
 				details,
 			};
-			this._emit({ type: "compaction_end", reason, result, aborted: false, willRetry });
+			this._emit({ type: "compaction_end", reason, action, result, aborted: false, willRetry });
 
 			if (willRetry) {
 				const messages = this.agent.state.messages;
@@ -2002,6 +2060,162 @@ export class AgentSession {
 	/** Whether auto-compaction is enabled */
 	get autoCompactionEnabled(): boolean {
 		return this.settingsManager.getCompactionEnabled();
+	}
+
+	/** Whether handoff generation is in progress */
+	get isHandoffInProgress(): boolean {
+		return this._handoffAbortController !== undefined;
+	}
+
+	/** Cancel in-progress handoff generation */
+	abortHandoff(): void {
+		this._handoffAbortController?.abort();
+	}
+
+	/**
+	 * Generate a handoff document by prompting the agent, then start a new session with it.
+	 *
+	 * 1. Ask the agent to write a comprehensive handoff document
+	 * 2. Wait for completion
+	 * 3. Create a new session
+	 * 4. Inject the handoff document as context
+	 *
+	 * @param customInstructions Optional focus for the handoff document
+	 * @param options Handoff execution options
+	 * @returns The handoff result, or undefined if cancelled/failed
+	 */
+	async handoff(customInstructions?: string, options?: HandoffOptions): Promise<HandoffResult | undefined> {
+		const entries = this.sessionManager.getBranch();
+		const messageCount = entries.filter((e) => e.type === "message").length;
+		if (messageCount < 2) {
+			throw new Error("Nothing to hand off (no messages yet)");
+		}
+
+		this._handoffAbortController = new AbortController();
+		const handoffAbortController = this._handoffAbortController;
+		const handoffSignal = handoffAbortController.signal;
+		const sourceSignal = options?.signal;
+
+		// Forward external abort to handoff abort
+		const onSourceAbort = () => {
+			if (!handoffSignal.aborted) handoffAbortController.abort();
+		};
+		if (sourceSignal) {
+			sourceSignal.addEventListener("abort", onSourceAbort, { once: true });
+			if (sourceSignal.aborted) onSourceAbort();
+		}
+
+		// Abort agent when handoff is cancelled
+		const onHandoffAbort = () => {
+			this.agent.abort();
+		};
+		handoffSignal.addEventListener("abort", onHandoffAbort, { once: true });
+
+		try {
+			if (handoffSignal.aborted) throw new Error("Handoff cancelled");
+
+			// Build the handoff prompt
+			const goal = customInstructions || DEFAULT_HANDOFF_GOAL;
+			const userMessage: AgentMessage = {
+				role: "user",
+				content: [
+					{
+						type: "text",
+						text: `## Conversation History\n\nThe conversation is in your context.\n\n## Goal for New Session\n\n${goal}`,
+					},
+				],
+				timestamp: Date.now(),
+			};
+
+			// Save current system prompt for restoration after handoff generation
+			const savedSystemPrompt = this.agent.state.systemPrompt;
+
+			// Wait for agent completion
+			let handoffText: string | undefined;
+			let resolveCompletion: () => void;
+			const completionPromise = new Promise<void>((resolve) => { resolveCompletion = resolve; });
+			let handoffCancelled = false;
+
+			const unsubscribe = this.agent.subscribe((event) => {
+				if (event.type === "agent_end") {
+					unsubscribe();
+					// Extract text from the last assistant message
+					const messages = this.agent.state.messages;
+					for (let i = messages.length - 1; i >= 0; i--) {
+						const msg = messages[i];
+						if (msg.role === "assistant") {
+							const content = (msg as AssistantMessage).content;
+							const textParts = content
+								.filter((c): c is { type: "text"; text: string } => c.type === "text")
+								.map((c) => c.text);
+							if (textParts.length > 0) {
+								handoffText = textParts.join("\n");
+								break;
+							}
+						}
+					}
+					resolveCompletion();
+				}
+			});
+
+			handoffSignal.addEventListener(
+				"abort",
+				() => {
+					handoffCancelled = true;
+					unsubscribe();
+					resolveCompletion();
+				},
+				{ once: true },
+			);
+
+			// Set handoff system prompt for document generation
+			this.agent.state.systemPrompt = HANDOFF_SYSTEM_PROMPT;
+
+			try {
+				await this.agent.prompt([userMessage]);
+			} finally {
+				// Restore system prompt
+				this.agent.state.systemPrompt = savedSystemPrompt;
+			}
+
+			await completionPromise;
+
+			if (handoffCancelled || handoffSignal.aborted) throw new Error("Handoff cancelled");
+			if (!handoffText) return undefined;
+
+			// Start a new session
+			this.sessionManager.newSession();
+			this.agent.reset();
+			this.agent.sessionId = this.sessionManager.getSessionId();
+
+			// Inject the handoff document as a custom message
+			const handoffContent = wrapHandoffContext(handoffText);
+			this.sessionManager.appendCustomMessageEntry("handoff", handoffContent, true);
+
+			// Save to disk if auto-triggered and setting enabled
+			let savedPath: string | undefined;
+			if (options?.autoTriggered && this.settingsManager.getHandoffSaveToDisk()) {
+				const handoffDir = join(this.sessionManager.getSessionDir(), "handoffs");
+				try {
+					mkdirSync(handoffDir, { recursive: true });
+					const fileTimestamp = new Date().toISOString().replace(/[:.]/g, "-");
+					savedPath = join(handoffDir, `handoff-${fileTimestamp}.md`);
+					writeFileSync(savedPath, `${handoffText}\n`);
+				} catch {
+					savedPath = undefined;
+				}
+			}
+
+			// Rebuild agent messages from session context
+			const sessionContext = this.sessionManager.buildSessionContext();
+			this.agent.state.messages = sessionContext.messages;
+
+			return { document: handoffText, savedPath };
+		} finally {
+			handoffSignal.removeEventListener("abort", onHandoffAbort);
+			sourceSignal?.removeEventListener("abort", onSourceAbort);
+			this._handoffAbortController = undefined;
+		}
 	}
 
 	async bindExtensions(bindings: ExtensionBindings): Promise<void> {

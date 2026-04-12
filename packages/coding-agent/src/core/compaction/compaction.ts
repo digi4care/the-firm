@@ -112,16 +112,24 @@ export interface CompactionResult<T = unknown> {
 // Types
 // ============================================================================
 
+export type CompactionStrategy = "context-full" | "handoff" | "off";
+
 export interface CompactionSettings {
 	enabled: boolean;
+	strategy: CompactionStrategy;
 	reserveTokens: number;
 	keepRecentTokens: number;
+	handoffAutoContinue: boolean;
+	handoffSaveToDisk: boolean;
 }
 
 export const DEFAULT_COMPACTION_SETTINGS: CompactionSettings = {
 	enabled: true,
+	strategy: "context-full",
 	reserveTokens: 16384,
 	keepRecentTokens: 20000,
+	handoffAutoContinue: true,
+	handoffSaveToDisk: false,
 };
 
 // ============================================================================

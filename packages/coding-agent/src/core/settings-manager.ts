@@ -4,10 +4,15 @@ import { dirname, join } from "path";
 import lockfile from "proper-lockfile";
 import { CONFIG_DIR_NAME, getAgentDir } from "../config.js";
 
+export type CompactionStrategy = "context-full" | "handoff" | "off";
+
 export interface CompactionSettings {
 	enabled?: boolean; // default: true
+	strategy?: CompactionStrategy; // default: "context-full"
 	reserveTokens?: number; // default: 16384
 	keepRecentTokens?: number; // default: 20000
+	handoffAutoContinue?: boolean; // default: true
+	handoffSaveToDisk?: boolean; // default: false
 }
 
 export interface BranchSummarySettings {
@@ -635,11 +640,60 @@ export class SettingsManager {
 		return this.settings.compaction?.keepRecentTokens ?? 20000;
 	}
 
-	getCompactionSettings(): { enabled: boolean; reserveTokens: number; keepRecentTokens: number } {
+	getCompactionStrategy(): CompactionStrategy {
+		return this.settings.compaction?.strategy ?? "context-full";
+	}
+
+	setCompactionStrategy(strategy: CompactionStrategy): void {
+		if (!this.globalSettings.compaction) {
+			this.globalSettings.compaction = {};
+		}
+		this.globalSettings.compaction.strategy = strategy;
+		this.markModified("compaction", "strategy");
+		this.save();
+	}
+
+	getHandoffAutoContinue(): boolean {
+		return this.settings.compaction?.handoffAutoContinue ?? true;
+	}
+
+	setHandoffAutoContinue(enabled: boolean): void {
+		if (!this.globalSettings.compaction) {
+			this.globalSettings.compaction = {};
+		}
+		this.globalSettings.compaction.handoffAutoContinue = enabled;
+		this.markModified("compaction", "handoffAutoContinue");
+		this.save();
+	}
+
+	getHandoffSaveToDisk(): boolean {
+		return this.settings.compaction?.handoffSaveToDisk ?? false;
+	}
+
+	setHandoffSaveToDisk(enabled: boolean): void {
+		if (!this.globalSettings.compaction) {
+			this.globalSettings.compaction = {};
+		}
+		this.globalSettings.compaction.handoffSaveToDisk = enabled;
+		this.markModified("compaction", "handoffSaveToDisk");
+		this.save();
+	}
+
+	getCompactionSettings(): {
+		enabled: boolean;
+		strategy: CompactionStrategy;
+		reserveTokens: number;
+		keepRecentTokens: number;
+		handoffAutoContinue: boolean;
+		handoffSaveToDisk: boolean;
+	} {
 		return {
 			enabled: this.getCompactionEnabled(),
+			strategy: this.getCompactionStrategy(),
 			reserveTokens: this.getCompactionReserveTokens(),
 			keepRecentTokens: this.getCompactionKeepRecentTokens(),
+			handoffAutoContinue: this.getHandoffAutoContinue(),
+			handoffSaveToDisk: this.getHandoffSaveToDisk(),
 		};
 	}
 
