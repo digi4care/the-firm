@@ -27,6 +27,13 @@ The Firm is an independent product fork built on pi's philosophy. Work in this r
 
 **Read and follow [`docs/WORKFLOW.md`](docs/WORKFLOW.md) before making any changes.**
 
+## Test-Driven Development (TDD)
+
+- **Write the test first.** Every code change must be preceded by a failing test that describes the expected behavior.
+- **Red → Green → Refactor.** Watch the test fail, make it pass, then clean up.
+- **No production code without tests.** If you can't test it, you don't understand it well enough yet.
+- **Run tests before commit.** `npm test` must pass before any code is committed.
+
 It covers: decision ladder, branches & worktrees, versioning, Beads issue tracking, start-of-work procedure, traceability, git rules, code quality, commands, GitHub, and tool usage.
 
 That file is mandatory. This file is identity only.

@@ -225,25 +225,64 @@ describe("getLastAssistantUsage", () => {
 });
 
 describe("shouldCompact", () => {
-	it("should return true when context exceeds threshold", () => {
+	it("should use legacy reserveTokens when both thresholds are at default", () => {
 		const settings: CompactionSettings = {
-			enabled: true,
-			reserveTokens: 10000,
-			keepRecentTokens: 20000,
+			...DEFAULT_COMPACTION_SETTINGS,
+			thresholdPercent: -1,
+			thresholdTokens: -1,
 		};
 
-		expect(shouldCompact(95000, 100000, settings)).toBe(true);
-		expect(shouldCompact(89000, 100000, settings)).toBe(false);
+		// reserveTokens = 16384, so threshold = 100000 - 16384 = 83616
+		expect(shouldCompact(83617, 100000, settings)).toBe(true);
+		expect(shouldCompact(83616, 100000, settings)).toBe(false);
+		expect(shouldCompact(80000, 100000, settings)).toBe(false);
 	});
 
 	it("should return false when disabled", () => {
 		const settings: CompactionSettings = {
+			...DEFAULT_COMPACTION_SETTINGS,
 			enabled: false,
-			reserveTokens: 10000,
-			keepRecentTokens: 20000,
 		};
 
 		expect(shouldCompact(95000, 100000, settings)).toBe(false);
+	});
+
+	it("should use percentage-based threshold when thresholdPercent > 0", () => {
+		const settings: CompactionSettings = {
+			...DEFAULT_COMPACTION_SETTINGS,
+			thresholdPercent: 70,
+			thresholdTokens: -1,
+		};
+
+		// 70% of 100000 = 70000
+		expect(shouldCompact(70001, 100000, settings)).toBe(true);
+		expect(shouldCompact(70000, 100000, settings)).toBe(false);
+		expect(shouldCompact(69000, 100000, settings)).toBe(false);
+	});
+
+	it("should use fixed token limit when thresholdTokens > 0", () => {
+		const settings: CompactionSettings = {
+			...DEFAULT_COMPACTION_SETTINGS,
+			thresholdPercent: 70,
+			thresholdTokens: 50000,
+		};
+
+		// thresholdTokens takes precedence
+		expect(shouldCompact(50001, 100000, settings)).toBe(true);
+		expect(shouldCompact(50000, 100000, settings)).toBe(false);
+		expect(shouldCompact(49999, 100000, settings)).toBe(false);
+	});
+
+	it("should handle 90% default threshold correctly", () => {
+		const settings: CompactionSettings = {
+			...DEFAULT_COMPACTION_SETTINGS,
+			thresholdPercent: 90,
+			thresholdTokens: -1,
+		};
+
+		// 90% of 200000 = 180000
+		expect(shouldCompact(180001, 200000, settings)).toBe(true);
+		expect(shouldCompact(180000, 200000, settings)).toBe(false);
 	});
 });
 
