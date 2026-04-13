@@ -13,8 +13,6 @@
 import type { ThinkingLevel } from "@digi4care/the-firm-agent-core";
 import {
 	Container,
-	getCapabilities,
-	getKeybindings,
 	matchesKey,
 	type SelectItem,
 	SelectList,
@@ -24,14 +22,9 @@ import {
 	Spacer,
 	Text,
 } from "@digi4care/the-firm-tui";
+import type { SettingsScope, SettingValueSource } from "../../../core/settings-manager.js";
 import { settingsRegistry } from "../../../core/settings-registry.js";
-import {
-	type SettingDef,
-	type SettingOption,
-	type SettingTab,
-	TAB_METADATA,
-} from "../../../core/settings-schema.js";
-import type { SettingValueSource, SettingsScope } from "../../../core/settings-manager.js";
+import { type SettingDef, type SettingOption, type SettingTab, TAB_METADATA } from "../../../core/settings-schema.js";
 import { getSelectListTheme, getSettingsListTheme, theme } from "../theme/theme.js";
 import { DynamicBorder } from "./dynamic-border.js";
 
@@ -44,8 +37,6 @@ const SCOPE_OPTIONS: SelectItem[] = [
 	{ value: "global", label: "global", description: "Write to global settings" },
 	{ value: "project", label: "project", description: "Write to project settings" },
 ];
-
-type ScopedSettingState = Record<SettingsScope, { value: string; inherited: boolean }>;
 
 class SelectSubmenu extends Container {
 	private selectList: SelectList;
@@ -226,7 +217,8 @@ export class SettingsSelectorComponent extends Container {
 		const effectiveValue = this.toDisplayString(this.getSettingValue(path));
 		const effectiveSource = this.getSettingValueSource(path);
 		const scopedValue = this.getScopedSettingValue(path, selectedScope);
-		const storedValue = scopedValue === undefined ? `inherited → ${effectiveValue}` : this.toDisplayString(scopedValue);
+		const storedValue =
+			scopedValue === undefined ? `inherited → ${effectiveValue}` : this.toDisplayString(scopedValue);
 		return [
 			baseDescription,
 			`Effective: ${effectiveValue} (${effectiveSource})`,
@@ -283,7 +275,9 @@ export class SettingsSelectorComponent extends Container {
 
 		const ui = settingsRegistry.getUi(path);
 		const label = ui?.scopeSelector ? `${ui?.label ?? path} Level` : (ui?.label ?? path);
-		const description = ui?.scopeSelector ? this.buildScopedDescription(path, ui.description) : (ui?.description ?? "");
+		const description = ui?.scopeSelector
+			? this.buildScopedDescription(path, ui.description)
+			: (ui?.description ?? "");
 		let onSelectionChange: ((value: string) => void) | undefined;
 		if (path === "theme") {
 			onSelectionChange = (value) => this.callbacks.onThemePreview?.(value);
