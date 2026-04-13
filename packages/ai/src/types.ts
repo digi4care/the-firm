@@ -61,6 +61,11 @@ export type ProviderLogLevel = "off" | "debug" | "info" | "warn" | "error";
 
 export interface StreamOptions {
 	temperature?: number;
+	topP?: number;
+	topK?: number;
+	minP?: number;
+	presencePenalty?: number;
+	repetitionPenalty?: number;
 	maxTokens?: number;
 	signal?: AbortSignal;
 	apiKey?: string;

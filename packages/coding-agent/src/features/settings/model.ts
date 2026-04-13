@@ -86,6 +86,68 @@ export const modelSettings: SettingsProvider = {
 			type: "number",
 			default: 32768,
 		},
+
+		// ─── Sampling parameters ───────────────────────────────────
+		"sampling.temperature": {
+			type: "number",
+			default: -1,
+			ui: {
+				tab: "model",
+				label: "Temperature",
+				description: "Sampling randomness (0-1). Set to Default to use the provider default",
+				submenu: true,
+			},
+		},
+		"sampling.topP": {
+			type: "number",
+			default: -1,
+			ui: {
+				tab: "model",
+				label: "Top P",
+				description: "Nucleus sampling cutoff (0-1). Set to Default to use the provider default",
+				submenu: true,
+			},
+		},
+		"sampling.topK": {
+			type: "number",
+			default: -1,
+			ui: {
+				tab: "model",
+				label: "Top K",
+				description: "Sample from top-K tokens (integer). Set to Default to use the provider default",
+				submenu: true,
+			},
+		},
+		"sampling.minP": {
+			type: "number",
+			default: -1,
+			ui: {
+				tab: "model",
+				label: "Min P",
+				description: "Minimum probability threshold (0-1). Set to Default to use the provider default",
+				submenu: true,
+			},
+		},
+		"sampling.presencePenalty": {
+			type: "number",
+			default: -1,
+			ui: {
+				tab: "model",
+				label: "Presence Penalty",
+				description: "Penalty for introducing already-present tokens. Set to Default to omit",
+				submenu: true,
+			},
+		},
+		"sampling.repetitionPenalty": {
+			type: "number",
+			default: -1,
+			ui: {
+				tab: "model",
+				label: "Repetition Penalty",
+				description: "Penalty for repeated tokens. Set to Default to omit",
+				submenu: true,
+			},
+		},
 	},
 	options: {
 		"retry.maxRetries": [
