@@ -105,7 +105,7 @@ export type SettingDef = BooleanDef | StringDef | NumberDef | EnumDef<readonly s
 
 /** An option for a submenu-style setting */
 export interface SettingOption {
-	value: string;
+	value: string | number;
 	label: string;
 	description?: string;
 }
