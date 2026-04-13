@@ -1,4 +1,4 @@
-import type { Api, AssistantMessage, Message, Model, ToolCall, ToolResultMessage } from "../types.js";
+import type { Api, AssistantMessage, Message, MessageSummary, Model, ProviderTraceScope, ToolCall, ToolResultMessage } from "../types.js";
 
 /**
  * Track whether a tool call has been resolved (real or synthetic result).
@@ -20,13 +20,19 @@ export function transformMessages<TApi extends Api>(
 	messages: Message[],
 	model: Model<TApi>,
 	normalizeToolCallId?: (id: string, model: Model<TApi>, source: AssistantMessage) => string,
+	providerTrace?: ProviderTraceScope,
 ): Message[] {
+	providerTrace?.contextTransformed({
+		stage: "transformMessages:before",
+		before: summarizeMessages(messages),
+	});
+
 	// Build a map of original tool call IDs to normalized IDs
 	const toolCallIdMap = new Map<string, string>();
 	const toolCallStatus = new Map<string, ToolCallStatus>();
 
 	// First pass: transform messages (thinking blocks, tool call ID normalization)
-	const transformed = messages.map((msg) => {
+	const transformed = messages.map((msg, messageIndex) => {
 		// User messages pass through unchanged
 		if (msg.role === "user") {
 			return msg;
@@ -36,6 +42,13 @@ export function transformMessages<TApi extends Api>(
 		if (msg.role === "toolResult") {
 			const normalizedId = toolCallIdMap.get(msg.toolCallId);
 			if (normalizedId && normalizedId !== msg.toolCallId) {
+				providerTrace?.toolCallMapping({
+					stage: "toolResult:mapped",
+					originalId: msg.toolCallId,
+					finalId: normalizedId,
+					reason: "cross-model-normalization",
+					messageIndex,
+				});
 				return { ...msg, toolCallId: normalizedId };
 			}
 			return msg;
@@ -89,6 +102,13 @@ export function transformMessages<TApi extends Api>(
 						const normalizedId = normalizeToolCallId(toolCall.id, model, assistantMsg);
 						if (normalizedId !== toolCall.id) {
 							toolCallIdMap.set(toolCall.id, normalizedId);
+							providerTrace?.toolCallMapping({
+								stage: "toolCall:normalized",
+								originalId: toolCall.id,
+								finalId: normalizedId,
+								reason: "cross-model-normalization",
+								messageIndex,
+							});
 							normalizedToolCall = { ...normalizedToolCall, id: normalizedId };
 						}
 					}
@@ -224,5 +244,41 @@ export function transformMessages<TApi extends Api>(
 	flushPendingToolCalls(Date.now());
 	flushPendingAbortedToolCalls();
 
+	providerTrace?.contextTransformed({
+		stage: "transformMessages:after",
+		after: summarizeMessages(result),
+	});
+
 	return result;
+}
+
+
+function summarizeMessages(messages: Message[]): MessageSummary[] {
+	return messages.map((message, index) => {
+		if (message.role === "assistant") {
+			const toolCalls = message.content.filter((block): block is ToolCall => block.type === "toolCall");
+			return {
+				index,
+				role: message.role,
+				api: message.api,
+				provider: message.provider,
+				model: message.model,
+				contentKinds: message.content.map((block) => block.type),
+				toolCallIds: toolCalls.map((toolCall) => toolCall.id),
+			};
+		}
+		if (message.role === "toolResult") {
+			return {
+				index,
+				role: message.role,
+				contentKinds: message.content.map((block) => block.type),
+				toolResultId: message.toolCallId,
+			};
+		}
+		return {
+			index,
+			role: message.role,
+			contentKinds: typeof message.content === "string" ? ["text"] : message.content.map((block) => block.type),
+		};
+	});
 }

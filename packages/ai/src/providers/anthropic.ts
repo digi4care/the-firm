@@ -14,6 +14,7 @@ import type {
 	ImageContent,
 	Message,
 	Model,
+	ProviderTraceScope,
 	SimpleStreamOptions,
 	StopReason,
 	StreamFunction,
@@ -611,12 +612,23 @@ function buildParams(
 	options?: AnthropicOptions,
 ): MessageCreateParamsStreaming {
 	const { cacheControl } = getCacheControl(model.baseUrl, options?.cacheRetention);
+	const messages = convertMessages(context.messages, model, isOAuthToken, cacheControl, options?.providerTrace);
 	const params: MessageCreateParamsStreaming = {
 		model: model.id,
-		messages: convertMessages(context.messages, model, isOAuthToken, cacheControl),
+		messages,
 		max_tokens: options?.maxTokens || (model.maxTokens / 3) | 0,
 		stream: true,
 	};
+	const { toolUseIds, toolResultIds } = collectAnthropicRequestIds(messages);
+	options?.providerTrace?.requestBuilt({
+		endpoint: `${model.baseUrl}/v1/messages`,
+		method: "POST",
+		bodyShape: "anthropic-messages",
+		messageCount: messages.length,
+		toolCount: context.tools?.length,
+		outgoingToolUseIds: toolUseIds.length > 0 ? toolUseIds : undefined,
+		outgoingToolResultIds: toolResultIds.length > 0 ? toolResultIds : undefined,
+	});
 
 	// For OAuth tokens, we MUST include Claude Code identity
 	if (isOAuthToken) {
@@ -704,11 +716,12 @@ function convertMessages(
 	model: Model<"anthropic-messages">,
 	isOAuthToken: boolean,
 	cacheControl?: { type: "ephemeral"; ttl?: "1h" },
+	providerTrace?: ProviderTraceScope,
 ): MessageParam[] {
 	const params: MessageParam[] = [];
 
 	// Transform messages for cross-provider compatibility
-	const transformedMessages = transformMessages(messages, model, normalizeToolCallId);
+	const transformedMessages = transformMessages(messages, model, normalizeToolCallId, providerTrace);
 
 	for (let i = 0; i < transformedMessages.length; i++) {
 		const msg = transformedMessages[i];
@@ -862,6 +875,22 @@ function convertMessages(
 	}
 
 	return params;
+}
+
+function collectAnthropicRequestIds(messages: MessageParam[]): { toolUseIds: string[]; toolResultIds: string[] } {
+	const toolUseIds: string[] = [];
+	const toolResultIds: string[] = [];
+	for (const message of messages) {
+		if (!Array.isArray(message.content)) continue;
+		for (const block of message.content) {
+			if (block.type === "tool_use") {
+				toolUseIds.push(block.id);
+			} else if (block.type === "tool_result") {
+				toolResultIds.push(block.tool_use_id);
+			}
+		}
+	}
+	return { toolUseIds, toolResultIds };
 }
 
 function convertTools(tools: Tool[], isOAuthToken: boolean): Anthropic.Messages.Tool[] {

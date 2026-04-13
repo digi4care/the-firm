@@ -19,6 +19,7 @@ import type {
 	Context,
 	ImageContent,
 	Model,
+	ProviderTraceScope,
 	StopReason,
 	TextContent,
 	TextSignatureV1,
@@ -73,6 +74,7 @@ export interface OpenAIResponsesStreamOptions {
 
 export interface ConvertResponsesMessagesOptions {
 	includeSystemPrompt?: boolean;
+	providerTrace?: ProviderTraceScope;
 }
 
 export interface ConvertResponsesToolsOptions {
@@ -103,20 +105,33 @@ export function convertResponsesMessages<TApi extends Api>(
 	};
 
 	const normalizeToolCallId = (id: string, _targetModel: Model<TApi>, source: AssistantMessage): string => {
-		if (!allowedToolCallProviders.has(model.provider)) return normalizeIdPart(id);
-		if (!id.includes("|")) return normalizeIdPart(id);
-		const [callId, itemId] = id.split("|");
-		const normalizedCallId = normalizeIdPart(callId);
-		const isForeignToolCall = source.provider !== model.provider || source.api !== model.api;
-		let normalizedItemId = isForeignToolCall ? buildForeignResponsesItemId(itemId) : normalizeIdPart(itemId);
-		// OpenAI Responses API requires item id to start with "fc"
-		if (!normalizedItemId.startsWith("fc_")) {
-			normalizedItemId = normalizeIdPart(`fc_${normalizedItemId}`);
+		let normalized = id;
+		if (!allowedToolCallProviders.has(model.provider)) {
+			normalized = normalizeIdPart(id);
+		} else if (id.includes("|")) {
+			const [callId, itemId] = id.split("|");
+			const normalizedCallId = normalizeIdPart(callId);
+			const isForeignToolCall = source.provider !== model.provider || source.api !== model.api;
+			let normalizedItemId = isForeignToolCall ? buildForeignResponsesItemId(itemId) : normalizeIdPart(itemId);
+			if (!normalizedItemId.startsWith("fc_")) {
+				normalizedItemId = normalizeIdPart(`fc_${normalizedItemId}`);
+			}
+			normalized = `${normalizedCallId}|${normalizedItemId}`;
+		} else if (model.provider === "openai") {
+			normalized = id.length > 40 ? id.slice(0, 40) : id;
 		}
-		return `${normalizedCallId}|${normalizedItemId}`;
+		if (normalized !== id) {
+			options?.providerTrace?.toolCallMapping({
+				stage: "toolCall:normalized",
+				originalId: id,
+				finalId: normalized,
+				reason: id.includes("|") ? "openai-call-id-split" : "cross-model-normalization",
+			});
+		}
+		return normalized;
 	};
 
-	const transformedMessages = transformMessages(context.messages, model, normalizeToolCallId);
+	const transformedMessages = transformMessages(context.messages, model, normalizeToolCallId, options?.providerTrace);
 
 	const includeSystemPrompt = options?.includeSystemPrompt ?? true;
 	if (includeSystemPrompt && context.systemPrompt) {
@@ -221,6 +236,12 @@ export function convertResponsesMessages<TApi extends Api>(
 			const hasImages = msg.content.some((c): c is ImageContent => c.type === "image");
 			const hasText = textResult.length > 0;
 			const [callId] = msg.toolCallId.split("|");
+			options?.providerTrace?.toolCallMapping({
+				stage: "toolResult:sent",
+				originalId: msg.toolCallId,
+				finalId: callId,
+				reason: msg.toolCallId.includes("|") ? "openai-call-id-split" : "same-model",
+			});
 
 			let output: string | ResponseFunctionCallOutputItemList;
 			if (hasImages && model.input.includes("image")) {

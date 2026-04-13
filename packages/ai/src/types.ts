@@ -57,6 +57,8 @@ export type CacheRetention = "none" | "short" | "long";
 
 export type Transport = "sse" | "websocket" | "auto";
 
+export type ProviderLogLevel = "off" | "debug" | "info" | "warn" | "error";
+
 export interface StreamOptions {
 	temperature?: number;
 	maxTokens?: number;
@@ -78,6 +80,18 @@ export interface StreamOptions {
 	 * session-aware features. Ignored by providers that don't support it.
 	 */
 	sessionId?: string;
+	/**
+	 * Optional provider logging runtime injected by higher-level products.
+	 * When present, the AI package emits structured provider trace events without
+	 * knowing anything about the concrete sink implementation.
+	 */
+	providerLogging?: ProviderLoggingRuntime;
+	/**
+	 * Optional active trace scope for the current provider call.
+	 * Outer stream orchestration creates this once and nested provider helpers
+	 * receive it through options to avoid duplicate call scopes.
+	 */
+	providerTrace?: ProviderTraceScope;
 	/**
 	 * Optional callback for inspecting or replacing provider payloads before sending.
 	 * Return undefined to keep the payload unchanged.
@@ -248,6 +262,253 @@ export type AssistantMessageEvent =
 	| { type: "done"; reason: Extract<StopReason, "stop" | "length" | "toolUse">; message: AssistantMessage }
 	| { type: "error"; reason: Extract<StopReason, "aborted" | "error">; error: AssistantMessage };
 
+export interface MessageSummary {
+	index: number;
+	role: Message["role"];
+	api?: Api;
+	provider?: Provider;
+	model?: string;
+	contentKinds: string[];
+	toolCallIds?: string[];
+	toolResultId?: string;
+}
+
+export interface ContextSnapshot {
+	messageCount: number;
+	systemPromptPresent: boolean;
+	toolCount: number;
+	assistantToolCallIds: string[];
+	toolResultIds: string[];
+	summary: MessageSummary[];
+}
+
+export interface TransformSnapshot {
+	stage:
+		| "transformMessages:before"
+		| "transformMessages:after"
+		| "provider:context-rewrite"
+		| "provider:response-rewrite";
+	before?: MessageSummary[];
+	after?: MessageSummary[];
+	notes?: string[];
+}
+
+export interface ToolCallMappingSnapshot {
+	stage:
+		| "toolCall:observed"
+		| "toolCall:normalized"
+		| "toolResult:observed"
+		| "toolResult:mapped"
+		| "toolResult:sent";
+	originalId: string;
+	finalId: string;
+	reason:
+		| "same-model"
+		| "cross-model-normalization"
+		| "anthropic-id-constraint"
+		| "openai-call-id-split"
+		| "provider-adapter-rewrite"
+		| "fallback-generated"
+		| "none";
+	messageIndex?: number;
+	contentIndex?: number;
+}
+
+export interface RequestSnapshot {
+	endpoint: string;
+	method: "POST" | "GET" | "WS";
+	transport?: Transport;
+	bodyShape: string;
+	messageCount?: number;
+	toolCount?: number;
+	outgoingToolUseIds?: string[];
+	outgoingToolResultIds?: string[];
+	headersPresent?: string[];
+	headersRedacted?: string[];
+}
+
+export interface RequestMutationSnapshot {
+	source: "onPayload" | "extension:before_provider_request" | "provider-internal";
+	changed: string[];
+	notes?: string[];
+}
+
+export interface RequestDispatchSnapshot {
+	endpoint: string;
+	transport?: Transport;
+	attempt?: number;
+	providerClientKind?: string;
+}
+
+export interface RetrySnapshot {
+	attempt: number;
+	delayMs: number;
+	reason: string;
+	statusCode?: number;
+}
+
+export interface ResponseStartSnapshot {
+	responseId?: string;
+	statusCode?: number;
+	transport?: Transport;
+}
+
+export interface ResponseEventSnapshot {
+	type: AssistantMessageEvent["type"];
+	toolCallId?: string;
+	toolCallName?: string;
+	deltaSize?: number;
+	finishReason?: string;
+}
+
+export interface AdapterStepSnapshot {
+	step:
+		| "synthetic-model-created"
+		| "context-rewritten"
+		| "response-rewritten"
+		| "request-format-selected";
+	notes?: string[];
+	effectiveApi?: string;
+	effectiveProvider?: string;
+	effectiveModelId?: string;
+}
+
+export interface ProviderErrorSnapshot {
+	name?: string;
+	message: string;
+	statusCode?: number;
+	retryable?: boolean;
+	phase:
+		| "context"
+		| "transform"
+		| "request-build"
+		| "request-send"
+		| "response-parse"
+		| "adapter"
+		| "unknown";
+}
+
+export interface CompletionSnapshot {
+	stopReason: string;
+	usage?: {
+		input: number;
+		output: number;
+		cacheRead: number;
+		cacheWrite: number;
+		totalTokens?: number;
+	};
+	contentSummary?: {
+		textBlocks: number;
+		thinkingBlocks: number;
+		toolCalls: number;
+	};
+}
+
+export type ProviderLogEvent =
+	| "call.started"
+	| "context.received"
+	| "context.transformed"
+	| "request.built"
+	| "request.mutated"
+	| "request.dispatched"
+	| "request.retryScheduled"
+	| "response.started"
+	| "response.event"
+	| "adapter.step"
+	| "toolCall.mapping"
+	| "call.error"
+	| "call.completed";
+
+export interface ProviderCallStart {
+	provider: string;
+	api: Api;
+	modelId: string;
+	modelName: string;
+	baseUrl: string;
+	transport?: Transport;
+	callKind: "stream" | "streamSimple";
+}
+
+export interface ProviderLogRecord {
+	ts: string;
+	sessionId: string;
+	providerCallId: string;
+	provider: string;
+	api: string;
+	modelId: string;
+	level: Exclude<ProviderLogLevel, "off">;
+	event: ProviderLogEvent;
+	payload: Record<string, unknown>;
+}
+
+export interface ProviderLogSink {
+	write(record: ProviderLogRecord): Promise<void> | void;
+	flush?(): Promise<void> | void;
+	close?(): Promise<void> | void;
+}
+
+export interface ProviderTraceScope {
+	readonly sessionId: string;
+	readonly providerCallId: string;
+	readonly provider: string;
+	readonly api: Api;
+	readonly modelId: string;
+	readonly level: ProviderLogLevel;
+
+	contextReceived(payload: ContextSnapshot): void;
+	contextTransformed(payload: TransformSnapshot): void;
+	toolCallMapping(payload: ToolCallMappingSnapshot): void;
+	requestBuilt(payload: RequestSnapshot): void;
+	requestMutated(payload: RequestMutationSnapshot): void;
+	requestDispatched(payload: RequestDispatchSnapshot): void;
+	retryScheduled(payload: RetrySnapshot): void;
+	responseStarted(payload: ResponseStartSnapshot): void;
+	responseEvent(payload: ResponseEventSnapshot): void;
+	adapterStep(payload: AdapterStepSnapshot): void;
+	error(payload: ProviderErrorSnapshot): void;
+	completed(payload: CompletionSnapshot): void;
+}
+
+export interface ProviderTraceFactory {
+	createScope(input: ProviderCallStart): ProviderTraceScope;
+}
+
+export interface ProviderLoggingRuntime {
+	readonly sessionId: string;
+	readonly level: ProviderLogLevel;
+	readonly enabled: boolean;
+	readonly factory: ProviderTraceFactory;
+
+	startProviderCall(input: ProviderCallStart): ProviderTraceScope;
+}
+
+/** Factory helper for disabled logging runtimes. */
+export function createNoOpProviderTraceScope(
+	input: Pick<ProviderCallStart, "provider" | "api" | "modelId"> & { sessionId?: string; level?: ProviderLogLevel },
+): ProviderTraceScope {
+	const sessionId = input.sessionId ?? "";
+	const level = input.level ?? "off";
+	return {
+		sessionId,
+		providerCallId: "",
+		provider: input.provider,
+		api: input.api,
+		modelId: input.modelId,
+		level,
+		contextReceived() {},
+		contextTransformed() {},
+		toolCallMapping() {},
+		requestBuilt() {},
+		requestMutated() {},
+		requestDispatched() {},
+		retryScheduled() {},
+		responseStarted() {},
+		responseEvent() {},
+		adapterStep() {},
+		error() {},
+		completed() {},
+	};
+}
 /**
  * Compatibility settings for OpenAI-compatible completions APIs.
  * Use this to override URL-based auto-detection for custom providers.

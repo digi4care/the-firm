@@ -11,7 +11,7 @@
  * Ported from oh-my-pi's dedicated kimi.ts provider.
  */
 
-import type { Api, AssistantMessage, Context, Model, SimpleStreamOptions, StreamFunction } from "../types.js";
+import type { Api, AssistantMessage, Context, Message, MessageSummary, Model, SimpleStreamOptions, StreamFunction, ToolCall } from "../types.js";
 import { AssistantMessageEventStream } from "../utils/event-stream.js";
 import { getKimiCommonHeaders } from "../utils/oauth/index.js";
 import { streamAnthropic } from "./anthropic.js";
@@ -40,6 +40,14 @@ export const streamKimi: StreamFunction<"openai-completions", KimiOptions> = (
 	const stream = new AssistantMessageEventStream();
 	const format = options?.format ?? "anthropic";
 
+	options?.providerTrace?.adapterStep({
+		step: "request-format-selected",
+		effectiveApi: format === "anthropic" ? "anthropic-messages" : model.api,
+		effectiveProvider: model.provider,
+		effectiveModelId: model.id,
+		notes: [`format=${format}`],
+	});
+
 	// Async IIFE to handle header fetching and stream piping
 	(async () => {
 		try {
@@ -61,6 +69,13 @@ export const streamKimi: StreamFunction<"openai-completions", KimiOptions> = (
 					input: model.input,
 					cost: model.cost,
 				};
+				options?.providerTrace?.adapterStep({
+					step: "synthetic-model-created",
+					effectiveApi: anthropicModel.api,
+					effectiveProvider: anthropicModel.provider,
+					effectiveModelId: anthropicModel.id,
+					notes: ["Kimi anthropic bridge model created"],
+				});
 
 				const reasoning = options?.reasoning;
 				const thinkingEnabled = !!reasoning && model.reasoning;
@@ -91,6 +106,12 @@ export const streamKimi: StreamFunction<"openai-completions", KimiOptions> = (
 						return msg;
 					}),
 				};
+				options?.providerTrace?.contextTransformed({
+					stage: "provider:context-rewrite",
+					before: summarizeMessages(context.messages),
+					after: summarizeMessages(anthropicContext.messages),
+					notes: ["Rewrote assistant api/provider/model to match synthetic anthropic model"],
+				});
 
 				const innerStream = streamAnthropic(anthropicModel, anthropicContext, {
 					apiKey: options?.apiKey,
@@ -103,8 +124,9 @@ export const streamKimi: StreamFunction<"openai-completions", KimiOptions> = (
 					thinkingEnabled,
 					thinkingBudgetTokens: adjusted.thinkingBudget,
 				});
-
+				let responseRewriteLogged = false;
 				for await (const event of innerStream) {
+					let rewroteResponseMetadata = false;
 					// Fix api/provider/model to match the original model, not the synthetic Anthropic model.
 					// Without this, the assistant message gets api="anthropic-messages" but the model
 					// has api="openai-completions", causing isSameModel=false in transformMessages
@@ -113,16 +135,29 @@ export const streamKimi: StreamFunction<"openai-completions", KimiOptions> = (
 						event.partial.api = model.api;
 						event.partial.provider = model.provider;
 						event.partial.model = model.id;
+						rewroteResponseMetadata = true;
 					}
 					if ("message" in event && event.message) {
 						event.message.api = model.api;
 						event.message.provider = model.provider;
 						event.message.model = model.id;
+						rewroteResponseMetadata = true;
 					}
 					if ("error" in event && event.error) {
 						event.error.api = model.api;
 						event.error.provider = model.provider;
 						event.error.model = model.id;
+						rewroteResponseMetadata = true;
+					}
+					if (rewroteResponseMetadata && !responseRewriteLogged) {
+						responseRewriteLogged = true;
+						options?.providerTrace?.adapterStep({
+							step: "response-rewritten",
+							effectiveApi: model.api,
+							effectiveProvider: model.provider,
+							effectiveModelId: model.id,
+							notes: ["Restored original api/provider/model on forwarded anthropic events"],
+						});
 					}
 					stream.push(event);
 				}
@@ -181,4 +216,35 @@ function createErrorMessage(model: Model<Api>, err: unknown): AssistantMessage {
  */
 export function isKimiModel(model: Model<Api>): boolean {
 	return model.provider === "kimi-coding";
+}
+
+
+function summarizeMessages(messages: Message[]): MessageSummary[] {
+	return messages.map((message, index) => {
+		if (message.role === "assistant") {
+			const toolCalls = message.content.filter((block): block is ToolCall => block.type === "toolCall");
+			return {
+				index,
+				role: message.role,
+				api: message.api,
+				provider: message.provider,
+				model: message.model,
+				contentKinds: message.content.map((block) => block.type),
+				toolCallIds: toolCalls.map((toolCall) => toolCall.id),
+			};
+		}
+		if (message.role === "toolResult") {
+			return {
+				index,
+				role: message.role,
+				contentKinds: message.content.map((block) => block.type),
+				toolResultId: message.toolCallId,
+			};
+		}
+		return {
+			index,
+			role: message.role,
+			contentKinds: typeof message.content === "string" ? ["text"] : message.content.map((block) => block.type),
+		};
+	});
 }

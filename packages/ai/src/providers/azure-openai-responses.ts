@@ -211,7 +211,7 @@ function buildParams(
 	options: AzureOpenAIResponsesOptions | undefined,
 	deploymentName: string,
 ) {
-	const messages = convertResponsesMessages(model, context, AZURE_TOOL_CALL_PROVIDERS);
+	const messages = convertResponsesMessages(model, context, AZURE_TOOL_CALL_PROVIDERS, { providerTrace: options?.providerTrace });
 
 	const params: ResponseCreateParamsStreaming = {
 		model: deploymentName,

@@ -144,6 +144,7 @@ export const streamOpenAICodexResponses: StreamFunction<"openai-codex-responses"
 			const nextBody = await options?.onPayload?.(body, model);
 			if (nextBody !== undefined) {
 				body = nextBody as RequestBody;
+				options?.providerTrace?.requestMutated({ source: "onPayload", changed: ["codex.requestBody"] });
 			}
 			const websocketRequestId = options?.sessionId || createCodexRequestId();
 			const sseHeaders = buildSSEHeaders(model.headers, options?.headers, accountId, apiKey, options?.sessionId);
@@ -160,6 +161,11 @@ export const streamOpenAICodexResponses: StreamFunction<"openai-codex-responses"
 			if (transport !== "sse") {
 				let websocketStarted = false;
 				try {
+					options?.providerTrace?.requestDispatched({
+						endpoint: resolveCodexWebSocketUrl(model.baseUrl),
+						transport: "websocket",
+						providerClientKind: "websocket",
+					});
 					await processWebSocketStream(
 						resolveCodexWebSocketUrl(model.baseUrl),
 						body,
@@ -200,6 +206,12 @@ export const streamOpenAICodexResponses: StreamFunction<"openai-codex-responses"
 				}
 
 				try {
+					options?.providerTrace?.requestDispatched({
+						endpoint: resolveCodexUrl(model.baseUrl),
+						transport: "sse",
+						attempt: attempt + 1,
+						providerClientKind: "fetch",
+					});
 					response = await fetch(resolveCodexUrl(model.baseUrl), {
 						method: "POST",
 						headers: sseHeaders,
@@ -213,6 +225,12 @@ export const streamOpenAICodexResponses: StreamFunction<"openai-codex-responses"
 
 					const errorText = await response.text();
 					if (attempt < MAX_RETRIES && isRetryableError(response.status, errorText)) {
+						options?.providerTrace?.retryScheduled({
+							attempt: attempt + 1,
+							delayMs: BASE_DELAY_MS * 2 ** attempt,
+							reason: errorText,
+							statusCode: response.status,
+						});
 						const delayMs = BASE_DELAY_MS * 2 ** attempt;
 						await sleep(delayMs, options?.signal);
 						continue;
@@ -234,6 +252,11 @@ export const streamOpenAICodexResponses: StreamFunction<"openai-codex-responses"
 					lastError = error instanceof Error ? error : new Error(String(error));
 					// Network errors are retryable
 					if (attempt < MAX_RETRIES && !lastError.message.includes("usage limit")) {
+						options?.providerTrace?.retryScheduled({
+							attempt: attempt + 1,
+							delayMs: BASE_DELAY_MS * 2 ** attempt,
+							reason: lastError.message,
+						});
 						const delayMs = BASE_DELAY_MS * 2 ** attempt;
 						await sleep(delayMs, options?.signal);
 						continue;
@@ -300,6 +323,7 @@ function buildRequestBody(
 ): RequestBody {
 	const messages = convertResponsesMessages(model, context, CODEX_TOOL_CALL_PROVIDERS, {
 		includeSystemPrompt: false,
+		providerTrace: options?.providerTrace,
 	});
 
 	const body: RequestBody = {
@@ -330,7 +354,32 @@ function buildRequestBody(
 		};
 	}
 
+	const { toolUseIds, toolResultIds } = collectResponsesRequestIds(messages);
+	options?.providerTrace?.requestBuilt({
+		endpoint: resolveCodexUrl(model.baseUrl),
+		method: "POST",
+		transport: options?.transport ?? "sse",
+		bodyShape: "openai-codex-responses",
+		messageCount: messages.length,
+		toolCount: context.tools?.length,
+		outgoingToolUseIds: toolUseIds.length > 0 ? toolUseIds : undefined,
+		outgoingToolResultIds: toolResultIds.length > 0 ? toolResultIds : undefined,
+	});
+
 	return body;
+}
+
+function collectResponsesRequestIds(messages: ResponseInput): { toolUseIds: string[]; toolResultIds: string[] } {
+	const toolUseIds: string[] = [];
+	const toolResultIds: string[] = [];
+	for (const item of messages) {
+		if (item.type === "function_call") {
+			toolUseIds.push(item.call_id);
+		} else if (item.type === "function_call_output") {
+			toolResultIds.push(item.call_id);
+		}
+	}
+	return { toolUseIds, toolResultIds };
 }
 
 function clampReasoningEffort(modelId: string, effort: string): string {

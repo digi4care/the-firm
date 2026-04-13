@@ -76,6 +76,14 @@ export function createStreamFunction<TClient, TParams, TChunk>(
 				// Step 3: Transform messages
 				definition.transformMessages(context, model);
 
+				options?.providerTrace?.requestBuilt({
+					endpoint: model.baseUrl,
+					method: "POST",
+					transport: options?.transport,
+					bodyShape: String(definition.api),
+					messageCount: context.messages.length,
+					toolCount: context.tools?.length,
+				});
 				// Step 4: Build parameters
 				let params = definition.buildParams(model, context, options);
 
@@ -84,9 +92,18 @@ export function createStreamFunction<TClient, TParams, TChunk>(
 					const modified = await options.onPayload(params, model);
 					if (modified !== undefined) {
 						params = modified as TParams;
+						options?.providerTrace?.requestMutated({
+							source: "onPayload",
+							changed: [String(definition.api)],
+						});
 					}
 				}
 
+				options?.providerTrace?.requestDispatched({
+					endpoint: model.baseUrl,
+					transport: options?.transport,
+					providerClientKind: String(definition.api),
+				});
 				// Step 5: Execute stream
 				const rawStream = definition.executeStream(client, params, options?.signal);
 

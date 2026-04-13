@@ -99,7 +99,13 @@ export const streamOpenAICompletions: StreamFunction<"openai-completions", OpenA
 			const nextParams = await options?.onPayload?.(params, model);
 			if (nextParams !== undefined) {
 				params = nextParams as OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming;
+				options?.providerTrace?.requestMutated({ source: "onPayload", changed: ["chat.completions.params"] });
 			}
+			options?.providerTrace?.requestDispatched({
+				endpoint: `${model.baseUrl}/chat/completions`,
+				transport: options?.transport ?? "sse",
+				providerClientKind: "openai-client",
+			});
 			const openaiStream = await client.chat.completions.create(params, { signal: options?.signal });
 			stream.push({ type: "start", partial: output });
 
@@ -237,9 +243,18 @@ export const streamOpenAICompletions: StreamFunction<"openai-completions", OpenA
 								(toolCall.id && currentBlock.id !== toolCall.id)
 							) {
 								finishCurrentBlock(currentBlock);
+								const resolvedToolCallId = toolCall.id || generateToolCallId();
+								if (!toolCall.id) {
+									options?.providerTrace?.toolCallMapping({
+										stage: "toolCall:normalized",
+										originalId: "",
+										finalId: resolvedToolCallId,
+										reason: "fallback-generated",
+									});
+								}
 								currentBlock = {
 									type: "toolCall",
-									id: toolCall.id || generateToolCallId(),
+									id: resolvedToolCallId,
 									name: toolCall.function?.name || "",
 									arguments: {},
 									partialArgs: "",
@@ -373,7 +388,7 @@ function createClient(
 
 function buildParams(model: Model<"openai-completions">, context: Context, options?: OpenAICompletionsOptions) {
 	const compat = getCompat(model);
-	const messages = convertMessages(model, context, compat);
+	const messages = convertMessages(model, context, compat, options?.providerTrace);
 	maybeAddOpenRouterAnthropicCacheControl(model, messages);
 
 	const params: OpenAI.Chat.Completions.ChatCompletionCreateParamsStreaming = {
@@ -423,7 +438,6 @@ function buildParams(model: Model<"openai-completions">, context: Context, optio
 	} else if (compat.thinkingFormat === "qwen-chat-template" && model.reasoning) {
 		(params as any).chat_template_kwargs = { enable_thinking: !!options?.reasoningEffort };
 	} else if (compat.thinkingFormat === "openrouter" && model.reasoning) {
-		// OpenRouter normalizes reasoning across providers via a nested reasoning object.
 		const openRouterParams = params as typeof params & { reasoning?: { effort?: string } };
 		if (options?.reasoningEffort) {
 			openRouterParams.reasoning = {
@@ -433,16 +447,13 @@ function buildParams(model: Model<"openai-completions">, context: Context, optio
 			openRouterParams.reasoning = { effort: "none" };
 		}
 	} else if (options?.reasoningEffort && model.reasoning && compat.supportsReasoningEffort) {
-		// OpenAI-style reasoning_effort
 		(params as any).reasoning_effort = mapReasoningEffort(options.reasoningEffort, compat.reasoningEffortMap);
 	}
 
-	// OpenRouter provider routing preferences
 	if (model.baseUrl.includes("openrouter.ai") && model.compat?.openRouterRouting) {
 		(params as any).provider = model.compat.openRouterRouting;
 	}
 
-	// Vercel AI Gateway provider routing preferences
 	if (model.baseUrl.includes("ai-gateway.vercel.sh") && model.compat?.vercelGatewayRouting) {
 		const routing = model.compat.vercelGatewayRouting;
 		if (routing.only || routing.order) {
@@ -453,7 +464,33 @@ function buildParams(model: Model<"openai-completions">, context: Context, optio
 		}
 	}
 
+	const { assistantToolCallIds, toolResultIds } = collectOpenAICompletionToolIds(messages);
+	options?.providerTrace?.requestBuilt({
+		endpoint: `${model.baseUrl}/chat/completions`,
+		method: "POST",
+		bodyShape: "openai-completions",
+		messageCount: messages.length,
+		toolCount: Array.isArray(params.tools) ? params.tools.length : undefined,
+		outgoingToolUseIds: assistantToolCallIds.length > 0 ? assistantToolCallIds : undefined,
+		outgoingToolResultIds: toolResultIds.length > 0 ? toolResultIds : undefined,
+	});
+
 	return params;
+}
+
+function collectOpenAICompletionToolIds(messages: ChatCompletionMessageParam[]): { assistantToolCallIds: string[]; toolResultIds: string[] } {
+	const assistantToolCallIds: string[] = [];
+	const toolResultIds: string[] = [];
+	for (const message of messages) {
+		if (message.role === "assistant" && Array.isArray(message.tool_calls)) {
+			for (const toolCall of message.tool_calls) {
+				assistantToolCallIds.push(toolCall.id);
+			}
+		} else if (message.role === "tool") {
+			toolResultIds.push(message.tool_call_id);
+		}
+	}
+	return { assistantToolCallIds, toolResultIds };
 }
 
 function mapReasoningEffort(
@@ -500,25 +537,20 @@ export function convertMessages(
 	model: Model<"openai-completions">,
 	context: Context,
 	compat: Required<OpenAICompletionsCompat>,
+	providerTrace?: StreamOptions["providerTrace"],
 ): ChatCompletionMessageParam[] {
 	const params: ChatCompletionMessageParam[] = [];
 
 	const normalizeToolCallId = (id: string): string => {
-		// Handle pipe-separated IDs from OpenAI Responses API
-		// Format: {call_id}|{id} where {id} can be 400+ chars with special chars (+, /, =)
-		// These come from providers like github-copilot, openai-codex, opencode
-		// Extract just the call_id part and normalize it
 		if (id.includes("|")) {
 			const [callId] = id.split("|");
-			// Sanitize to allowed chars and truncate to 40 chars (OpenAI limit)
 			return callId.replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 40);
 		}
-
 		if (model.provider === "openai") return id.length > 40 ? id.slice(0, 40) : id;
 		return id;
 	};
 
-	const transformedMessages = transformMessages(context.messages, model, (id) => normalizeToolCallId(id));
+	const transformedMessages = transformMessages(context.messages, model, (id) => normalizeToolCallId(id), providerTrace);
 
 	if (context.systemPrompt) {
 		const useDeveloperRole = model.reasoning && compat.supportsDeveloperRole;
