@@ -49,6 +49,18 @@ export interface MarkdownSettings {
 	codeBlockIndent?: string; // default: "  "
 }
 
+export interface LspSettings {
+	enabled?: boolean; // default: false
+	diagnosticsMode?: "off" | "onWrite" | "onBatchComplete"; // default: "onBatchComplete"
+	formatOnWrite?: boolean; // default: false
+}
+
+export interface AstSettings {
+	enabled?: boolean; // default: false
+	grepEnabled?: boolean; // default: true
+	editEnabled?: boolean; // default: true
+}
+
 export type TransportSetting = Transport;
 
 /**
@@ -104,6 +116,8 @@ export interface Settings {
 	showHardwareCursor?: boolean; // Show terminal cursor while still positioning it for IME
 	markdown?: MarkdownSettings;
 	sessionDir?: string; // Custom session storage directory (same format as --session-dir CLI flag)
+	lsp?: LspSettings;
+	ast?: AstSettings;
 }
 
 /** Deep merge settings: project/overrides take precedence, nested objects merge recursively */
@@ -465,13 +479,19 @@ export class SettingsManager {
 		const segments = path.split(".");
 		if (scope === "global") {
 			pathSet(this.globalSettings as Record<string, unknown>, segments, value);
-			this.markModified(segments[0] as keyof Settings, segments.length > 1 ? segments.slice(1).join(".") : undefined);
+			this.markModified(
+				segments[0] as keyof Settings,
+				segments.length > 1 ? segments.slice(1).join(".") : undefined,
+			);
 			this.save();
 			return;
 		}
 		const projectSettings = structuredClone(this.projectSettings);
 		pathSet(projectSettings as Record<string, unknown>, segments, value);
-		this.markProjectModified(segments[0] as keyof Settings, segments.length > 1 ? segments.slice(1).join(".") : undefined);
+		this.markProjectModified(
+			segments[0] as keyof Settings,
+			segments.length > 1 ? segments.slice(1).join(".") : undefined,
+		);
 		this.saveProjectSettings(projectSettings);
 	}
 
@@ -632,17 +652,21 @@ export class SettingsManager {
 		this.set("defaultModel", modelId);
 	}
 
-	getSteeringMode = (): "all" | "one-at-a-time" => (this.get("steeringMode") ?? "one-at-a-time") as "all" | "one-at-a-time";
+	getSteeringMode = (): "all" | "one-at-a-time" =>
+		(this.get("steeringMode") ?? "one-at-a-time") as "all" | "one-at-a-time";
 	setSteeringMode = (mode: "all" | "one-at-a-time") => this.set("steeringMode", mode);
 
-	getFollowUpMode = (): "all" | "one-at-a-time" => (this.get("followUpMode") ?? "one-at-a-time") as "all" | "one-at-a-time";
+	getFollowUpMode = (): "all" | "one-at-a-time" =>
+		(this.get("followUpMode") ?? "one-at-a-time") as "all" | "one-at-a-time";
 	setFollowUpMode = (mode: "all" | "one-at-a-time") => this.set("followUpMode", mode);
 
 	getTheme = (): string | undefined => this.get("theme") as string | undefined;
 	setTheme = (theme: string) => this.set("theme", theme);
 
-	getDefaultThinkingLevel = (): "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | undefined => this.get("defaultThinkingLevel") as "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | undefined;
-	setDefaultThinkingLevel = (level: "off" | "minimal" | "low" | "medium" | "high" | "xhigh") => this.set("defaultThinkingLevel", level);
+	getDefaultThinkingLevel = (): "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | undefined =>
+		this.get("defaultThinkingLevel") as "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | undefined;
+	setDefaultThinkingLevel = (level: "off" | "minimal" | "low" | "medium" | "high" | "xhigh") =>
+		this.set("defaultThinkingLevel", level);
 
 	getTransport = (): TransportSetting => (this.get("transport") ?? "sse") as TransportSetting;
 	setTransport = (transport: TransportSetting) => this.set("transport", transport);
@@ -653,7 +677,8 @@ export class SettingsManager {
 	getCompactionReserveTokens = (): number => (this.get("compaction.reserveTokens") ?? 16384) as number;
 	getCompactionKeepRecentTokens = (): number => (this.get("compaction.keepRecentTokens") ?? 20000) as number;
 
-	getCompactionStrategy = (): CompactionStrategy => (this.get("compaction.strategy") ?? "context-full") as CompactionStrategy;
+	getCompactionStrategy = (): CompactionStrategy =>
+		(this.get("compaction.strategy") ?? "context-full") as CompactionStrategy;
 	setCompactionStrategy = (strategy: CompactionStrategy) => this.set("compaction.strategy", strategy);
 
 	getHandoffAutoContinue = (): boolean => (this.get("compaction.handoffAutoContinue") ?? true) as boolean;
@@ -798,7 +823,8 @@ export class SettingsManager {
 	getEnableSkillCommands = (): boolean => (this.get("enableSkillCommands") ?? true) as boolean;
 	setEnableSkillCommands = (enabled: boolean) => this.set("enableSkillCommands", enabled);
 
-	getThinkingBudgets = (): ThinkingBudgetsSettings | undefined => this.get("thinkingBudgets") as ThinkingBudgetsSettings | undefined;
+	getThinkingBudgets = (): ThinkingBudgetsSettings | undefined =>
+		this.get("thinkingBudgets") as ThinkingBudgetsSettings | undefined;
 
 	getShowImages = (): boolean => (this.get("terminal.showImages") ?? true) as boolean;
 	setShowImages = (show: boolean) => this.set("terminal.showImages", show);
@@ -819,25 +845,63 @@ export class SettingsManager {
 	getEnabledModels = (): string[] | undefined => this.get("enabledModels") as string[] | undefined;
 	setEnabledModels = (patterns: string[] | undefined) => this.set("enabledModels", patterns);
 
-	getDoubleEscapeAction = (): "fork" | "tree" | "none" => (this.get("doubleEscapeAction") ?? "tree") as "fork" | "tree" | "none";
+	getDoubleEscapeAction = (): "fork" | "tree" | "none" =>
+		(this.get("doubleEscapeAction") ?? "tree") as "fork" | "tree" | "none";
 	setDoubleEscapeAction = (action: "fork" | "tree" | "none") => this.set("doubleEscapeAction", action);
 
 	getTreeFilterMode = (): "default" | "no-tools" | "user-only" | "labeled-only" | "all" => {
 		const mode = this.get("treeFilterMode") as string | undefined;
 		const valid = ["default", "no-tools", "user-only", "labeled-only", "all"];
-		return mode && valid.includes(mode) ? (mode as "default" | "no-tools" | "user-only" | "labeled-only" | "all") : "default";
+		return mode && valid.includes(mode)
+			? (mode as "default" | "no-tools" | "user-only" | "labeled-only" | "all")
+			: "default";
 	};
-	setTreeFilterMode = (mode: "default" | "no-tools" | "user-only" | "labeled-only" | "all") => this.set("treeFilterMode", mode);
+	setTreeFilterMode = (mode: "default" | "no-tools" | "user-only" | "labeled-only" | "all") =>
+		this.set("treeFilterMode", mode);
 
-	getShowHardwareCursor = (): boolean => (this.get("showHardwareCursor") ?? process.env.PI_HARDWARE_CURSOR === "1") as boolean;
+	getShowHardwareCursor = (): boolean =>
+		(this.get("showHardwareCursor") ?? process.env.PI_HARDWARE_CURSOR === "1") as boolean;
 	setShowHardwareCursor = (enabled: boolean) => this.set("showHardwareCursor", enabled);
 
 	getEditorPaddingX = (): number => Math.max(0, Math.min(3, Math.floor((this.get("editorPaddingX") ?? 0) as number)));
 	setEditorPaddingX = (padding: number) => this.set("editorPaddingX", Math.max(0, Math.min(3, Math.floor(padding))));
 
-	getAutocompleteMaxVisible = (): number => Math.max(3, Math.min(20, Math.floor((this.get("autocompleteMaxVisible") ?? 5) as number)));
-	setAutocompleteMaxVisible = (maxVisible: number) => this.set("autocompleteMaxVisible", Math.max(3, Math.min(20, Math.floor(maxVisible))));
+	getAutocompleteMaxVisible = (): number =>
+		Math.max(3, Math.min(20, Math.floor((this.get("autocompleteMaxVisible") ?? 5) as number)));
+	setAutocompleteMaxVisible = (maxVisible: number) =>
+		this.set("autocompleteMaxVisible", Math.max(3, Math.min(20, Math.floor(maxVisible))));
 
 	getCodeBlockIndent = (): string => (this.get("markdown.codeBlockIndent") ?? "  ") as string;
 
+	// ═══════════════════════════════════════════════════════════════════════
+	// Code Intelligence Settings (LSP + AST)
+	// ═══════════════════════════════════════════════════════════════════════
+
+	getLspEnabled = (): boolean => (this.get("lsp.enabled") ?? false) as boolean;
+	setLspEnabled = (enabled: boolean) => this.set("lsp.enabled", enabled);
+
+	getLspDiagnosticsMode = (): "off" | "onWrite" | "onBatchComplete" =>
+		(this.get("lsp.diagnosticsMode") ?? "onBatchComplete") as "off" | "onWrite" | "onBatchComplete";
+	setLspDiagnosticsMode = (mode: "off" | "onWrite" | "onBatchComplete") => this.set("lsp.diagnosticsMode", mode);
+
+	getLspFormatOnWrite = (): boolean => (this.get("lsp.formatOnWrite") ?? false) as boolean;
+	setLspFormatOnWrite = (enabled: boolean) => this.set("lsp.formatOnWrite", enabled);
+
+	getAstEnabled = (): boolean => (this.get("ast.enabled") ?? false) as boolean;
+	setAstEnabled = (enabled: boolean) => this.set("ast.enabled", enabled);
+
+	getAstGrepEnabled = (): boolean => (this.get("ast.grepEnabled") ?? true) as boolean;
+	setAstGrepEnabled = (enabled: boolean) => this.set("ast.grepEnabled", enabled);
+
+	getAstEditEnabled = (): boolean => (this.get("ast.editEnabled") ?? true) as boolean;
+	setAstEditEnabled = (enabled: boolean) => this.set("ast.editEnabled", enabled);
+
+	getCodeIntelligenceSettings = () => ({
+		lspEnabled: this.getLspEnabled(),
+		lspDiagnosticsMode: this.getLspDiagnosticsMode(),
+		lspFormatOnWrite: this.getLspFormatOnWrite(),
+		astEnabled: this.getAstEnabled(),
+		astGrepEnabled: this.getAstGrepEnabled(),
+		astEditEnabled: this.getAstEditEnabled(),
+	});
 }
