@@ -41,10 +41,11 @@ export interface ImageSettings {
 }
 
 export interface ThinkingBudgetsSettings {
-	minimal?: number;
-	low?: number;
-	medium?: number;
-	high?: number;
+	minimal?: number; // default: 1024
+	low?: number; // default: 2048
+	medium?: number; // default: 8192
+	high?: number; // default: 16384
+	xhigh?: number; // default: 32768
 }
 
 export interface MarkdownSettings {
@@ -401,6 +402,17 @@ export class SettingsManager {
 			} else {
 				delete settings.skills;
 			}
+		}
+
+		// Migrate old thinkingBudgets record format to dotted keys
+		if ("thinkingBudgets" in settings && typeof settings.thinkingBudgets === "object" && settings.thinkingBudgets !== null) {
+			const oldBudgets = settings.thinkingBudgets as Record<string, number>;
+			for (const [key, value] of Object.entries(oldBudgets)) {
+				if (["minimal", "low", "medium", "high", "xhigh"].includes(key)) {
+					settings[`thinkingBudgets.${key}`] = value;
+				}
+			}
+			delete settings.thinkingBudgets;
 		}
 
 		return settings as Settings;
@@ -833,8 +845,28 @@ export class SettingsManager {
 	getEnableSkillCommands = (): boolean => (this.get("enableSkillCommands") ?? true) as boolean;
 	setEnableSkillCommands = (enabled: boolean) => this.set("enableSkillCommands", enabled);
 
-	getThinkingBudgets = (): ThinkingBudgetsSettings | undefined =>
-		this.get("thinkingBudgets") as ThinkingBudgetsSettings | undefined;
+	getThinkingBudgets = (): ThinkingBudgetsSettings => ({
+		minimal: (this.get("thinkingBudgets.minimal") ?? 1024) as number,
+		low: (this.get("thinkingBudgets.low") ?? 2048) as number,
+		medium: (this.get("thinkingBudgets.medium") ?? 8192) as number,
+		high: (this.get("thinkingBudgets.high") ?? 16384) as number,
+		xhigh: (this.get("thinkingBudgets.xhigh") ?? 32768) as number,
+	});
+
+	getThinkingBudgetMinimal = (): number => (this.get("thinkingBudgets.minimal") ?? 1024) as number;
+	setThinkingBudgetMinimal = (value: number) => this.set("thinkingBudgets.minimal", value);
+
+	getThinkingBudgetLow = (): number => (this.get("thinkingBudgets.low") ?? 2048) as number;
+	setThinkingBudgetLow = (value: number) => this.set("thinkingBudgets.low", value);
+
+	getThinkingBudgetMedium = (): number => (this.get("thinkingBudgets.medium") ?? 8192) as number;
+	setThinkingBudgetMedium = (value: number) => this.set("thinkingBudgets.medium", value);
+
+	getThinkingBudgetHigh = (): number => (this.get("thinkingBudgets.high") ?? 16384) as number;
+	setThinkingBudgetHigh = (value: number) => this.set("thinkingBudgets.high", value);
+
+	getThinkingBudgetXHigh = (): number => (this.get("thinkingBudgets.xhigh") ?? 32768) as number;
+	setThinkingBudgetXHigh = (value: number) => this.set("thinkingBudgets.xhigh", value);
 
 	getShowImages = (): boolean => (this.get("terminal.showImages") ?? true) as boolean;
 	setShowImages = (show: boolean) => this.set("terminal.showImages", show);
