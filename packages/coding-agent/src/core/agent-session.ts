@@ -188,6 +188,8 @@ export interface PromptOptions {
 	streamingBehavior?: "steer" | "followUp";
 	/** Source of input for extension input event handlers. Defaults to "interactive". */
 	source?: InputSource;
+	/** Temporary system prompt override for this prompt only. */
+	systemPromptOverride?: string;
 }
 
 /** Result from handoff() */
@@ -1077,13 +1079,16 @@ export class AgentSession {
 					});
 				}
 			}
-			// Apply extension-modified system prompt, or reset to base
 			if (result?.systemPrompt) {
 				this.agent.state.systemPrompt = result.systemPrompt;
 			} else {
-				// Ensure we're using the base prompt (in case previous turn had modifications)
 				this.agent.state.systemPrompt = this._baseSystemPrompt;
 			}
+		} else {
+			this.agent.state.systemPrompt = this._baseSystemPrompt;
+		}
+		if (options?.systemPromptOverride) {
+			this.agent.state.systemPrompt = options.systemPromptOverride;
 		}
 
 		await this.agent.prompt(messages);

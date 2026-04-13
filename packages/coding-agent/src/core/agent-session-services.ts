@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import type { ThinkingLevel } from "@digi4care/the-firm-agent-core";
-import type { Model } from "@digi4care/the-firm-ai";
+import type { Model, ProviderLoggingRuntime } from "@digi4care/the-firm-ai";
 import { getAgentDir } from "../config.js";
 import { AuthStorage } from "./auth-storage.js";
 import type { SessionStartEvent, ToolDefinition } from "./extensions/index.js";
@@ -55,6 +55,7 @@ export interface CreateAgentSessionFromServicesOptions {
 	scopedModels?: Array<{ model: Model<any>; thinkingLevel?: ThinkingLevel }>;
 	tools?: Tool[];
 	customTools?: ToolDefinition[];
+	providerLoggingRuntime?: ProviderLoggingRuntime;
 }
 
 /**
@@ -192,6 +193,7 @@ export async function createAgentSessionFromServices(
 		scopedModels: options.scopedModels,
 		tools: options.tools,
 		customTools: options.customTools,
+		providerLoggingRuntime: options.providerLoggingRuntime,
 		sessionStartEvent: options.sessionStartEvent,
 	});
 }

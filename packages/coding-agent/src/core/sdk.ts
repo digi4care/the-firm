@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { Agent, type AgentMessage, type ThinkingLevel } from "@digi4care/the-firm-agent-core";
-import { type Message, type Model, streamSimple } from "@digi4care/the-firm-ai";
+import { type Message, type Model, type ProviderLoggingRuntime, streamSimple } from "@digi4care/the-firm-ai";
 import { getAgentDir, getDocsPath } from "../config.js";
 import { AgentSession } from "./agent-session.js";
 import { AuthStorage } from "./auth-storage.js";
@@ -71,6 +71,8 @@ export interface CreateAgentSessionOptions {
 	/** Settings manager. Default: SettingsManager.create(cwd, agentDir) */
 	settingsManager?: SettingsManager;
 	/** Session start event metadata for extension runtime startup. */
+	/** Optional provider logging runtime forwarded into AI stream options. */
+	providerLoggingRuntime?: ProviderLoggingRuntime;
 	sessionStartEvent?: SessionStartEvent;
 }
 
@@ -296,15 +298,16 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 			tools: [],
 		},
 		convertToLlm: convertToLlmWithBlockImages,
-		streamFn: async (model, context, options) => {
+		streamFn: async (model, context, streamOptions) => {
 			const auth = await modelRegistry.getApiKeyAndHeaders(model);
 			if (!auth.ok) {
 				throw new Error(auth.error);
 			}
 			return streamSimple(model, context, {
-				...options,
+				...streamOptions,
 				apiKey: auth.apiKey,
-				headers: auth.headers || options?.headers ? { ...auth.headers, ...options?.headers } : undefined,
+				headers: auth.headers || streamOptions?.headers ? { ...auth.headers, ...streamOptions?.headers } : undefined,
+				providerLogging: options.providerLoggingRuntime,
 			});
 		},
 		onPayload: async (payload, _model) => {

@@ -54,6 +54,18 @@ export const modelSettings: SettingsProvider = {
 			type: "number",
 			default: 60000,
 		},
+		"providerLogging.level": {
+			type: "enum",
+			values: ["off", "debug", "info", "warn", "error"] as const,
+			default: "off",
+			ui: {
+				tab: "model",
+				label: "Provider Logging",
+				description: "Structured provider/model tracing written per session to project log files",
+				submenu: true,
+				scopeSelector: true,
+			},
+		},
 		thinkingBudgets: {
 			type: "record",
 			default: {} as Record<string, number>,
@@ -65,6 +77,13 @@ export const modelSettings: SettingsProvider = {
 			{ value: "2", label: "2 retries" },
 			{ value: "3", label: "3 retries", description: "Default" },
 			{ value: "5", label: "5 retries" },
+		],
+		"providerLogging.level": [
+			{ value: "off", label: "off", description: "Disable provider logging" },
+			{ value: "debug", label: "debug", description: "Log full provider tracing details" },
+			{ value: "info", label: "info", description: "Log provider lifecycle and request summaries" },
+			{ value: "warn", label: "warn", description: "Log retries, mappings, and warnings" },
+			{ value: "error", label: "error", description: "Log provider failures only" },
 		],
 	},
 };
