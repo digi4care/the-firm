@@ -121,6 +121,8 @@ export interface CompactionSettings {
 	keepRecentTokens: number;
 	handoffAutoContinue: boolean;
 	handoffSaveToDisk: boolean;
+	thresholdPercent: number;
+	thresholdTokens: number;
 }
 
 export const DEFAULT_COMPACTION_SETTINGS: CompactionSettings = {
@@ -130,6 +132,8 @@ export const DEFAULT_COMPACTION_SETTINGS: CompactionSettings = {
 	keepRecentTokens: 20000,
 	handoffAutoContinue: true,
 	handoffSaveToDisk: false,
+	thresholdPercent: 90,
+	thresholdTokens: -1,
 };
 
 // ============================================================================
@@ -226,6 +230,18 @@ export function estimateContextTokens(messages: AgentMessage[]): ContextUsageEst
  */
 export function shouldCompact(contextTokens: number, contextWindow: number, settings: CompactionSettings): boolean {
 	if (!settings.enabled) return false;
+
+	// Fixed token limit takes precedence over percentage
+	if (settings.thresholdTokens > 0) {
+		return contextTokens > settings.thresholdTokens;
+	}
+
+	// Percentage-based threshold
+	if (settings.thresholdPercent > 0) {
+		return contextTokens > (contextWindow * settings.thresholdPercent) / 100;
+	}
+
+	// Legacy fallback: reserve-based behavior
 	return contextTokens > contextWindow - settings.reserveTokens;
 }
 
