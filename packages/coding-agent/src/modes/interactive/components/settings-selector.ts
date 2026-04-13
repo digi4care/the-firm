@@ -31,6 +31,7 @@ import {
 	type SettingTab,
 	TAB_METADATA,
 } from "../../../core/settings-schema.js";
+import type { SettingValueSource, SettingsScope } from "../../../core/settings-manager.js";
 import { getSelectListTheme, getSettingsListTheme, theme } from "../theme/theme.js";
 import { DynamicBorder } from "./dynamic-border.js";
 
@@ -39,9 +40,12 @@ const SETTINGS_SUBMENU_SELECT_LIST_LAYOUT: SelectListLayoutOptions = {
 	maxPrimaryColumnWidth: 32,
 };
 
-// ═══════════════════════════════════════════════════════════════════════════
-// Submenu Components
-// ═══════════════════════════════════════════════════════════════════════════
+const SCOPE_OPTIONS: SelectItem[] = [
+	{ value: "global", label: "global", description: "Write to global settings" },
+	{ value: "project", label: "project", description: "Write to project settings" },
+];
+
+type ScopedSettingState = Record<SettingsScope, { value: string; inherited: boolean }>;
 
 class SelectSubmenu extends Container {
 	private selectList: SelectList;
@@ -56,35 +60,27 @@ class SelectSubmenu extends Container {
 		onSelectionChange?: (value: string) => void,
 	) {
 		super();
-
 		this.addChild(new Text(theme.bold(theme.fg("accent", title)), 0, 0));
-
 		if (description) {
 			this.addChild(new Spacer(1));
 			this.addChild(new Text(theme.fg("muted", description), 0, 0));
 		}
-
 		this.addChild(new Spacer(1));
-
 		this.selectList = new SelectList(
 			options,
 			Math.min(options.length, 10),
 			getSelectListTheme(),
 			SETTINGS_SUBMENU_SELECT_LIST_LAYOUT,
 		);
-
 		const currentIndex = options.findIndex((o) => o.value === currentValue);
 		if (currentIndex !== -1) {
 			this.selectList.setSelectedIndex(currentIndex);
 		}
-
 		this.selectList.onSelect = (item) => onSelect(item.value);
 		this.selectList.onCancel = onCancel;
-
 		if (onSelectionChange) {
 			this.selectList.onSelectionChange = (item) => onSelectionChange(item.value);
 		}
-
 		this.addChild(this.selectList);
 		this.addChild(new Spacer(1));
 		this.addChild(new Text(theme.fg("dim", "  Enter to select · Esc to go back"), 0, 0));
@@ -101,7 +97,7 @@ class SelectSubmenu extends Container {
 
 export interface SettingsCallbacks {
 	/** Called when any setting value changes via the generic path-based setter */
-	onChange: (path: string, newValue: unknown) => void;
+	onChange: (path: string, newValue: unknown, scope: SettingsScope) => void;
 	/** Called for theme preview while browsing */
 	onThemePreview?: (themeName: string) => void;
 	/** Called when settings panel is closed */
@@ -124,11 +120,13 @@ export class SettingsSelectorComponent extends Container {
 	private settingsList: SettingsList | null = null;
 	private activeTab: SettingTab;
 	private activeTabs: SettingTab[];
-
+	private readonly scopeSelections = new Map<string, SettingsScope>();
 	constructor(
 		private readonly context: SettingsRuntimeContext,
 		private readonly callbacks: SettingsCallbacks,
 		private readonly getSettingValue: (path: string) => unknown,
+		private readonly getScopedSettingValue: (path: string, scope: SettingsScope) => unknown,
+		private readonly getSettingValueSource: (path: string) => SettingValueSource,
 	) {
 		super();
 
@@ -160,52 +158,81 @@ export class SettingsSelectorComponent extends Container {
 
 	// ── Schema → SettingItem Conversion ────────────────────────────────────
 
-	private defToItem(path: string, def: SettingDef): SettingItem | null {
+	private defToItems(path: string, def: SettingDef): SettingItem[] {
 		const ui = settingsRegistry.getUi(path);
-		if (!ui) return null;
-
-		// Check condition
-		if (ui.condition && !ui.condition()) return null;
+		if (!ui) return [];
+		if (ui.condition && !ui.condition()) return [];
 
 		const currentValue = this.getSettingValue(path);
 		const displayValue = this.toDisplayString(currentValue);
+		const selectedScope = this.getSelectedScope(path);
+		const scopedValue = this.getScopedSettingValue(path, selectedScope);
+		const scopedDisplayValue = this.toDisplayString(scopedValue ?? currentValue);
 
-		// Submenu types: enum/number/string with submenu flag, or has registered options
-		const options = settingsRegistry.getOptions(path);
-		if (ui.submenu || options) {
-			return {
-				id: path,
-				label: ui.label,
-				description: ui.description,
-				currentValue: displayValue,
-				submenu: (cv, done) => this.createSubmenu(path, def, cv, done),
-			};
+		const items: SettingItem[] = [];
+
+		if (ui.scopeSelector) {
+			items.push({
+				id: `${path}.__scope`,
+				label: `${ui.label} Scope`,
+				description: `Choose whether ${ui.label.toLowerCase()} writes to global or project settings`,
+				currentValue: selectedScope,
+				submenu: (_cv, done) => this.createScopeSubmenu(path, ui.label, done),
+			});
 		}
 
-		// Boolean: inline toggle
+		const options = settingsRegistry.getOptions(path);
+		if (ui.submenu || options) {
+			items.push({
+				id: path,
+				label: ui.scopeSelector ? `${ui.label} Level` : ui.label,
+				description: ui.scopeSelector ? this.buildScopedDescription(path, ui.description) : ui.description,
+				currentValue: ui.scopeSelector ? scopedDisplayValue : displayValue,
+				submenu: (cv, done) => this.createSubmenu(path, def, cv, done),
+			});
+			return items;
+		}
+
 		if (def.type === "boolean") {
-			return {
+			items.push({
 				id: path,
 				label: ui.label,
 				description: ui.description,
 				currentValue: displayValue,
 				values: ["true", "false"],
-			};
+			});
+			return items;
 		}
 
-		// Enum: inline cycle if ≤ 5 values
 		if (def.type === "enum") {
-			return {
+			items.push({
 				id: path,
 				label: ui.label,
 				description: ui.description,
 				currentValue: displayValue,
 				values: [...def.values],
-			};
+			});
 		}
 
-		// Number/string without submenu: skip (no free-text UI for now)
-		return null;
+		return items;
+	}
+
+	private getSelectedScope(path: string): SettingsScope {
+		return this.scopeSelections.get(path) ?? "global";
+	}
+
+	private buildScopedDescription(path: string, baseDescription: string): string {
+		const selectedScope = this.getSelectedScope(path);
+		const effectiveValue = this.toDisplayString(this.getSettingValue(path));
+		const effectiveSource = this.getSettingValueSource(path);
+		const scopedValue = this.getScopedSettingValue(path, selectedScope);
+		const storedValue = scopedValue === undefined ? `inherited → ${effectiveValue}` : this.toDisplayString(scopedValue);
+		return [
+			baseDescription,
+			`Effective: ${effectiveValue} (${effectiveSource})`,
+			`Write target: ${selectedScope}`,
+			`Stored in target: ${storedValue}`,
+		].join("\n");
 	}
 
 	private toDisplayString(value: unknown): string {
@@ -224,12 +251,9 @@ export class SettingsSelectorComponent extends Container {
 	): Container {
 		let options: SelectItem[] = [];
 
-		// Theme: dynamic options from runtime context
 		if (path === "theme") {
 			options = this.context.availableThemes.map((t) => ({ value: t, label: t }));
-		}
-		// Thinking level: dynamic from session
-		else if (path === "defaultThinkingLevel") {
+		} else if (path === "defaultThinkingLevel") {
 			const descriptions: Record<string, string> = {
 				off: "No reasoning",
 				minimal: "Very brief reasoning (~1k tokens)",
@@ -243,30 +267,23 @@ export class SettingsSelectorComponent extends Container {
 				label: level,
 				description: descriptions[level],
 			}));
-		}
-		// Registered options
-		else {
+		} else {
 			const registeredOpts = settingsRegistry.getOptions(path);
 			if (registeredOpts) {
-				const resolved =
-					typeof registeredOpts === "function" ? registeredOpts() : registeredOpts;
+				const resolved = typeof registeredOpts === "function" ? registeredOpts() : registeredOpts;
 				options = resolved.map((o: SettingOption) => ({
 					value: o.value,
 					label: o.label,
 					description: o.description,
 				}));
-			}
-			// Enum values as fallback
-			else if (def.type === "enum") {
+			} else if (def.type === "enum") {
 				options = def.values.map((v) => ({ value: v, label: v }));
 			}
 		}
 
 		const ui = settingsRegistry.getUi(path);
-		const label = ui?.label ?? path;
-		const description = ui?.description ?? "";
-
-		// Preview support
+		const label = ui?.scopeSelector ? `${ui?.label ?? path} Level` : (ui?.label ?? path);
+		const description = ui?.scopeSelector ? this.buildScopedDescription(path, ui.description) : (ui?.description ?? "");
 		let onSelectionChange: ((value: string) => void) | undefined;
 		if (path === "theme") {
 			onSelectionChange = (value) => this.callbacks.onThemePreview?.(value);
@@ -277,8 +294,8 @@ export class SettingsSelectorComponent extends Container {
 			description,
 			options,
 			currentValue,
-			(value) => {
-				this.callbacks.onChange(path, value);
+			(value: string) => {
+				this.callbacks.onChange(path, value, this.getSelectedScope(path));
 				done(value);
 			},
 			() => {
@@ -291,6 +308,21 @@ export class SettingsSelectorComponent extends Container {
 		);
 	}
 
+	private createScopeSubmenu(path: string, label: string, done: (value?: string) => void): Container {
+		return new SelectSubmenu(
+			`${label} Scope`,
+			"Choose whether changes write to global or project settings",
+			SCOPE_OPTIONS,
+			this.getSelectedScope(path),
+			(value: string) => {
+				this.scopeSelections.set(path, value as SettingsScope);
+				this.switchTab(this.activeTab);
+				done(value);
+			},
+			() => done(),
+		);
+	}
+
 	// ── Tab Rendering ──────────────────────────────────────────────────────
 
 	private addSettingsList(tab: SettingTab): void {
@@ -300,8 +332,7 @@ export class SettingsSelectorComponent extends Container {
 		for (const path of paths) {
 			const def = settingsRegistry.get(path);
 			if (!def) continue;
-			const item = this.defToItem(path, def);
-			if (item) items.push(item);
+			items.push(...this.defToItems(path, def));
 		}
 
 		if (items.length === 0) {
@@ -314,7 +345,7 @@ export class SettingsSelectorComponent extends Container {
 			10,
 			getSettingsListTheme(),
 			(id, newValue) => {
-				this.callbacks.onChange(id, newValue);
+				this.callbacks.onChange(id, newValue, "global");
 			},
 			this.callbacks.onCancel,
 			{ enableSearch: true },
