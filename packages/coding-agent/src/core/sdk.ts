@@ -246,9 +246,15 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 
 	const defaultActiveToolNames: ToolName[] = ["read", "bash", "edit", "write"];
 
-	// Expand default active tools based on code-intelligence settings
+	// Expand default active tools based on settings
 	function resolveDefaultActiveTools(): ToolName[] {
 		const base: ToolName[] = [...defaultActiveToolNames];
+		if (settingsManager.getGrepEnabled()) {
+			base.push("grep");
+		}
+		if (settingsManager.getFindEnabled()) {
+			base.push("find");
+		}
 		if (settingsManager.getLspEnabled()) {
 			base.push("lsp");
 		}
