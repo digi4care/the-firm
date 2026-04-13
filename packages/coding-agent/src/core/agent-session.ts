@@ -2573,9 +2573,15 @@ export class AgentSession {
 			? Object.keys(this._baseToolsOverride)
 			: ["read", "bash", "edit", "write"];
 
-		// Expand defaults based on code-intelligence settings when no explicit override is given
+		// Expand defaults based on settings when no explicit override is given
 		const resolveDefaultActiveTools = (): string[] => {
 			const base = [...defaultActiveToolNames];
+			if (this.settingsManager.getGrepEnabled()) {
+				base.push("grep");
+			}
+			if (this.settingsManager.getFindEnabled()) {
+				base.push("find");
+			}
 			if (this.settingsManager.getLspEnabled()) {
 				base.push("lsp");
 			}
