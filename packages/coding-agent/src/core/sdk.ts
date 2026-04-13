@@ -245,9 +245,27 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 	}
 
 	const defaultActiveToolNames: ToolName[] = ["read", "bash", "edit", "write"];
+
+	// Expand default active tools based on code-intelligence settings
+	function resolveDefaultActiveTools(): ToolName[] {
+		const base: ToolName[] = [...defaultActiveToolNames];
+		if (settingsManager.getLspEnabled()) {
+			base.push("lsp");
+		}
+		if (settingsManager.getAstEnabled()) {
+			if (settingsManager.getAstGrepEnabled()) {
+				base.push("ast_grep");
+			}
+			if (settingsManager.getAstEditEnabled()) {
+				base.push("ast_edit");
+			}
+		}
+		return base;
+	}
+
 	const initialActiveToolNames: ToolName[] = options.tools
 		? options.tools.map((t) => t.name).filter((n): n is ToolName => n in allTools)
-		: defaultActiveToolNames;
+		: resolveDefaultActiveTools();
 
 	let agent: Agent;
 
@@ -306,7 +324,8 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 			return streamSimple(model, context, {
 				...streamOptions,
 				apiKey: auth.apiKey,
-				headers: auth.headers || streamOptions?.headers ? { ...auth.headers, ...streamOptions?.headers } : undefined,
+				headers:
+					auth.headers || streamOptions?.headers ? { ...auth.headers, ...streamOptions?.headers } : undefined,
 				providerLogging: options.providerLoggingRuntime,
 			});
 		},

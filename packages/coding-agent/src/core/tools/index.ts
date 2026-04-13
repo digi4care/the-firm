@@ -1,4 +1,14 @@
 export {
+	type AstEditToolDetails,
+	type AstEditToolInput,
+	astEditToolDefinition,
+} from "./ast-edit.js";
+export {
+	type AstGrepToolDetails,
+	type AstGrepToolInput,
+	astGrepToolDefinition,
+} from "./ast-grep.js";
+export {
 	type BashOperations,
 	type BashSpawnContext,
 	type BashSpawnHook,
@@ -52,6 +62,7 @@ export {
 	lsTool,
 	lsToolDefinition,
 } from "./ls.js";
+export { type LspToolDetails, type LspToolInput, lspToolDefinition } from "./lsp.js";
 export {
 	createReadTool,
 	createReadToolDefinition,
@@ -84,6 +95,8 @@ export {
 
 import type { AgentTool } from "@digi4care/the-firm-agent-core";
 import type { ToolDefinition } from "../extensions/types.js";
+import { astEditToolDefinition } from "./ast-edit.js";
+import { astGrepToolDefinition } from "./ast-grep.js";
 import {
 	type BashToolOptions,
 	bashTool,
@@ -95,6 +108,7 @@ import { createEditTool, createEditToolDefinition, editTool, editToolDefinition 
 import { createFindTool, createFindToolDefinition, findTool, findToolDefinition } from "./find.js";
 import { createGrepTool, createGrepToolDefinition, grepTool, grepToolDefinition } from "./grep.js";
 import { createLsTool, createLsToolDefinition, lsTool, lsToolDefinition } from "./ls.js";
+import { lspToolDefinition } from "./lsp.js";
 import {
 	createReadTool,
 	createReadToolDefinition,
@@ -118,6 +132,9 @@ export const allTools = {
 	grep: grepTool,
 	find: findTool,
 	ls: lsTool,
+	lsp: lspToolDefinition as AgentTool<any>,
+	ast_grep: astGrepToolDefinition as AgentTool<any>,
+	ast_edit: astEditToolDefinition as AgentTool<any>,
 };
 
 export const allToolDefinitions = {
@@ -128,6 +145,9 @@ export const allToolDefinitions = {
 	grep: grepToolDefinition,
 	find: findToolDefinition,
 	ls: lsToolDefinition,
+	lsp: lspToolDefinition as ToolDefinition<any, any>,
+	ast_grep: astGrepToolDefinition as ToolDefinition<any, any>,
+	ast_edit: astEditToolDefinition as ToolDefinition<any, any>,
 };
 
 export type ToolName = keyof typeof allTools;
@@ -164,6 +184,9 @@ export function createAllToolDefinitions(cwd: string, options?: ToolsOptions): R
 		grep: createGrepToolDefinition(cwd),
 		find: createFindToolDefinition(cwd),
 		ls: createLsToolDefinition(cwd),
+		lsp: lspToolDefinition as ToolDef,
+		ast_grep: astGrepToolDefinition as ToolDef,
+		ast_edit: astEditToolDefinition as ToolDef,
 	};
 }
 
@@ -189,5 +212,8 @@ export function createAllTools(cwd: string, options?: ToolsOptions): Record<Tool
 		grep: createGrepTool(cwd),
 		find: createFindTool(cwd),
 		ls: createLsTool(cwd),
+		lsp: lspToolDefinition as Tool,
+		ast_grep: astGrepToolDefinition as Tool,
+		ast_edit: astEditToolDefinition as Tool,
 	};
 }

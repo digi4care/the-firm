@@ -2568,7 +2568,25 @@ export class AgentSession {
 		const defaultActiveToolNames = this._baseToolsOverride
 			? Object.keys(this._baseToolsOverride)
 			: ["read", "bash", "edit", "write"];
-		const baseActiveToolNames = options.activeToolNames ?? defaultActiveToolNames;
+
+		// Expand defaults based on code-intelligence settings when no explicit override is given
+		const resolveDefaultActiveTools = (): string[] => {
+			const base = [...defaultActiveToolNames];
+			if (this.settingsManager.getLspEnabled()) {
+				base.push("lsp");
+			}
+			if (this.settingsManager.getAstEnabled()) {
+				if (this.settingsManager.getAstGrepEnabled()) {
+					base.push("ast_grep");
+				}
+				if (this.settingsManager.getAstEditEnabled()) {
+					base.push("ast_edit");
+				}
+			}
+			return base;
+		};
+
+		const baseActiveToolNames = options.activeToolNames ?? resolveDefaultActiveTools();
 		this._refreshToolRegistry({
 			activeToolNames: baseActiveToolNames,
 			includeAllExtensionTools: options.includeAllExtensionTools,
