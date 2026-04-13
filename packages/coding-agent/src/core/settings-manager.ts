@@ -14,6 +14,8 @@ export interface CompactionSettings {
 	keepRecentTokens?: number; // default: 20000
 	handoffAutoContinue?: boolean; // default: true
 	handoffSaveToDisk?: boolean; // default: false
+	thresholdPercent?: number; // default: -1 (use legacy reserve-based behavior)
+	thresholdTokens?: number; // default: -1 (use percentage if set, else legacy)
 }
 
 export interface BranchSummarySettings {
@@ -687,6 +689,12 @@ export class SettingsManager {
 	getHandoffSaveToDisk = (): boolean => (this.get("compaction.handoffSaveToDisk") ?? false) as boolean;
 	setHandoffSaveToDisk = (enabled: boolean) => this.set("compaction.handoffSaveToDisk", enabled);
 
+	getCompactionThresholdPercent = (): number => (this.get("compaction.thresholdPercent") ?? -1) as number;
+	setCompactionThresholdPercent = (value: number) => this.set("compaction.thresholdPercent", value);
+
+	getCompactionThresholdTokens = (): number => (this.get("compaction.thresholdTokens") ?? -1) as number;
+	setCompactionThresholdTokens = (value: number) => this.set("compaction.thresholdTokens", value);
+
 	getCompactionSettings = () => ({
 		enabled: this.getCompactionEnabled(),
 		strategy: this.getCompactionStrategy(),
@@ -694,6 +702,8 @@ export class SettingsManager {
 		keepRecentTokens: this.getCompactionKeepRecentTokens(),
 		handoffAutoContinue: this.getHandoffAutoContinue(),
 		handoffSaveToDisk: this.getHandoffSaveToDisk(),
+		thresholdPercent: this.getCompactionThresholdPercent(),
+		thresholdTokens: this.getCompactionThresholdTokens(),
 	});
 
 	getBranchSummarySettings = () => ({

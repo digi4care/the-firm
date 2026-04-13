@@ -45,6 +45,26 @@ export const compactionSettings: SettingsProvider = {
 				description: "Save generated handoff documents to markdown files",
 			},
 		},
+		"compaction.thresholdPercent": {
+			type: "number",
+			default: -1,
+			ui: {
+				tab: "context",
+				label: "Compaction Threshold",
+				description: "Percent threshold for context maintenance; -1 uses legacy reserve-based behavior",
+				submenu: true,
+			},
+		},
+		"compaction.thresholdTokens": {
+			type: "number",
+			default: -1,
+			ui: {
+				tab: "context",
+				label: "Compaction Token Limit",
+				description: "Fixed token limit for context maintenance; overrides percentage if set",
+				submenu: true,
+			},
+		},
 		"compaction.reserveTokens": {
 			type: "number",
 			default: 16384,
@@ -56,7 +76,11 @@ export const compactionSettings: SettingsProvider = {
 	},
 	options: {
 		"compaction.strategy": [
-			{ value: "context-full", label: "Context-full", description: "Summarize in-place and keep the current session" },
+			{
+				value: "context-full",
+				label: "Context-full",
+				description: "Summarize in-place and keep the current session",
+			},
 			{ value: "handoff", label: "Handoff", description: "Generate handoff and continue in a new session" },
 			{ value: "off", label: "Off", description: "Disable automatic context maintenance" },
 		],
