@@ -215,9 +215,14 @@ export function getAgentDir(): string {
 	return join(homedir(), CONFIG_DIR_NAME, "agent");
 }
 
-/** Get path to user's custom themes directory */
+/** Get path to user's custom themes directory (global) */
 export function getCustomThemesDir(): string {
 	return join(getAgentDir(), "themes");
+}
+
+/** Get path to project-local themes directory (@themes/) */
+export function getProjectThemesDir(cwd: string = process.cwd()): string {
+	return join(cwd, CONFIG_DIR_NAME, "themes");
 }
 
 /** Get path to models.json */
