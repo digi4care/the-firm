@@ -1,6 +1,7 @@
 import type { AgentTool } from "@digi4care/the-firm-agent-core";
 import { Container, Text } from "@digi4care/the-firm-tui";
 import { type Static, Type } from "@sinclair/typebox";
+import { createHash } from "crypto";
 import { constants } from "fs";
 import { access as fsAccess, readFile as fsReadFile, writeFile as fsWriteFile } from "fs/promises";
 import { renderDiff } from "../../modes/interactive/components/diff.js";
@@ -28,6 +29,12 @@ const replaceEditSchema = Type.Object(
 				"Exact text for one targeted replacement. It must be unique in the original file and must not overlap with any other edits[].oldText in the same call.",
 		}),
 		newText: Type.String({ description: "Replacement text for this targeted edit." }),
+		hash: Type.Optional(
+			Type.String({
+				description:
+					"Optional line hash (from read output with hashLines enabled). When provided, oldText is resolved automatically.",
+			}),
+		),
 	},
 	{ additionalProperties: false },
 );
@@ -78,6 +85,8 @@ const defaultEditOperations: EditOperations = {
 export interface EditToolOptions {
 	/** Custom operations for file editing. Default: local filesystem */
 	operations?: EditOperations;
+	/** Edit mode variant. Default: "replace" */
+	mode?: "replace" | "hashline";
 }
 
 function prepareEditArguments(input: unknown): EditToolInput {
@@ -96,11 +105,34 @@ function prepareEditArguments(input: unknown): EditToolInput {
 	return { ...rest, edits } as EditToolInput;
 }
 
-function validateEditInput(input: EditToolInput): { path: string; edits: Edit[] } {
+interface RawEdit {
+	oldText?: string;
+	newText: string;
+	hash?: string;
+}
+
+function validateEditInput(input: EditToolInput): { path: string; edits: RawEdit[] } {
 	if (!Array.isArray(input.edits) || input.edits.length === 0) {
 		throw new Error("Edit tool input is invalid. edits must contain at least one replacement.");
 	}
-	return { path: input.path, edits: input.edits };
+	return { path: input.path, edits: input.edits as RawEdit[] };
+}
+
+function resolveHashEdits(content: string, edits: RawEdit[]): Edit[] {
+	const lines = content.split("\n");
+	return edits.map((edit, index) => {
+		if (edit.hash) {
+			const match = lines.find((line) => createHash("sha256").update(line).digest("hex").slice(0, 8) === edit.hash);
+			if (!match) {
+				throw new Error(`Could not find line with hash ${edit.hash} (edits[${index}]).`);
+			}
+			return { oldText: match, newText: edit.newText };
+		}
+		if (!edit.oldText) {
+			throw new Error(`edits[${index}] must provide either oldText or hash.`);
+		}
+		return { oldText: edit.oldText, newText: edit.newText };
+	});
 }
 
 type RenderableEditArgs = {
@@ -155,23 +187,36 @@ export function createEditToolDefinition(
 	options?: EditToolOptions,
 ): ToolDefinition<typeof editSchema, EditToolDetails | undefined, EditRenderState> {
 	const ops = options?.operations ?? defaultEditOperations;
+	const mode = options?.mode ?? "replace";
+	const isHashline = mode === "hashline";
+
 	return {
 		name: "edit",
 		label: "edit",
-		description:
-			"Edit a single file using exact text replacement. Every edits[].oldText must match a unique, non-overlapping region of the original file. If two changes affect the same block or nearby lines, merge them into one edit instead of emitting overlapping edits. Do not include large unchanged regions just to connect distant changes.",
-		promptSnippet:
-			"Make precise file edits with exact text replacement, including multiple disjoint edits in one call",
-		promptGuidelines: [
-			"Use edit for precise changes (edits[].oldText must match exactly)",
-			"When changing multiple separate locations in one file, use one edit call with multiple entries in edits[] instead of multiple edit calls",
-			"Each edits[].oldText is matched against the original file, not after earlier edits are applied. Do not emit overlapping or nested edits. Merge nearby changes into one edit.",
-			"Keep edits[].oldText as small as possible while still being unique in the file. Do not pad with large unchanged regions.",
-		],
+		description: isHashline
+			? "Edit a single file using exact text replacement or line hashes. In hashline mode you may provide a line hash (from read output) instead of oldText."
+			: "Edit a single file using exact text replacement. Every edits[].oldText must match a unique, non-overlapping region of the original file. If two changes affect the same block or nearby lines, merge them into one edit instead of emitting overlapping edits. Do not include large unchanged regions just to connect distant changes.",
+		promptSnippet: isHashline
+			? "Make precise file edits with exact text replacement or line hashes"
+			: "Make precise file edits with exact text replacement, including multiple disjoint edits in one call",
+		promptGuidelines: isHashline
+			? [
+					"Use edit for precise changes (edits[].oldText must match exactly)",
+					"When hashline mode is enabled, you may use edits[].hash (from read output) instead of edits[].oldText",
+					"When changing multiple separate locations in one file, use one edit call with multiple entries in edits[] instead of multiple edit calls",
+					"Each edit is matched against the original file, not after earlier edits are applied. Do not emit overlapping or nested edits. Merge nearby changes into one edit.",
+					"Keep oldText as small as possible while still being unique in the file. Do not pad with large unchanged regions.",
+				]
+			: [
+					"Use edit for precise changes (edits[].oldText must match exactly)",
+					"When changing multiple separate locations in one file, use one edit call with multiple entries in edits[] instead of multiple edit calls",
+					"Each edits[].oldText is matched against the original file, not after earlier edits are applied. Do not emit overlapping or nested edits. Merge nearby changes into one edit.",
+					"Keep edits[].oldText as small as possible while still being unique in the file. Do not pad with large unchanged regions.",
+				],
 		parameters: editSchema,
 		prepareArguments: prepareEditArguments,
 		async execute(_toolCallId, input: EditToolInput, signal?: AbortSignal, _onUpdate?, _ctx?) {
-			const { path, edits } = validateEditInput(input);
+			const { path, edits: rawEdits } = validateEditInput(input);
 			const absolutePath = resolveToCwd(path, cwd);
 
 			return withFileMutationQueue(
@@ -231,6 +276,10 @@ export function createEditToolDefinition(
 								const { bom, text: content } = stripBom(rawContent);
 								const originalEnding = detectLineEnding(content);
 								const normalizedContent = normalizeToLF(content);
+
+								// Resolve hash-based edits before applying.
+								const edits = isHashline ? resolveHashEdits(normalizedContent, rawEdits) : (rawEdits as Edit[]);
+
 								const { baseContent, newContent } = applyEditsToNormalizedContent(
 									normalizedContent,
 									edits,

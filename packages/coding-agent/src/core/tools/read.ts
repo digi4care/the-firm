@@ -2,6 +2,7 @@ import type { AgentTool } from "@digi4care/the-firm-agent-core";
 import type { ImageContent, TextContent } from "@digi4care/the-firm-ai";
 import { Text } from "@digi4care/the-firm-tui";
 import { type Static, Type } from "@sinclair/typebox";
+import { createHash } from "crypto";
 import { constants } from "fs";
 import { access as fsAccess, readFile as fsReadFile } from "fs/promises";
 import { keyHint } from "../../modes/interactive/components/keybinding-hints.js";
@@ -50,6 +51,10 @@ export interface ReadToolOptions {
 	autoResizeImages?: boolean;
 	/** Custom operations for file reading. Default: local filesystem */
 	operations?: ReadOperations;
+	/** Prepend line numbers to text output. Default: false */
+	lineNumbers?: boolean;
+	/** Append a per-line hash to text output for hashline edit mode. Default: false */
+	hashLines?: boolean;
 }
 
 function formatReadCall(
@@ -195,16 +200,37 @@ export function createReadToolDefinition(
 								if (startLine >= allLines.length) {
 									throw new Error(`Offset ${offset} is beyond end of file (${allLines.length} lines total)`);
 								}
-								let selectedContent: string;
+								let selectedLines: string[];
 								let userLimitedLines: number | undefined;
 								// If limit is specified by the user, honor it first. Otherwise truncateHead decides.
 								if (limit !== undefined) {
 									const endLine = Math.min(startLine + limit, allLines.length);
-									selectedContent = allLines.slice(startLine, endLine).join("\n");
+									selectedLines = allLines.slice(startLine, endLine);
 									userLimitedLines = endLine - startLine;
 								} else {
-									selectedContent = allLines.slice(startLine).join("\n");
+									selectedLines = allLines.slice(startLine);
 								}
+								// Apply line formatting (numbers / hashes) before truncation so
+								// truncation works on the formatted content and line numbers are accurate.
+								const lineNumbers = options?.lineNumbers ?? false;
+								const hashLines = options?.hashLines ?? false;
+								if (lineNumbers || hashLines) {
+									const maxLineNum = startLineDisplay + selectedLines.length - 1;
+									const lineNumWidth = String(maxLineNum).length;
+									selectedLines = selectedLines.map((line, idx) => {
+										const lineNum = startLineDisplay + idx;
+										let prefix = "";
+										if (lineNumbers) {
+											prefix = String(lineNum).padStart(lineNumWidth, " ") + " | ";
+										}
+										if (hashLines) {
+											const hash = createHash("sha256").update(line).digest("hex").slice(0, 8);
+											line = `${line} [${hash}]`;
+										}
+										return prefix + line;
+									});
+								}
+								const selectedContent = selectedLines.join("\n");
 								// Apply truncation, respecting both line and byte limits.
 								const truncation = truncateHead(selectedContent);
 								let outputText: string;

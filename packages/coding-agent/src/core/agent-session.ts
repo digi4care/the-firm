@@ -2522,6 +2522,9 @@ export class AgentSession {
 	}): void {
 		const autoResizeImages = this.settingsManager.getImageAutoResize();
 		const shellCommandPrefix = this.settingsManager.getShellCommandPrefix();
+		const lineNumbers = this.settingsManager.getReadLineNumbers();
+		const hashLines = this.settingsManager.getReadHashLines();
+		const editMode = this.settingsManager.getEditMode();
 		const baseToolDefinitions = this._baseToolsOverride
 			? Object.fromEntries(
 					Object.entries(this._baseToolsOverride).map(([name, tool]) => [
@@ -2530,8 +2533,9 @@ export class AgentSession {
 					]),
 				)
 			: createAllToolDefinitions(this._cwd, {
-					read: { autoResizeImages },
+					read: { autoResizeImages, lineNumbers, hashLines },
 					bash: { commandPrefix: shellCommandPrefix },
+					edit: { mode: editMode },
 				});
 
 		this._baseToolDefinitions = new Map(

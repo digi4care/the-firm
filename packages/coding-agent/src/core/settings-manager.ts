@@ -884,6 +884,20 @@ export class SettingsManager {
 	getCodeBlockIndent = (): string => (this.get("markdown.codeBlockIndent") ?? "  ") as string;
 
 	// ═══════════════════════════════════════════════════════════════════════
+	// Editing Settings
+	// ═══════════════════════════════════════════════════════════════════════
+
+	getEditMode = (): "replace" | "patch" | "hashline" | "chunk" =>
+		(this.get("edit.mode") ?? "hashline") as "replace" | "patch" | "hashline" | "chunk";
+	setEditMode = (mode: "replace" | "patch" | "hashline" | "chunk") => this.set("edit.mode", mode);
+
+	getReadLineNumbers = (): boolean => (this.get("readLineNumbers") ?? false) as boolean;
+	setReadLineNumbers = (enabled: boolean) => this.set("readLineNumbers", enabled);
+
+	getReadHashLines = (): boolean => (this.get("readHashLines") ?? true) as boolean;
+	setReadHashLines = (enabled: boolean) => this.set("readHashLines", enabled);
+
+	// ═══════════════════════════════════════════════════════════════════════
 	// Code Intelligence Settings (LSP + AST)
 	// ═══════════════════════════════════════════════════════════════════════
 
