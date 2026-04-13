@@ -7,7 +7,7 @@
 
 import { resolve } from "node:path";
 import { createInterface } from "node:readline";
-import { type ImageContent, modelsAreEqual, supportsXhigh } from "@digi4care/the-firm-ai";
+import { type ImageContent, type ProviderLogLevel, modelsAreEqual, supportsXhigh } from "@digi4care/the-firm-ai";
 import { ProcessTerminal, setKeybindings, TUI } from "@digi4care/the-firm-tui";
 import chalk from "chalk";
 import { type Args, type Mode, parseArgs, printHelp } from "./cli/args.js";
@@ -36,6 +36,7 @@ import {
 	type SessionCwdIssue,
 } from "./core/session-cwd.js";
 import { SessionManager } from "./core/session-manager.js";
+import { createProviderLoggingRuntime, isProviderLogLevel } from "./core/provider-logging.js";
 import { SettingsManager } from "./core/settings-manager.js";
 import { bootstrapSettings } from "./core/settings-bootstrap.js";
 import { printTimings, resetTimings, time } from "./core/timings.js";
@@ -92,6 +93,21 @@ function isTruthyEnvFlag(value: string | undefined): boolean {
 	if (!value) return false;
 	return value === "1" || value.toLowerCase() === "true" || value.toLowerCase() === "yes";
 }
+
+function resolveProviderLoggingLevel(parsed: Args, settingsManager: SettingsManager): ProviderLogLevel {
+	if (parsed.logProviders) {
+		return parsed.logProviders === true ? "debug" : parsed.logProviders;
+	}
+	const configured = settingsManager.get("providerLogging.level");
+	if (isProviderLogLevel(configured)) {
+		return configured;
+	}
+	if (isTruthyEnvFlag(process.env.FIRM_DEV)) {
+		return "debug";
+	}
+	return "off";
+}
+
 
 type AppMode = "interactive" | "print" | "json" | "rpc";
 
@@ -576,6 +592,12 @@ export async function main(args: string[]) {
 			}
 		}
 
+		const providerLoggingRuntime = createProviderLoggingRuntime({
+			cwd,
+			sessionId: sessionManager.getSessionId(),
+			getLevel: () => resolveProviderLoggingLevel(parsed, settingsManager),
+		});
+
 		const created = await createAgentSessionFromServices({
 			services,
 			sessionManager,
@@ -585,6 +607,7 @@ export async function main(args: string[]) {
 			scopedModels: sessionOptions.scopedModels,
 			tools: sessionOptions.tools,
 			customTools: sessionOptions.customTools,
+			providerLoggingRuntime,
 		});
 		const cliThinkingOverride = parsed.thinking !== undefined || cliThinkingFromModel;
 		if (created.session.model && cliThinkingOverride) {

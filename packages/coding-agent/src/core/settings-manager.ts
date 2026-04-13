@@ -1,4 +1,4 @@
-import type { Transport } from "@digi4care/the-firm-ai";
+import type { ProviderLogLevel, Transport } from "@digi4care/the-firm-ai";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
 import { dirname, join } from "path";
 import lockfile from "proper-lockfile";
@@ -78,6 +78,9 @@ export interface Settings {
 	compaction?: CompactionSettings;
 	branchSummary?: BranchSummarySettings;
 	retry?: RetrySettings;
+	providerLogging?: {
+		level?: ProviderLogLevel;
+	};
 	hideThinkingBlock?: boolean;
 	shellPath?: string; // Custom shell path (e.g., for Cygwin users on Windows)
 	quietStartup?: boolean;
@@ -135,6 +138,7 @@ function deepMergeSettings(base: Settings, overrides: Settings): Settings {
 }
 
 export type SettingsScope = "global" | "project";
+export type SettingValueSource = SettingsScope | "default";
 
 export interface SettingsStorage {
 	withLock(scope: SettingsScope, fn: (current: string | undefined) => string | undefined): void;
@@ -435,12 +439,40 @@ export class SettingsManager {
 		return settingsRegistry.get(path)?.default;
 	}
 
-	/** Generic path-based setter — writes to global settings, queues save */
-	set(path: string, value: unknown): void {
+	/** Read the raw value stored in a specific scope without merge/default fallback. */
+	getScoped(scope: SettingsScope, path: string): unknown {
 		const segments = path.split(".");
-		pathSet(this.globalSettings as Record<string, unknown>, segments, value);
-		this.markModified(segments[0] as keyof Settings, segments.length > 1 ? segments.slice(1).join(".") : undefined);
-		this.save();
+		const target = scope === "global" ? this.globalSettings : this.projectSettings;
+		return pathGet(target as Record<string, unknown>, segments);
+	}
+
+	/** Return which scope currently provides the effective value for a path. */
+	getValueSource(path: string): SettingValueSource {
+		const projectValue = this.getScoped("project", path);
+		if (projectValue !== undefined) return "project";
+		const globalValue = this.getScoped("global", path);
+		if (globalValue !== undefined) return "global";
+		return "default";
+	}
+
+	/** Generic path-based setter — writes to global settings by default. */
+	set(path: string, value: unknown): void {
+		this.setScoped("global", path, value);
+	}
+
+	/** Generic path-based setter with explicit global/project write target. */
+	setScoped(scope: SettingsScope, path: string, value: unknown): void {
+		const segments = path.split(".");
+		if (scope === "global") {
+			pathSet(this.globalSettings as Record<string, unknown>, segments, value);
+			this.markModified(segments[0] as keyof Settings, segments.length > 1 ? segments.slice(1).join(".") : undefined);
+			this.save();
+			return;
+		}
+		const projectSettings = structuredClone(this.projectSettings);
+		pathSet(projectSettings as Record<string, unknown>, segments, value);
+		this.markProjectModified(segments[0] as keyof Settings, segments.length > 1 ? segments.slice(1).join(".") : undefined);
+		this.saveProjectSettings(projectSettings);
 	}
 
 	/** Apply additional overrides on top of current settings */

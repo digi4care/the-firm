@@ -3,6 +3,7 @@
  */
 
 import type { ThinkingLevel } from "@digi4care/the-firm-agent-core";
+import type { ProviderLogLevel } from "@digi4care/the-firm-ai";
 import chalk from "chalk";
 import { APP_NAME, CONFIG_DIR_NAME, ENV_AGENT_DIR } from "../config.js";
 import type { ExtensionFlag } from "../core/extensions/types.js";
@@ -42,17 +43,22 @@ export interface Args {
 	listModels?: string | true;
 	offline?: boolean;
 	verbose?: boolean;
+	logProviders?: true | ProviderLogLevel;
 	messages: string[];
 	fileArgs: string[];
 	/** Unknown flags (potentially extension flags) - map of flag name to value */
 	unknownFlags: Map<string, boolean | string>;
 	diagnostics: Array<{ type: "warning" | "error"; message: string }>;
 }
-
 const VALID_THINKING_LEVELS = ["off", "minimal", "low", "medium", "high", "xhigh"] as const;
+const VALID_PROVIDER_LOG_LEVELS = ["off", "debug", "info", "warn", "error"] as const;
 
 export function isValidThinkingLevel(level: string): level is ThinkingLevel {
 	return VALID_THINKING_LEVELS.includes(level as ThinkingLevel);
+}
+
+function isValidProviderLogLevel(level: string): level is ProviderLogLevel {
+	return VALID_PROVIDER_LOG_LEVELS.includes(level as ProviderLogLevel);
 }
 
 export function parseArgs(args: string[]): Args {
@@ -158,6 +164,22 @@ export function parseArgs(args: string[]): Args {
 			}
 		} else if (arg === "--verbose") {
 			result.verbose = true;
+		} else if (arg === "--log-providers") {
+			const next = args[i + 1];
+			if (next !== undefined && !next.startsWith("-") && !next.startsWith("@")) {
+				if (isValidProviderLogLevel(next)) {
+					result.logProviders = next;
+					i++;
+				} else {
+					result.diagnostics.push({
+						type: "error",
+						message: `Invalid provider log level "${next}". Valid values: ${VALID_PROVIDER_LOG_LEVELS.join(", ")}`,
+					});
+					i++;
+				}
+			} else {
+				result.logProviders = true;
+			}
 		} else if (arg === "--offline") {
 			result.offline = true;
 		} else if (arg.startsWith("@")) {
@@ -242,9 +264,10 @@ ${chalk.bold("Options:")}
   --export <file>                Export session file to HTML and exit
   --list-models [search]         List available models (with optional fuzzy search)
   --verbose                      Force verbose startup (overrides quietStartup setting)
-  --offline                      Disable startup network operations (same as PI_OFFLINE=1)
-  --help, -h                     Show this help
-  --version, -v                  Show version number
+	--log-providers [level]        Provider logging override for this run (off, debug, info, warn, error; default: debug)
+	--offline                      Disable startup network operations (same as PI_OFFLINE=1)
+	--help, -h                     Show this help
+	--version, -v                  Show version number
 
 Extensions can register additional flags (e.g., --plan from plan-mode extension).${extensionFlagsText}
 

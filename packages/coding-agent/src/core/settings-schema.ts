@@ -49,13 +49,15 @@ export interface UiMeta {
 	description: string;
 	/** Show as dropdown submenu instead of inline toggle/cycle */
 	submenu?: boolean;
+	/** Show a global/project scope selector inside the submenu. */
+	scopeSelector?: boolean;
 	/** Only show when condition returns true */
 	condition?: () => boolean;
 	/** Live preview while browsing options */
 	onPreview?: (value: unknown) => void;
 	onPreviewCancel?: (original: unknown) => void;
-}
 
+}
 // ═══════════════════════════════════════════════════════════════════════════
 // Type Definitions
 // ═══════════════════════════════════════════════════════════════════════════

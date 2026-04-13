@@ -39,6 +39,7 @@ import {
 import { spawn, spawnSync } from "child_process";
 import {
 	APP_NAME,
+	CONFIG_DIR_NAME,
 	getAgentDir,
 	getAuthPath,
 	getDebugLogPath,
@@ -2216,6 +2217,11 @@ export class InteractiveMode {
 				this.editor.setText("");
 				return;
 			}
+			if (text === "/debug-providers" || text.startsWith("/debug-providers ")) {
+				this.editor.setText("");
+				await this.handleDebugProvidersCommand(text);
+				return;
+			}
 			if (text === "/arminsayshi") {
 				this.handleArminSaysHi();
 				this.editor.setText("");
@@ -3347,8 +3353,8 @@ export class InteractiveMode {
 				},
 				// Callbacks
 				{
-					onChange: (path, value) => {
-						this.handleSettingChange(path, value);
+					onChange: (path, value, scope) => {
+						this.handleSettingChange(path, value, scope);
 					},
 					onThemePreview: (themeName) => {
 						const result = setTheme(themeName, true);
@@ -3362,17 +3368,22 @@ export class InteractiveMode {
 						this.ui.requestRender();
 					},
 				},
-				// Value reader: reads from settings manager (falls back to registry default)
+				// Effective value reader
 				(path) => this.settingsManager.get(path),
+				// Raw scoped value reader
+				(path, scope) => this.settingsManager.getScoped(scope, path),
+				// Effective source reader
+				(path) => this.settingsManager.getValueSource(path),
 			);
 			return { component: selector, focus: selector };
 		});
 	}
 
 	/** Centralized setting change handler — persists + dispatches side effects */
-	private handleSettingChange(path: string, value: unknown): void {
+
+	private handleSettingChange(path: string, value: unknown, scope: import("../../core/settings-manager.js").SettingsScope = "global"): void {
 		// Persist the value
-		this.settingsManager.set(path, value);
+		this.settingsManager.setScoped(scope, path, value);
 
 		// Side effects per path
 		switch (path) {
@@ -4571,6 +4582,89 @@ export class InteractiveMode {
 		);
 		this.ui.requestRender();
 	}
+
+	private async handleDebugProvidersCommand(text: string): Promise<void> {
+		const rawArgs = text.replace(/^\/debug-providers\b/, "").trim();
+		const filters = rawArgs.length > 0 ? rawArgs.split(/[\s,]+/).filter(Boolean) : [];
+		const sourceSessionId = this.sessionManager.getSessionId();
+		const logsDir = path.join(this.sessionManager.getCwd(), CONFIG_DIR_NAME, "agents", sourceSessionId);
+		if (!fs.existsSync(logsDir)) {
+			this.showWarning(`No provider log directory found for current session: ${logsDir}`);
+			return;
+		}
+		const allFiles = fs.readdirSync(logsDir).filter((entry) => entry.endsWith(".log")).sort((a, b) => a.localeCompare(b));
+		const selectedFiles = filters.length === 0 ? allFiles : allFiles.filter((file) => filters.some((filter) => file.toLowerCase().includes(filter.toLowerCase())));
+		if (selectedFiles.length === 0) {
+			const suffix = filters.length > 0 ? ` matching ${filters.join(", ")}` : "";
+			this.showWarning(`No provider log files found${suffix} in ${logsDir}`);
+			return;
+		}
+
+		const fileSummaries = selectedFiles.map((file) => {
+			const fullPath = path.join(logsDir, file);
+			const stat = fs.statSync(fullPath);
+			return {
+				file,
+				fullPath,
+				sizeBytes: stat.size,
+				modifiedAt: stat.mtime.toISOString(),
+			};
+		});
+
+		const providerDebugContext = [
+			"<provider-debug-context>",
+			`source_session_id: ${sourceSessionId}`,
+			`source_cwd: ${this.sessionManager.getCwd()}`,
+			filters.length > 0 ? `requested_filters: ${filters.join(", ")}` : "requested_filters: all",
+			"provider_log_files:",
+			...fileSummaries.map((summary) => `- ${summary.file} | ${summary.fullPath} | ${summary.sizeBytes} bytes | modified ${summary.modifiedAt}`),
+			"The files above are the primary evidence. Read them directly from disk with tools.",
+			"</provider-debug-context>",
+		].join("\n");
+
+		const personaPrompt = [
+			"You are Provider Log Debugger.",
+			"Your only job is to debug provider/model runtime failures using provider trace logs and the implementation code.",
+			"Treat provider logs and code as the primary sources of truth.",
+			"Ignore unrelated conversation history unless it is directly needed to identify the failing provider call.",
+			"Do not ask the user to paste logs. Read the files directly from disk using tools.",
+			"Be efficient: inspect the most relevant and recent log sections first.",
+			"Focus on request build/dispatch, retries, tool-call ID mappings, adapter rewrites, and terminal errors.",
+			"Do not dump raw logs back unless strictly necessary; synthesize evidence.",
+		].join("\n");
+
+		const analysisPrompt = [
+			"Analyze the provider logs for this debug session and diagnose the likely failure.",
+			"Return:",
+			"1. Most likely root cause",
+			"2. Evidence from the logs",
+			"3. Exact code area to inspect or change next",
+			"4. Whether this is likely a settings issue, provider bug, adapter bug, or request-shape bug.",
+		].join("\n");
+
+		this.showStatus(`Starting isolated provider debug session for ${selectedFiles.join(", ")}`);
+		const result = await this.runtimeHost.newSession({
+			parentSession: this.session.sessionFile,
+			setup: async (sessionManager) => {
+				sessionManager.appendCustomMessageEntry("provider_debug_context", providerDebugContext, true, {
+					sourceSessionId,
+					filters,
+					files: fileSummaries,
+				});
+			},
+		});
+		if (result.cancelled) {
+			return;
+		}
+		await this.handleRuntimeSessionChange();
+		this.renderCurrentSessionState();
+		this.ui.requestRender();
+		await this.session.prompt(analysisPrompt, {
+			expandPromptTemplates: false,
+			systemPromptOverride: personaPrompt,
+		});
+	}
+
 
 	private handleArminSaysHi(): void {
 		this.chatContainer.addChild(new Spacer(1));

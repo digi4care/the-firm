@@ -25,6 +25,7 @@ const child = spawn(tsxBin, [srcCli, ...process.argv.slice(2)], {
   env: {
     ...process.env,
     PI_CODING_AGENT: "true",
+    FIRM_DEV: "1",
   },
 });
 
