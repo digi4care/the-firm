@@ -47,11 +47,11 @@ export const compactionSettings: SettingsProvider = {
 		},
 		"compaction.thresholdPercent": {
 			type: "number",
-			default: -1,
+			default: 90,
 			ui: {
 				tab: "context",
 				label: "Compaction Threshold",
-				description: "Percent threshold for context maintenance; set to Default to use legacy reserve-based behavior",
+				description: "Percent threshold for context maintenance; default is 90%",
 				submenu: true,
 			},
 		},
@@ -85,7 +85,6 @@ export const compactionSettings: SettingsProvider = {
 			{ value: "off", label: "Off", description: "Disable automatic context maintenance" },
 		],
 		"compaction.thresholdPercent": [
-			{ value: -1, label: "Default", description: "Use legacy reserve-based behavior" },
 			{ value: 30, label: "30%", description: "Compact at 30% of context window" },
 			{ value: 35, label: "35%", description: "Compact at 35% of context window" },
 			{ value: 40, label: "40%", description: "Compact at 40% of context window" },
