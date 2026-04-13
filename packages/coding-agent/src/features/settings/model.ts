@@ -148,6 +148,17 @@ export const modelSettings: SettingsProvider = {
 				submenu: true,
 			},
 		},
+
+		// ─── System prompt ────────────────────────────────────────
+		repeatToolDescriptions: {
+			type: "boolean",
+			default: false,
+			ui: {
+				tab: "model",
+				label: "Repeat Tool Descriptions",
+				description: "Include full tool descriptions in system prompt (increases token usage)",
+			},
+		},
 	},
 	options: {
 		"retry.maxRetries": [
