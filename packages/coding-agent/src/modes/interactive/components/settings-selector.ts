@@ -264,7 +264,7 @@ export class SettingsSelectorComponent extends Container {
 			if (registeredOpts) {
 				const resolved = typeof registeredOpts === "function" ? registeredOpts() : registeredOpts;
 				options = resolved.map((o: SettingOption) => ({
-					value: o.value,
+					value: String(o.value),
 					label: o.label,
 					description: o.description,
 				}));
