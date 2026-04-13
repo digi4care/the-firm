@@ -66,9 +66,25 @@ export const modelSettings: SettingsProvider = {
 				scopeSelector: true,
 			},
 		},
-		thinkingBudgets: {
-			type: "record",
-			default: {} as Record<string, number>,
+		"thinkingBudgets.minimal": {
+			type: "number",
+			default: 1024,
+		},
+		"thinkingBudgets.low": {
+			type: "number",
+			default: 2048,
+		},
+		"thinkingBudgets.medium": {
+			type: "number",
+			default: 8192,
+		},
+		"thinkingBudgets.high": {
+			type: "number",
+			default: 16384,
+		},
+		"thinkingBudgets.xhigh": {
+			type: "number",
+			default: 32768,
 		},
 	},
 	options: {
