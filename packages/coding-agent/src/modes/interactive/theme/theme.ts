@@ -5,7 +5,7 @@ import { type Static, Type } from "@sinclair/typebox";
 import { TypeCompiler } from "@sinclair/typebox/compiler";
 import chalk from "chalk";
 import { highlight, supportsLanguage } from "cli-highlight";
-import { getCustomThemesDir, getThemesDir } from "../../../config.js";
+import { getCustomThemesDir, getProjectThemesDir, getThemesDir } from "../../../config.js";
 import type { SourceInfo } from "../../../core/source-info.js";
 
 // ============================================================================
@@ -461,12 +461,13 @@ function getBuiltinThemes(): Record<string, ThemeJson> {
 
 export function getAvailableThemes(): string[] {
 	const themes = new Set<string>(Object.keys(getBuiltinThemes()));
-	const customThemesDir = getCustomThemesDir();
-	if (fs.existsSync(customThemesDir)) {
-		const files = fs.readdirSync(customThemesDir);
-		for (const file of files) {
-			if (file.endsWith(".json")) {
-				themes.add(file.slice(0, -5));
+	for (const dir of [getCustomThemesDir(), getProjectThemesDir()]) {
+		if (fs.existsSync(dir)) {
+			const files = fs.readdirSync(dir);
+			for (const file of files) {
+				if (file.endsWith(".json")) {
+					themes.add(file.slice(0, -5));
+				}
 			}
 		}
 	}
@@ -483,7 +484,6 @@ export interface ThemeInfo {
 
 export function getAvailableThemesWithPaths(): ThemeInfo[] {
 	const themesDir = getThemesDir();
-	const customThemesDir = getCustomThemesDir();
 	const result: ThemeInfo[] = [];
 
 	// Built-in themes
@@ -491,13 +491,15 @@ export function getAvailableThemesWithPaths(): ThemeInfo[] {
 		result.push({ name, path: path.join(themesDir, `${name}.json`) });
 	}
 
-	// Custom themes
-	if (fs.existsSync(customThemesDir)) {
-		for (const file of fs.readdirSync(customThemesDir)) {
-			if (file.endsWith(".json")) {
-				const name = file.slice(0, -5);
-				if (!result.some((t) => t.name === name)) {
-					result.push({ name, path: path.join(customThemesDir, file) });
+	// Custom themes (global + project-local)
+	for (const customDir of [getCustomThemesDir(), getProjectThemesDir()]) {
+		if (fs.existsSync(customDir)) {
+			for (const file of fs.readdirSync(customDir)) {
+				if (file.endsWith(".json")) {
+					const name = file.slice(0, -5);
+					if (!result.some((t) => t.name === name)) {
+						result.push({ name, path: path.join(customDir, file) });
+					}
 				}
 			}
 		}
@@ -568,13 +570,15 @@ function loadThemeJson(name: string): ThemeJson {
 	if (registeredTheme) {
 		throw new Error(`Theme "${name}" does not have a source path for export`);
 	}
-	const customThemesDir = getCustomThemesDir();
-	const themePath = path.join(customThemesDir, `${name}.json`);
-	if (!fs.existsSync(themePath)) {
-		throw new Error(`Theme not found: ${name}`);
+	// Search global custom themes, then project-local themes
+	for (const customDir of [getCustomThemesDir(), getProjectThemesDir()]) {
+		const themePath = path.join(customDir, `${name}.json`);
+		if (fs.existsSync(themePath)) {
+			const content = fs.readFileSync(themePath, "utf-8");
+			return parseThemeJsonContent(name, content);
+		}
 	}
-	const content = fs.readFileSync(themePath, "utf-8");
-	return parseThemeJsonContent(name, content);
+	throw new Error(`Theme not found: ${name}`);
 }
 
 function createTheme(themeJson: ThemeJson, mode?: ColorMode, sourcePath?: string): Theme {
