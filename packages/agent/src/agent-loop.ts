@@ -487,7 +487,7 @@ async function prepareToolCall(
 
 	try {
 		const preparedToolCall = prepareToolCallArguments(tool, toolCall);
-		const validatedArgs = validateToolArguments(tool, preparedToolCall);
+		let validatedArgs = validateToolArguments(tool, preparedToolCall);
 		if (config.beforeToolCall) {
 			const beforeResult = await config.beforeToolCall(
 				{
@@ -504,6 +504,9 @@ async function prepareToolCall(
 					result: createErrorToolResult(beforeResult.reason || "Tool execution was blocked"),
 					isError: true,
 				};
+			}
+			if (beforeResult?.args !== undefined) {
+				validatedArgs = beforeResult.args;
 			}
 		}
 		return {
