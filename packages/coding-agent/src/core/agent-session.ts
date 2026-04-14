@@ -364,7 +364,7 @@ export class AgentSession {
 				result = applyContextPruning(result, {
 					enabled: true,
 					keepRecentCount,
-					rules: ['deduplication', 'error-purging', 'superseded-writes', 'tool-pairing', 'recency'],
+					rules: ["deduplication", "error-purging", "superseded-writes", "tool-pairing", "recency"],
 				});
 			}
 			return result;
@@ -2555,6 +2555,7 @@ export class AgentSession {
 		const shellCommandPrefix = this.settingsManager.getShellCommandPrefix();
 		const lineNumbers = this.settingsManager.getReadLineNumbers();
 		const hashLines = this.settingsManager.getReadHashLines();
+		const defaultLimit = this.settingsManager.getReadDefaultLimit();
 		const editMode = this.settingsManager.getEditMode();
 		const baseToolDefinitions = this._baseToolsOverride
 			? Object.fromEntries(
@@ -2564,7 +2565,7 @@ export class AgentSession {
 					]),
 				)
 			: createAllToolDefinitions(this._cwd, {
-					read: { autoResizeImages, lineNumbers, hashLines },
+					read: { autoResizeImages, lineNumbers, hashLines, defaultLimit },
 					bash: { commandPrefix: shellCommandPrefix },
 					edit: { mode: editMode },
 				});

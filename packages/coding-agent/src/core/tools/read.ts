@@ -55,6 +55,8 @@ export interface ReadToolOptions {
 	lineNumbers?: boolean;
 	/** Append a per-line hash to text output for hashline edit mode. Default: false */
 	hashLines?: boolean;
+	/** Maximum number of lines returned when no explicit limit is specified. Default: 300 */
+	defaultLimit?: number;
 }
 
 function formatReadCall(
@@ -202,9 +204,10 @@ export function createReadToolDefinition(
 								}
 								let selectedLines: string[];
 								let userLimitedLines: number | undefined;
-								// If limit is specified by the user, honor it first. Otherwise truncateHead decides.
-								if (limit !== undefined) {
-									const endLine = Math.min(startLine + limit, allLines.length);
+								// If limit is specified by the user, honor it first. Otherwise use defaultLimit from settings.
+								const effectiveLimit = limit ?? options?.defaultLimit;
+							if (effectiveLimit !== undefined) {
+									const endLine = Math.min(startLine + effectiveLimit, allLines.length);
 									selectedLines = allLines.slice(startLine, endLine);
 									userLimitedLines = endLine - startLine;
 								} else {
