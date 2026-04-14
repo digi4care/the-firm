@@ -32,4 +32,5 @@ export type {
 } from "./utils/oauth/types.js";
 export * from "./utils/overflow.js";
 export * from "./utils/typebox-helpers.js";
+export { getThinkingCompat, getSupportedThinkingLevels, resolveThinkingLevel, type ResolvedThinkingLevel, type ThinkingApiFormat, type ThinkingCompatProfile } from "./thinking-compat.js";
 export * from "./utils/validation.js";
