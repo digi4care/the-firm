@@ -591,19 +591,21 @@ export class InteractiveMode {
 	async run(): Promise<void> {
 		await this.init();
 
-		// Start version check asynchronously
-		this.checkForNewVersion().then((newVersion) => {
-			if (newVersion) {
-				this.showNewVersionNotification(newVersion);
-			}
-		});
+		// Start version check asynchronously (unless disabled)
+		if (this.settingsManager.getStartupCheckUpdate()) {
+			this.checkForNewVersion().then((newVersion) => {
+				if (newVersion) {
+					this.showNewVersionNotification(newVersion);
+				}
+			});
 
-		// Start package update check asynchronously
-		this.checkForPackageUpdates().then((updates) => {
-			if (updates.length > 0) {
-				this.showPackageUpdateNotification(updates);
-			}
-		});
+			// Start package update check asynchronously
+			this.checkForPackageUpdates().then((updates) => {
+				if (updates.length > 0) {
+					this.showPackageUpdateNotification(updates);
+				}
+			});
+		}
 
 		// Check tmux keyboard setup asynchronously
 		this.checkTmuxKeyboardSetup().then((warning) => {
@@ -2490,6 +2492,9 @@ export class InteractiveMode {
 			}
 
 			case "agent_end":
+				if (this.settingsManager.getCompletionNotify()) {
+					this.sendTerminalNotification("The Firm", "Ready for input");
+				}
 				if (this.loadingAnimation) {
 					this.loadingAnimation.stop();
 					this.loadingAnimation = undefined;
@@ -2648,6 +2653,18 @@ export class InteractiveMode {
 		this.lastStatusSpacer = spacer;
 		this.lastStatusText = text;
 		this.ui.requestRender();
+	}
+
+	/** Send a terminal notification using OSC escape sequences. */
+	private sendTerminalNotification(title: string, body: string): void {
+		if (process.env.KITTY_WINDOW_ID) {
+			// Kitty OSC 99
+			process.stdout.write(`\x1b]99;i=1:d=0;${title}\x1b\\`);
+			process.stdout.write(`\x1b]99;i=1:p=body;${body}\x1b\\`);
+		} else {
+			// OSC 777: Ghostty, iTerm2, WezTerm, rxvt-unicode
+			process.stdout.write(`\x1b]777;notify;${title};${body}\x07`);
+		}
 	}
 
 	private addMessageToChat(message: AgentMessage, options?: { populateHistory?: boolean }): void {
@@ -3387,7 +3404,11 @@ export class InteractiveMode {
 
 	/** Centralized setting change handler — persists + dispatches side effects */
 
-	private handleSettingChange(path: string, value: unknown, scope: import("../../core/settings-manager.js").SettingsScope = "global"): void {
+	private handleSettingChange(
+		path: string,
+		value: unknown,
+		scope: import("../../core/settings-manager.js").SettingsScope = "global",
+	): void {
 		// Persist the value
 		this.settingsManager.setScoped(scope, path, value);
 
@@ -4598,8 +4619,14 @@ export class InteractiveMode {
 			this.showWarning(`No provider log directory found for current session: ${logsDir}`);
 			return;
 		}
-		const allFiles = fs.readdirSync(logsDir).filter((entry) => entry.endsWith(".log")).sort((a, b) => a.localeCompare(b));
-		const selectedFiles = filters.length === 0 ? allFiles : allFiles.filter((file) => filters.some((filter) => file.toLowerCase().includes(filter.toLowerCase())));
+		const allFiles = fs
+			.readdirSync(logsDir)
+			.filter((entry) => entry.endsWith(".log"))
+			.sort((a, b) => a.localeCompare(b));
+		const selectedFiles =
+			filters.length === 0
+				? allFiles
+				: allFiles.filter((file) => filters.some((filter) => file.toLowerCase().includes(filter.toLowerCase())));
 		if (selectedFiles.length === 0) {
 			const suffix = filters.length > 0 ? ` matching ${filters.join(", ")}` : "";
 			this.showWarning(`No provider log files found${suffix} in ${logsDir}`);
@@ -4623,7 +4650,10 @@ export class InteractiveMode {
 			`source_cwd: ${this.sessionManager.getCwd()}`,
 			filters.length > 0 ? `requested_filters: ${filters.join(", ")}` : "requested_filters: all",
 			"provider_log_files:",
-			...fileSummaries.map((summary) => `- ${summary.file} | ${summary.fullPath} | ${summary.sizeBytes} bytes | modified ${summary.modifiedAt}`),
+			...fileSummaries.map(
+				(summary) =>
+					`- ${summary.file} | ${summary.fullPath} | ${summary.sizeBytes} bytes | modified ${summary.modifiedAt}`,
+			),
 			"The files above are the primary evidence. Read them directly from disk with tools.",
 			"</provider-debug-context>",
 		].join("\n");
@@ -4670,7 +4700,6 @@ export class InteractiveMode {
 			systemPromptOverride: personaPrompt,
 		});
 	}
-
 
 	private handleArminSaysHi(): void {
 		this.chatContainer.addChild(new Spacer(1));
