@@ -27,22 +27,15 @@ describe('Appearance settings', () => {
 		});
 	});
 
-	describe('status line defaults', () => {
-		it('should return default values for status line settings', () => {
+	describe('removed dead settings', () => {
+		it('should not register statusLine and display settings that have no runtime effect', () => {
 			const manager = SettingsManager.inMemory();
 
-			expect(manager.get('statusLine.preset')).toBe('default');
-			expect(manager.get('statusLine.separator')).toBe('powerline-thin');
-			expect(manager.get('statusLine.showHookStatus')).toBe(true);
-		});
-	});
-
-	describe('display defaults', () => {
-		it('should return default values for display settings', () => {
-			const manager = SettingsManager.inMemory();
-
-			expect(manager.get('display.tabWidth')).toBe(3);
-			expect(manager.get('display.showTokenUsage')).toBe(false);
+			expect(manager.get('statusLine.preset')).toBeUndefined();
+			expect(manager.get('statusLine.separator')).toBeUndefined();
+			expect(manager.get('statusLine.showHookStatus')).toBeUndefined();
+			expect(manager.get('display.tabWidth')).toBeUndefined();
+			expect(manager.get('display.showTokenUsage')).toBeUndefined();
 		});
 	});
 
@@ -74,26 +67,7 @@ describe('Appearance settings', () => {
 			expect(manager.get('images.autoResize')).toBe(false);
 		});
 
-		it('should allow configuring status line', () => {
-			const manager = SettingsManager.inMemory({
-				statusLine: {
-					preset: 'minimal',
-					separator: 'plain',
-					showHookStatus: false,
-				},
-			});
-			expect(manager.get('statusLine.preset')).toBe('minimal');
-			expect(manager.get('statusLine.separator')).toBe('plain');
-			expect(manager.get('statusLine.showHookStatus')).toBe(false);
-		});
 
-		it('should allow configuring display', () => {
-			const manager = SettingsManager.inMemory({
-				display: { tabWidth: 4, showTokenUsage: true },
-			});
-			expect(manager.get('display.tabWidth')).toBe(4);
-			expect(manager.get('display.showTokenUsage')).toBe(true);
-		});
 
 		it('should allow configuring editor settings', () => {
 			const manager = SettingsManager.inMemory({

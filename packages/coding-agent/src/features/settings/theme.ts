@@ -12,16 +12,15 @@
  * │ terminal.showImages               │ ✓        │ ✓                            │
  * │ images.autoResize                 │ ✓        │ ✓                            │
  * │ images.blockImages                │ ✓        │ ✓                            │
- * │ statusLine.preset                 │ ✓        │ ✓                            │
- * │ statusLine.separator              │ ✓        │ ✓                            │
- * │ statusLine.showHookStatus         │ ✓        │ ✓                            │
- * │ display.tabWidth                  │ ✓ (3)    │ ✓ (3)                        │
- * │ display.showTokenUsage            │ ✓        │ ✓                            │
  * │ showHardwareCursor                │ ✗        │ ✓ (The Firm unique)          │
  * │ clearOnShrink                     │ ✗        │ ✓ (The Firm unique)          │
  * │ editorPaddingX                    │ ✗        │ ✓ (The Firm unique)          │
  * │ autocompleteMaxVisible            │ ✗        │ ✓ (The Firm unique)          │
  * └───────────────────────────────────┴──────────┴──────────────────────────────┘
+ *
+ * Removed settings (no runtime wiring in The Firm's TUI):
+ * - statusLine.preset, statusLine.separator, statusLine.showHookStatus
+ * - display.tabWidth, display.showTokenUsage
  *
  * Conscious divergences:
  * - theme: The Firm keeps the combined 'theme' setting AND adds theme.dark/theme.light
@@ -98,63 +97,6 @@ export const themeSettings: SettingsProvider = {
 				tab: "appearance",
 				label: "Block Images",
 				description: "Prevent images from being sent to LLM providers",
-			},
-		},
-
-		// ─── Status line ──────────────────────────────────────────
-		"statusLine.preset": {
-			type: "enum",
-			values: ["default", "minimal", "verbose", "compact"] as const,
-			default: "default",
-			ui: {
-				tab: "appearance",
-				label: "Status Line Preset",
-				description: "Pre-built status line configurations",
-				submenu: true,
-			},
-		},
-
-		"statusLine.separator": {
-			type: "enum",
-			values: ["powerline", "powerline-thin", "plain", "bracket", "dot"] as const,
-			default: "powerline-thin",
-			ui: {
-				tab: "appearance",
-				label: "Status Line Separator",
-				description: "Style of separators between segments",
-				submenu: true,
-			},
-		},
-
-		"statusLine.showHookStatus": {
-			type: "boolean",
-			default: true,
-			ui: {
-				tab: "appearance",
-				label: "Show Hook Status",
-				description: "Display hook status messages below status line",
-			},
-		},
-
-		// ─── Display ──────────────────────────────────────────────
-		"display.tabWidth": {
-			type: "number",
-			default: 3,
-			ui: {
-				tab: "appearance",
-				label: "Tab Width",
-				description: "Default number of spaces used when rendering tab characters",
-				submenu: true,
-			},
-		},
-
-		"display.showTokenUsage": {
-			type: "boolean",
-			default: false,
-			ui: {
-				tab: "appearance",
-				label: "Show Token Usage",
-				description: "Show per-turn token usage on assistant messages",
 			},
 		},
 
