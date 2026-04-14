@@ -14,6 +14,9 @@ try {
 		format: "esm",
 		logLevel: "silent",
 		outfile: outputPath,
+		// The AI package contains OAuth utilities that legitimately use Node.js built-ins.
+		// These are Node-only code paths; browser consumers are expected to externalize them.
+		external: ["node:*"],
 	});
 	process.exit(0);
 } catch (error) {

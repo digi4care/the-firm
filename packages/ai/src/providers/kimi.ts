@@ -23,7 +23,7 @@ import type {
 	ToolCall,
 } from "../types.js";
 import { AssistantMessageEventStream } from "../utils/event-stream.js";
-import { getKimiCommonHeaders } from "../utils/oauth/index.js";
+
 import { streamAnthropic } from "./anthropic.js";
 import { streamOpenAICompletions } from "./openai-completions.js";
 import { adjustMaxTokensForThinking } from "./simple-options.js";
@@ -61,6 +61,7 @@ export const streamKimi: StreamFunction<"openai-completions", KimiOptions> = (
 	// Async IIFE to handle header fetching and stream piping
 	(async () => {
 		try {
+			const { getKimiCommonHeaders } = await import("../utils/oauth/index.js");
 			const kimiHeaders = await getKimiCommonHeaders();
 			const mergedHeaders = { ...kimiHeaders, ...options?.headers };
 
