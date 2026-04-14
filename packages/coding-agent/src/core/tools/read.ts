@@ -221,7 +221,7 @@ export function createReadToolDefinition(
 										const lineNum = startLineDisplay + idx;
 										let prefix = "";
 										if (lineNumbers) {
-											prefix = String(lineNum).padStart(lineNumWidth, " ") + " | ";
+											prefix = `${String(lineNum).padStart(lineNumWidth, " ")} | `;
 										}
 										if (hashLines) {
 											const hash = createHash("sha256").update(line).digest("hex").slice(0, 8);

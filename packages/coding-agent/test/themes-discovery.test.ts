@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs";
+import { mkdirSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -24,14 +24,8 @@ describe("Theme discovery", () => {
 		it("should discover themes from .the-firm/themes/ directory", () => {
 			const themesDir = join(testDir, ".the-firm", "themes");
 			mkdirSync(themesDir, { recursive: true });
-			writeFileSync(
-				join(themesDir, "custom-dark.json"),
-				JSON.stringify({ name: "Custom Dark", colors: {} }),
-			);
-			writeFileSync(
-				join(themesDir, "custom-light.json"),
-				JSON.stringify({ name: "Custom Light", colors: {} }),
-			);
+			writeFileSync(join(themesDir, "custom-dark.json"), JSON.stringify({ name: "Custom Dark", colors: {} }));
+			writeFileSync(join(themesDir, "custom-light.json"), JSON.stringify({ name: "Custom Light", colors: {} }));
 
 			const themes = getAvailableThemes();
 
@@ -42,10 +36,7 @@ describe("Theme discovery", () => {
 		it("should include theme paths in getAvailableThemesWithPaths", () => {
 			const themesDir = join(testDir, ".the-firm", "themes");
 			mkdirSync(themesDir, { recursive: true });
-			writeFileSync(
-				join(themesDir, "project-theme.json"),
-				JSON.stringify({ name: "Project Theme", colors: {} }),
-			);
+			writeFileSync(join(themesDir, "project-theme.json"), JSON.stringify({ name: "Project Theme", colors: {} }));
 
 			const themes = getAvailableThemesWithPaths();
 			const projectTheme = themes.find((t) => t.name === "project-theme");

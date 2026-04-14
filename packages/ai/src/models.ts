@@ -58,7 +58,8 @@ export function supportsXhigh<TApi extends Api>(arg1: string | Model<TApi>, arg2
 	if (typeof arg1 === "string" && arg2 !== undefined) {
 		return supportsXhighCompat(arg1, arg2);
 	}
-	return supportsXhighCompat(arg1.provider, arg1.id);
+	const model = arg1 as Model<TApi>;
+	return supportsXhighCompat(model.provider, model.id);
 }
 
 /**

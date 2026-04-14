@@ -405,7 +405,11 @@ export class SettingsManager {
 		}
 
 		// Migrate old thinkingBudgets record format to dotted keys
-		if ("thinkingBudgets" in settings && typeof settings.thinkingBudgets === "object" && settings.thinkingBudgets !== null) {
+		if (
+			"thinkingBudgets" in settings &&
+			typeof settings.thinkingBudgets === "object" &&
+			settings.thinkingBudgets !== null
+		) {
 			const oldBudgets = settings.thinkingBudgets as Record<string, number>;
 			for (const [key, value] of Object.entries(oldBudgets)) {
 				if (["minimal", "low", "medium", "high", "xhigh"].includes(key)) {
@@ -867,6 +871,24 @@ export class SettingsManager {
 
 	getThinkingBudgetXHigh = (): number => (this.get("thinkingBudgets.xhigh") ?? 32768) as number;
 	setThinkingBudgetXHigh = (value: number) => this.set("thinkingBudgets.xhigh", value);
+
+	getSamplingTemperature = (): number => (this.get("sampling.temperature") ?? -1) as number;
+	setSamplingTemperature = (value: number) => this.set("sampling.temperature", value);
+
+	getSamplingTopP = (): number => (this.get("sampling.topP") ?? -1) as number;
+	setSamplingTopP = (value: number) => this.set("sampling.topP", value);
+
+	getSamplingTopK = (): number => (this.get("sampling.topK") ?? -1) as number;
+	setSamplingTopK = (value: number) => this.set("sampling.topK", value);
+
+	getSamplingMinP = (): number => (this.get("sampling.minP") ?? -1) as number;
+	setSamplingMinP = (value: number) => this.set("sampling.minP", value);
+
+	getSamplingPresencePenalty = (): number => (this.get("sampling.presencePenalty") ?? -1) as number;
+	setSamplingPresencePenalty = (value: number) => this.set("sampling.presencePenalty", value);
+
+	getSamplingRepetitionPenalty = (): number => (this.get("sampling.repetitionPenalty") ?? -1) as number;
+	setSamplingRepetitionPenalty = (value: number) => this.set("sampling.repetitionPenalty", value);
 
 	getRepeatToolDescriptions = (): boolean => (this.get("repeatToolDescriptions") ?? false) as boolean;
 	setRepeatToolDescriptions = (enabled: boolean) => this.set("repeatToolDescriptions", enabled);

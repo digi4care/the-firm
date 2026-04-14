@@ -107,6 +107,12 @@ export interface AgentOptions {
 	transport?: Transport;
 	maxRetryDelayMs?: number;
 	toolExecution?: ToolExecutionMode;
+	temperature?: number;
+	topP?: number;
+	topK?: number;
+	minP?: number;
+	presencePenalty?: number;
+	repetitionPenalty?: number;
 }
 
 class PendingMessageQueue {
@@ -184,6 +190,18 @@ export class Agent {
 	public maxRetryDelayMs?: number;
 	/** Tool execution strategy for assistant messages that contain multiple tool calls. */
 	public toolExecution: ToolExecutionMode;
+	/** Sampling temperature forwarded to the stream function. */
+	public temperature?: number;
+	/** Top-P sampling cutoff forwarded to the stream function. */
+	public topP?: number;
+	/** Top-K sampling limit forwarded to the stream function. */
+	public topK?: number;
+	/** Minimum probability threshold forwarded to the stream function. */
+	public minP?: number;
+	/** Presence penalty forwarded to the stream function. */
+	public presencePenalty?: number;
+	/** Repetition penalty forwarded to the stream function. */
+	public repetitionPenalty?: number;
 
 	constructor(options: AgentOptions = {}) {
 		this._state = createMutableAgentState(options.initialState);
@@ -201,6 +219,12 @@ export class Agent {
 		this.transport = options.transport ?? "sse";
 		this.maxRetryDelayMs = options.maxRetryDelayMs;
 		this.toolExecution = options.toolExecution ?? "parallel";
+		this.temperature = options.temperature;
+		this.topP = options.topP;
+		this.topK = options.topK;
+		this.minP = options.minP;
+		this.presencePenalty = options.presencePenalty;
+		this.repetitionPenalty = options.repetitionPenalty;
 	}
 
 	/**
@@ -415,6 +439,12 @@ export class Agent {
 			thinkingBudgets: this.thinkingBudgets,
 			maxRetryDelayMs: this.maxRetryDelayMs,
 			toolExecution: this.toolExecution,
+			temperature: this.temperature,
+			topP: this.topP,
+			topK: this.topK,
+			minP: this.minP,
+			presencePenalty: this.presencePenalty,
+			repetitionPenalty: this.repetitionPenalty,
 			beforeToolCall: this.beforeToolCall,
 			afterToolCall: this.afterToolCall,
 			convertToLlm: this.convertToLlm,

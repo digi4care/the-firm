@@ -184,8 +184,13 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 
 	if (!resourceLoader) {
 		resourceLoader = new DefaultResourceLoader({ cwd, agentDir, settingsManager });
-		await resourceLoader.reload();
-		time("resourceLoader.reload");
+		// Only reload if we created the settingsManager ourselves.
+		// If the caller provided a custom settingsManager (e.g., in-memory for tests),
+		// reloading would reset any initial settings they configured.
+		if (!options.settingsManager) {
+			await resourceLoader.reload();
+			time("resourceLoader.reload");
+		}
 	}
 
 	// Check if session has existing data to restore
@@ -353,6 +358,12 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 		transport: settingsManager.getTransport(),
 		thinkingBudgets: settingsManager.getThinkingBudgets(),
 		maxRetryDelayMs: settingsManager.getRetrySettings().maxDelayMs,
+		temperature: settingsManager.getSamplingTemperature(),
+		topP: settingsManager.getSamplingTopP(),
+		topK: settingsManager.getSamplingTopK(),
+		minP: settingsManager.getSamplingMinP(),
+		presencePenalty: settingsManager.getSamplingPresencePenalty(),
+		repetitionPenalty: settingsManager.getSamplingRepetitionPenalty(),
 	});
 
 	// Restore messages if session has existing data

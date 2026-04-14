@@ -1,5 +1,5 @@
 import { createHash } from "crypto";
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { tmpdir } from "os";
 import { join } from "path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";

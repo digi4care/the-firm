@@ -11,11 +11,11 @@
  * 4. anthropic: Token-budget based with extended thinking toggle
  */
 
-import type { ThinkingLevel } from './types.js';
+import type { ThinkingLevel } from "./types.js";
 
 // ─── Types ─────────────────────────────────────────────────────────────
 
-export type ThinkingApiFormat = 'reasoning_effort' | 'thinking_level' | 'enable_thinking' | 'anthropic';
+export type ThinkingApiFormat = "reasoning_effort" | "thinking_level" | "enable_thinking" | "anthropic";
 
 export interface ThinkingCompatProfile {
 	/** Provider ID this profile applies to */
@@ -30,7 +30,7 @@ export interface ThinkingCompatProfile {
 		readonly maxLevel: ThinkingLevel;
 	}>;
 	/** How unsupported values are handled by the API */
-	readonly unsupportedBehavior: 'clamp' | 'error' | 'ignore';
+	readonly unsupportedBehavior: "clamp" | "error" | "ignore";
 	/** Optional mapping from internal levels to API-specific values */
 	readonly effortMap?: Readonly<Partial<Record<ThinkingLevel, string>>>;
 }
@@ -43,7 +43,7 @@ export interface ResolvedThinkingLevel {
 	/** Whether the level was clamped */
 	readonly clamped: boolean;
 	/** For enable_thinking providers: the boolean API value */
-	readonly apiValue?: boolean;
+	apiValue?: boolean;
 }
 
 // ─── Provider Profiles ─────────────────────────────────────────────────
@@ -52,222 +52,220 @@ export interface ResolvedThinkingLevel {
 const PROFILES: ReadonlyArray<ThinkingCompatProfile> = [
 	// OpenAI family — reasoning_effort parameter
 	{
-		provider: 'openai',
-		format: 'reasoning_effort',
-		maxLevel: 'high',
-		unsupportedBehavior: 'clamp',
+		provider: "openai",
+		format: "reasoning_effort",
+		maxLevel: "high",
+		unsupportedBehavior: "clamp",
 		modelOverrides: [
-			{ pattern: 'gpt-5.2', maxLevel: 'xhigh' },
-			{ pattern: 'gpt-5.3', maxLevel: 'xhigh' },
-			{ pattern: 'gpt-5.4', maxLevel: 'xhigh' },
+			{ pattern: "gpt-5.2", maxLevel: "xhigh" },
+			{ pattern: "gpt-5.3", maxLevel: "xhigh" },
+			{ pattern: "gpt-5.4", maxLevel: "xhigh" },
 		],
 	},
 	{
-		provider: 'azure-openai-responses',
-		format: 'reasoning_effort',
-		maxLevel: 'high',
-		unsupportedBehavior: 'clamp',
+		provider: "azure-openai-responses",
+		format: "reasoning_effort",
+		maxLevel: "high",
+		unsupportedBehavior: "clamp",
 		modelOverrides: [
-			{ pattern: 'gpt-5.2', maxLevel: 'xhigh' },
-			{ pattern: 'gpt-5.3', maxLevel: 'xhigh' },
-			{ pattern: 'gpt-5.4', maxLevel: 'xhigh' },
+			{ pattern: "gpt-5.2", maxLevel: "xhigh" },
+			{ pattern: "gpt-5.3", maxLevel: "xhigh" },
+			{ pattern: "gpt-5.4", maxLevel: "xhigh" },
 		],
 	},
 	{
-		provider: 'openai-codex',
-		format: 'reasoning_effort',
-		maxLevel: 'high',
-		unsupportedBehavior: 'clamp',
+		provider: "openai-codex",
+		format: "reasoning_effort",
+		maxLevel: "high",
+		unsupportedBehavior: "clamp",
 		modelOverrides: [
-			{ pattern: 'gpt-5.2', maxLevel: 'xhigh' },
-			{ pattern: 'gpt-5.3', maxLevel: 'xhigh' },
-			{ pattern: 'gpt-5.4', maxLevel: 'xhigh' },
+			{ pattern: "gpt-5.2", maxLevel: "xhigh" },
+			{ pattern: "gpt-5.3", maxLevel: "xhigh" },
+			{ pattern: "gpt-5.4", maxLevel: "xhigh" },
 		],
 	},
 	{
-		provider: 'github-copilot',
-		format: 'reasoning_effort',
-		maxLevel: 'high',
-		unsupportedBehavior: 'clamp',
+		provider: "github-copilot",
+		format: "reasoning_effort",
+		maxLevel: "high",
+		unsupportedBehavior: "clamp",
 	},
 
 	// OpenRouter — passes through to underlying provider
 	{
-		provider: 'openrouter',
-		format: 'reasoning_effort',
-		maxLevel: 'high',
-		unsupportedBehavior: 'clamp',
+		provider: "openrouter",
+		format: "reasoning_effort",
+		maxLevel: "high",
+		unsupportedBehavior: "clamp",
 		modelOverrides: [
-			{ pattern: 'gpt-5.2', maxLevel: 'xhigh' },
-			{ pattern: 'gpt-5.3', maxLevel: 'xhigh' },
-			{ pattern: 'gpt-5.4', maxLevel: 'xhigh' },
-			{ pattern: 'opus-4-6', maxLevel: 'xhigh' },
-			{ pattern: 'opus-4.6', maxLevel: 'xhigh' },
+			{ pattern: "gpt-5.2", maxLevel: "xhigh" },
+			{ pattern: "gpt-5.3", maxLevel: "xhigh" },
+			{ pattern: "gpt-5.4", maxLevel: "xhigh" },
+			{ pattern: "opus-4-6", maxLevel: "xhigh" },
+			{ pattern: "opus-4.6", maxLevel: "xhigh" },
 		],
 	},
 
 	// Vercel AI Gateway — passes through to underlying provider
 	{
-		provider: 'vercel-ai-gateway',
-		format: 'reasoning_effort',
-		maxLevel: 'high',
-		unsupportedBehavior: 'clamp',
+		provider: "vercel-ai-gateway",
+		format: "reasoning_effort",
+		maxLevel: "high",
+		unsupportedBehavior: "clamp",
 		modelOverrides: [
-			{ pattern: 'gpt-5.2', maxLevel: 'xhigh' },
-			{ pattern: 'gpt-5.3', maxLevel: 'xhigh' },
-			{ pattern: 'gpt-5.4', maxLevel: 'xhigh' },
+			{ pattern: "gpt-5.2", maxLevel: "xhigh" },
+			{ pattern: "gpt-5.3", maxLevel: "xhigh" },
+			{ pattern: "gpt-5.4", maxLevel: "xhigh" },
 		],
 	},
 
 	// Anthropic — token-budget based extended thinking
 	{
-		provider: 'anthropic',
-		format: 'anthropic',
-		maxLevel: 'high',
-		unsupportedBehavior: 'clamp',
+		provider: "anthropic",
+		format: "anthropic",
+		maxLevel: "high",
+		unsupportedBehavior: "clamp",
 		modelOverrides: [
-			{ pattern: 'opus-4-6', maxLevel: 'xhigh' },
-			{ pattern: 'opus-4.6', maxLevel: 'xhigh' },
+			{ pattern: "opus-4-6", maxLevel: "xhigh" },
+			{ pattern: "opus-4.6", maxLevel: "xhigh" },
 		],
 	},
 
 	// Amazon Bedrock — wraps Anthropic/other providers
 	{
-		provider: 'amazon-bedrock',
-		format: 'anthropic',
-		maxLevel: 'high',
-		unsupportedBehavior: 'clamp',
+		provider: "amazon-bedrock",
+		format: "anthropic",
+		maxLevel: "high",
+		unsupportedBehavior: "clamp",
 		modelOverrides: [
-			{ pattern: 'opus-4-6', maxLevel: 'xhigh' },
-			{ pattern: 'opus-4.6', maxLevel: 'xhigh' },
+			{ pattern: "opus-4-6", maxLevel: "xhigh" },
+			{ pattern: "opus-4.6", maxLevel: "xhigh" },
 		],
 	},
 
 	// Google — thinking_level parameter
 	{
-		provider: 'google',
-		format: 'thinking_level',
-		maxLevel: 'high',
-		unsupportedBehavior: 'clamp',
+		provider: "google",
+		format: "thinking_level",
+		maxLevel: "high",
+		unsupportedBehavior: "clamp",
 	},
 	{
-		provider: 'google-vertex',
-		format: 'thinking_level',
-		maxLevel: 'high',
-		unsupportedBehavior: 'clamp',
+		provider: "google-vertex",
+		format: "thinking_level",
+		maxLevel: "high",
+		unsupportedBehavior: "clamp",
 	},
 	{
-		provider: 'google-antigravity',
-		format: 'thinking_level',
-		maxLevel: 'high',
-		unsupportedBehavior: 'clamp',
+		provider: "google-antigravity",
+		format: "thinking_level",
+		maxLevel: "high",
+		unsupportedBehavior: "clamp",
 	},
 	{
-		provider: 'google-gemini-cli',
-		format: 'thinking_level',
-		maxLevel: 'high',
-		unsupportedBehavior: 'clamp',
+		provider: "google-gemini-cli",
+		format: "thinking_level",
+		maxLevel: "high",
+		unsupportedBehavior: "clamp",
 	},
 
 	// Z.AI — enable_thinking boolean
 	{
-		provider: 'zai',
-		format: 'enable_thinking',
-		maxLevel: 'high',
-		unsupportedBehavior: 'ignore',
+		provider: "zai",
+		format: "enable_thinking",
+		maxLevel: "high",
+		unsupportedBehavior: "ignore",
 	},
 
 	// Groq — enable_thinking boolean
 	{
-		provider: 'groq',
-		format: 'enable_thinking',
-		maxLevel: 'high',
-		unsupportedBehavior: 'ignore',
+		provider: "groq",
+		format: "enable_thinking",
+		maxLevel: "high",
+		unsupportedBehavior: "ignore",
 	},
 
 	// xAI — enable_thinking boolean (Grok)
 	{
-		provider: 'xai',
-		format: 'enable_thinking',
-		maxLevel: 'high',
-		unsupportedBehavior: 'ignore',
+		provider: "xai",
+		format: "enable_thinking",
+		maxLevel: "high",
+		unsupportedBehavior: "ignore",
 	},
 
 	// Mistral — reasoning_effort
 	{
-		provider: 'mistral',
-		format: 'reasoning_effort',
-		maxLevel: 'high',
-		unsupportedBehavior: 'clamp',
+		provider: "mistral",
+		format: "reasoning_effort",
+		maxLevel: "high",
+		unsupportedBehavior: "clamp",
 	},
 
 	// HuggingFace — passes through
 	{
-		provider: 'huggingface',
-		format: 'enable_thinking',
-		maxLevel: 'high',
-		unsupportedBehavior: 'ignore',
+		provider: "huggingface",
+		format: "enable_thinking",
+		maxLevel: "high",
+		unsupportedBehavior: "ignore",
 	},
 
 	// OpenCode variants
 	{
-		provider: 'opencode',
-		format: 'reasoning_effort',
-		maxLevel: 'high',
-		unsupportedBehavior: 'clamp',
+		provider: "opencode",
+		format: "reasoning_effort",
+		maxLevel: "high",
+		unsupportedBehavior: "clamp",
 	},
 	{
-		provider: 'opencode-go',
-		format: 'reasoning_effort',
-		maxLevel: 'high',
-		unsupportedBehavior: 'clamp',
+		provider: "opencode-go",
+		format: "reasoning_effort",
+		maxLevel: "high",
+		unsupportedBehavior: "clamp",
 	},
 	{
-		provider: 'opencode-zen',
-		format: 'reasoning_effort',
-		maxLevel: 'high',
-		unsupportedBehavior: 'clamp',
+		provider: "opencode-zen",
+		format: "reasoning_effort",
+		maxLevel: "high",
+		unsupportedBehavior: "clamp",
 	},
 
 	// Kimi — enable_thinking boolean
 	{
-		provider: 'kimi-coding',
-		format: 'enable_thinking',
-		maxLevel: 'high',
-		unsupportedBehavior: 'ignore',
+		provider: "kimi-coding",
+		format: "enable_thinking",
+		maxLevel: "high",
+		unsupportedBehavior: "ignore",
 	},
 
 	// Cerebras — enable_thinking boolean
 	{
-		provider: 'cerebras',
-		format: 'enable_thinking',
-		maxLevel: 'high',
-		unsupportedBehavior: 'ignore',
+		provider: "cerebras",
+		format: "enable_thinking",
+		maxLevel: "high",
+		unsupportedBehavior: "ignore",
 	},
 
 	// MiniMax — enable_thinking boolean
 	{
-		provider: 'minimax',
-		format: 'enable_thinking',
-		maxLevel: 'high',
-		unsupportedBehavior: 'ignore',
+		provider: "minimax",
+		format: "enable_thinking",
+		maxLevel: "high",
+		unsupportedBehavior: "ignore",
 	},
 	{
-		provider: 'minimax-cn',
-		format: 'enable_thinking',
-		maxLevel: 'high',
-		unsupportedBehavior: 'ignore',
+		provider: "minimax-cn",
+		format: "enable_thinking",
+		maxLevel: "high",
+		unsupportedBehavior: "ignore",
 	},
 ];
 
 // Index for O(1) lookup
-const PROFILE_INDEX = new Map<string, ThinkingCompatProfile>(
-	PROFILES.map((p) => [p.provider, p]),
-);
+const PROFILE_INDEX = new Map<string, ThinkingCompatProfile>(PROFILES.map((p) => [p.provider, p]));
 
 // ─── Level ordering ────────────────────────────────────────────────────
 
-const LEVEL_ORDER: ReadonlyArray<ThinkingLevel> = ['minimal', 'low', 'medium', 'high', 'xhigh'];
+const LEVEL_ORDER: ReadonlyArray<ThinkingLevel> = ["minimal", "low", "medium", "high", "xhigh"];
 
 function levelIndex(level: ThinkingLevel): number {
 	return LEVEL_ORDER.indexOf(level);
@@ -301,7 +299,7 @@ export function getSupportedThinkingLevels(provider: string, modelId: string): T
 	const profile = PROFILE_INDEX.get(provider);
 	if (!profile) {
 		// Safe default: support through high only
-		return ['minimal', 'low', 'medium', 'high'];
+		return ["minimal", "low", "medium", "high"];
 	}
 
 	const max = maxSupportedLevel(profile, modelId);
@@ -322,7 +320,7 @@ export function resolveThinkingLevel(
 
 	if (!profile) {
 		// Unknown provider: clamp xhigh as safe default
-		const resolved: ThinkingLevel = requested === 'xhigh' ? 'high' : requested;
+		const resolved: ThinkingLevel = requested === "xhigh" ? "high" : requested;
 		return {
 			original: requested,
 			resolved,
@@ -344,9 +342,9 @@ export function resolveThinkingLevel(
 	};
 
 	// For enable_thinking format, provide the boolean API value
-	if (profile.format === 'enable_thinking') {
+	if (profile.format === "enable_thinking") {
 		// minimal = thinking off, low+ = thinking on
-		result.apiValue = levelIndex(resolved) >= levelIndex('low');
+		(result as { apiValue?: boolean }).apiValue = levelIndex(resolved) >= levelIndex("low");
 	}
 
 	return result;
@@ -358,5 +356,5 @@ export function resolveThinkingLevel(
  */
 export function supportsXhigh(provider: string, modelId: string): boolean {
 	const levels = getSupportedThinkingLevels(provider, modelId);
-	return levels.includes('xhigh');
+	return levels.includes("xhigh");
 }
