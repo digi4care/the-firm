@@ -868,6 +868,9 @@ export class SettingsManager {
 	getThinkingBudgetXHigh = (): number => (this.get("thinkingBudgets.xhigh") ?? 32768) as number;
 	setThinkingBudgetXHigh = (value: number) => this.set("thinkingBudgets.xhigh", value);
 
+	getRepeatToolDescriptions = (): boolean => (this.get("repeatToolDescriptions") ?? false) as boolean;
+	setRepeatToolDescriptions = (enabled: boolean) => this.set("repeatToolDescriptions", enabled);
+
 	getShowImages = (): boolean => (this.get("terminal.showImages") ?? true) as boolean;
 	setShowImages = (show: boolean) => this.set("terminal.showImages", show);
 
