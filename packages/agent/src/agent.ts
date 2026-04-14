@@ -107,6 +107,7 @@ export interface AgentOptions {
 	transport?: Transport;
 	maxRetryDelayMs?: number;
 	toolExecution?: ToolExecutionMode;
+	interruptMode?: "immediate" | "wait";
 	temperature?: number;
 	topP?: number;
 	topK?: number;
@@ -190,6 +191,8 @@ export class Agent {
 	public maxRetryDelayMs?: number;
 	/** Tool execution strategy for assistant messages that contain multiple tool calls. */
 	public toolExecution: ToolExecutionMode;
+	/** Interrupt mode for steering messages during tool execution. */
+	public interruptMode: "immediate" | "wait";
 	/** Sampling temperature forwarded to the stream function. */
 	public temperature?: number;
 	/** Top-P sampling cutoff forwarded to the stream function. */
@@ -219,6 +222,7 @@ export class Agent {
 		this.transport = options.transport ?? "sse";
 		this.maxRetryDelayMs = options.maxRetryDelayMs;
 		this.toolExecution = options.toolExecution ?? "parallel";
+		this.interruptMode = options.interruptMode ?? "wait";
 		this.temperature = options.temperature;
 		this.topP = options.topP;
 		this.topK = options.topK;
@@ -439,6 +443,7 @@ export class Agent {
 			thinkingBudgets: this.thinkingBudgets,
 			maxRetryDelayMs: this.maxRetryDelayMs,
 			toolExecution: this.toolExecution,
+			interruptMode: this.interruptMode,
 			temperature: this.temperature,
 			topP: this.topP,
 			topK: this.topK,
@@ -457,6 +462,7 @@ export class Agent {
 				}
 				return this.steeringQueue.drain();
 			},
+			peekSteeringMessages: () => this.steeringQueue.hasItems(),
 			getFollowUpMessages: async () => this.followUpQueue.drain(),
 		};
 	}

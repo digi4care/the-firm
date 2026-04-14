@@ -356,6 +356,7 @@ export async function createAgentSession(options: CreateAgentSessionOptions = {}
 		steeringMode: settingsManager.getSteeringMode(),
 		followUpMode: settingsManager.getFollowUpMode(),
 		transport: settingsManager.getTransport(),
+		interruptMode: settingsManager.getInterruptMode(),
 		thinkingBudgets: settingsManager.getThinkingBudgets(),
 		maxRetryDelayMs: settingsManager.getRetrySettings().maxDelayMs,
 		temperature: settingsManager.getSamplingTemperature(),

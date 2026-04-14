@@ -382,6 +382,10 @@ async function executeToolCallsSequential(
 				),
 			);
 		}
+
+		if (config.interruptMode === "immediate" && config.peekSteeringMessages?.()) {
+			break;
+		}
 	}
 
 	return results;
@@ -432,6 +436,10 @@ async function executeToolCallsParallel(
 				emit,
 			),
 		);
+
+		if (config.interruptMode === "immediate" && config.peekSteeringMessages?.()) {
+			break;
+		}
 	}
 
 	return results;

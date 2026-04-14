@@ -169,6 +169,17 @@ export interface AgentLoopConfig extends SimpleStreamOptions {
 	 * Contract: must not throw or reject. Return [] when no steering messages are available.
 	 */
 	getSteeringMessages?: () => Promise<AgentMessage[]>;
+	/**
+	 * Returns true when steering messages are queued without draining them.
+	 * Used by the loop to decide whether to interrupt tool execution immediately.
+	 */
+	peekSteeringMessages?: () => boolean;
+	/**
+	 * Interrupt mode for steering messages during tool execution.
+	 * - "immediate": check between individual tool calls and abort remaining calls
+	 * - "wait": only process steering after the current turn completes (default)
+	 */
+	interruptMode?: "immediate" | "wait";
 
 	/**
 	 * Returns follow-up messages to process after the agent would otherwise stop.
