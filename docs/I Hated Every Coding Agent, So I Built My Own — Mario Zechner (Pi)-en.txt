@@ -1,0 +1,178 @@
+# I Hated Every Coding Agent, So I Built My Own — Pi
+
+## Speaker and Context
+
+**Speaker:** Mario Zechner  
+**Topic:** Why existing coding agent harnesses failed for him, and how he built Pi as a minimal, extensible alternative.  
+**Key Thesis:** Strip away everything and build a minimal extensible core. Adapt your coding agent to your workflow, not the other way around.
+
+---
+
+## The Evolution of AI Coding Assistants
+
+### The Timeline
+
+1. **Copy-paste from ChatGPT (2023)** — Mostly broken, single functions, stuff you didn't want to write.
+2. **GitHub Copilot** — "Tap tap tap to happiness." Worked sometimes, mostly didn't. Sometimes verbatimly recited GPL code.
+3. **Aider** — Early agentic precursor.
+4. **Auto GPT** — Another early attempt, limited traction.
+5. **Cloud Code (Anthropic)** — Released beta late 2024, widely adopted early 2025. Created the genre of agentic search: instead of indexing ASTs, the model uses file and bash tools to explore the codebase ad hoc. This worked so well that many stopped sleeping.
+6. **Codex CLI (OpenAI)** — Initially disliked by speaker; model and UI have since improved.
+7. **Amp** — Commercial harness by ex-Sourcegraph team. Praised for taking away features instead of adding them.
+8. **Factory Troy** — Similar to Amp, less experimental.
+9. **Open Code** — Open-source harness with a pragmatic team, but architecturally concerning to the speaker.
+
+### The Trap
+
+Once coding agents proved they could write a lot of code, vendors fell into the feature-addition trap. The result: **spaceships** — tools so overloaded with features that users only know ~10% of what they do, and the other 90% is "dark matter." Nobody knows what it's actually doing.
+
+---
+
+## Critique of Existing Coding Harnesses
+
+### Cloud Code
+
+- **Became a spaceship:** Too many features, most unused.
+- **Poor observability and context management:** Hard to understand what the agent is doing.
+- **UI instability:** Immense amounts of flicker and re-layout due to React in the terminal interface.
+- **No model choice:** Anthropic-native tool; locked to their models.
+- **Limited extensibility:** Hook system exists but is shallow compared to what Pi allows. Hooks spawn expensive processes on each event.
+- **Unstable workflows:** The vendor experiments aggressively under the hood, which breaks existing LLM workflows without warning.
+- **Reduced visibility:** Due to UI design choices, users see less of what the agent is actually doing.
+
+### Open Code
+
+- **Prompt cache destruction:** On each turn, it calls `session compaction.prune`, dropping all tool results before the last 40,000 tokens. This destroys the prompt cache and strains provider infrastructure.
+- **LSP integration is counterproductive:** The agent modifies files line-by-line. After the first edit out of ten, the code won't compile. The LSP immediately injects errors as feedback, frustrating the model before it finishes editing. Natural synchronization point should be *when the agent thinks it's done*.
+- **Questionable architecture:** Every message becomes its own JSON file on disk, indicating a lack of architectural foresight.
+- **Server-by-default architecture led to RCE vulnerability:** A remote code execution vulnerability was baked in by default and left open for a long time.
+
+### Amp and Factory Troy
+
+- **Amp:** Praised as the most grounded commercial option. The team *takes away features* instead of adding them. Recommended if you want a commercial harness.
+- **Factory Troy:** Similar spiel, also good, but less experimental than Amp.
+
+### Codex CLI
+
+- Initially disliked by the speaker for both model and UI.
+- Model has improved significantly and is now "really pretty good."
+
+---
+
+## Terminal Bench: The Minimalism Insight
+
+Terminal Bench is an agent evaluation harness with ~282 diverse tasks (fix Windows setup, write Monte Carlo simulation, etc.).
+
+**Terminus** (Terminal Bench's own agent) performs at the top of the leaderboard with a radically minimal interface:
+- No file tools.
+- No sub-agents.
+- No web search.
+- Just a **tmux session**: send keystrokes, read VT code sequences.
+
+**Implication:** All the features in modern coding harnesses might not be necessary for good agent performance. This is not about abandoning UX — but it proves that models can perform excellently with almost no interface scaffolding.
+
+---
+
+## Pi: Philosophy and Architecture
+
+### Core Philosophy
+
+> **"Adapt your coding agent to your needs instead of the other way around."**
+
+Pi was built on two observations:
+1. We are in the **"messing around and finding out"** stage. Nobody knows what the perfect coding harness looks like.
+2. We need coding agents to be **self-modifying and malleable** so we can quickly experiment and discover new workflows.
+
+The answer: **strip away everything and build a minimal extensible core.**
+
+### Four Packages
+
+1. **AI Package** — Simple abstraction over multiple providers (different transport protocols). Easy to switch models mid-session.
+2. **Agent Core** — Generalized agent loop with tool invocation, verification, and streaming.
+3. **Terminal UI** — ~600 lines of code. Works well because it wasn't written by a clanker.
+4. **Coding Agent** — Both an SDK for headless use and a full terminal UI coding agent.
+
+### Minimalism in Practice
+
+- **System prompt is tiny** (only a few hundred tokens). Frontier models are already RL-trained to know what a coding agent is; no need to re-explain.
+- **Only four tools:** `read_file`, `write_file`, `edit_file`, `bash`. Bash is all you need.
+- **No MCP, no sub-agents, no plan load, no background bash, no built-in to-do's.**
+
+### What's Missing and Why
+
+| Feature | Pi Alternative |
+|---------|----------------|
+| MCP | CLI tools + skills, or build an extension |
+| Sub-agents | Spawn the agent in tmux — fully observable |
+| Plan load | Write a `plan.md` — persistent, reusable across sessions |
+| Background bash | Use tmux |
+| Built-in to-do's | Write a `todo.md`, or build your own |
+
+### Extensibility
+
+Pi is designed to be extended without forking:
+- **Custom tools:** Write a simple TypeScript file; it gets auto-loaded.
+- **Custom UI:** Write entirely custom UI components.
+- **Skills, prompt templates, themes:** Bundle and publish to NPM/Git, install with one command.
+- **Everything hot reloads:** Develop project-specific extensions inside the project. As the agent modifies the extension, reload and it updates immediately.
+- **Custom compaction:** Users can implement their own context compaction strategies.
+- **Permission gates:** Implementable in ~50 lines of code.
+- **Custom providers:** Register proxies or self-hosted models.
+- **Override built-in tools:** Modify how read/write/edit/bash work. Example: the speaker implemented SSH-remote versions in 5 minutes.
+- **Full tree access:** Write entirely custom UI in the coding agent itself.
+
+### Session Model: Tree, Not Chat
+
+Pi sessions are structured as a **tree**, not a linear list of chat messages. This enables:
+- Natural sub-agent behavior (branch, summarize, return to root with context).
+- Better context management and navigation.
+
+### Transparency and Tracking
+
+- **Nothing is injected behind your back.**
+- **Full cost tracking.**
+- **HTML export, JSON formats, headless JSON streaming.**
+
+### YOLO by Default
+
+Most harnesses offer two modes: full autonomy or constant approval prompts. Pi argues both are wrong:
+- Constant approval leads to fatigue. Users either turn it off entirely or mash Enter without reading.
+- **Containerization** is a better security basis than guardrails/approval dialogs.
+- Therefore, Pi defaults to YOLO mode with containerization as the safety layer.
+
+---
+
+## Real-World Validation: Terminal Bench
+
+Pi ranks right behind Terminus 2 on the Terminal Bench leaderboard using Claude 4.5 — and this was back in **October**, before Pi even had compaction.
+
+---
+
+## Protecting Open Source from "Clanker Slop"
+
+Mario discusses how open-source maintainers are being spammed with low-quality AI-generated contributions ("clanker filth and slop").
+
+### Defensive Measures
+
+1. **OSS Vacation:** Close issues and PRs for a few weeks. Work solo. Anything important gets reported again later or in Discord.
+2. **Vouch system:** A markdown file in the repository lists approved contributors. PRs from unlisted accounts are auto-closed. To get in, a human must first introduce themselves via a brief issue (not longer than one screen — everything longer is probably slop).
+
+Mitchell from Ghostty later generalized this into **Vouch**, a reusable project for open-source repositories.
+
+---
+
+## Key Takeaways
+
+1. **Feature bloat hurts more than it helps.** A minimal interface can outperform complex harnesses.
+2. **Observability and context control matter more than shiny features.**
+3. **Extensibility without forking is essential.** Users should adapt the tool, not adapt to it.
+4. **Architectural simplicity is a feature.** Every message as a JSON file or a server-by-default model signals deeper design problems.
+5. **Containerization > guardrails for security.** Approval fatigue makes guardrails ineffective.
+6. **The perfect coding harness doesn't exist yet.** Build tools that let us experiment quickly to find out what works.
+
+---
+
+## Conclusion
+
+Pi is not a spaceship. It is a minimal, extensible coding harness built on the belief that users should own their agent's behavior, context, and UI. By stripping away unnecessary features and providing deep extensibility, Pi turns the coding agent from a black-box product into a malleable tool that adapts to individual workflows.
+

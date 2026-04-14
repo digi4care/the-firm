@@ -1,0 +1,11 @@
+{
+  "enabled": true,
+  "autoNudge": true,
+  "repeatNudgeCount": 0,
+  "lastSnapshotAt": "2026-04-14T09:52:17.024Z",
+  "activeId": "the-firm-inm",
+  "activeTitle": "Wire sampling parameters from settings to AI layer requests",
+  "nextId": "the-firm-84a",
+  "nextTitle": "Wire editing settings to runtime (fuzzy match, bashInterceptor, python, read)",
+  "blockedCount": 0
+}

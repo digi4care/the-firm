@@ -5,7 +5,7 @@
   "type": "module",
   "piConfig": {
     "name": "firm",
-    "configDir": ".the-firm"
+    "configDir": ".pi"
   },
   "bin": {
     "firm": "dist/cli.js",

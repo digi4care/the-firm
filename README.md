@@ -9,7 +9,7 @@ This repository is the active source of truth for `digi4care/the-firm`.
 - npm package: `@digi4care/the-firm`
 - production binary: `firm`
 - development binary: `firm-dev`
-- config directory: `.the-firm/`
+- config directory: `.pi/`
 - repository: `digi4care/the-firm`
 
 ## What The Firm Is
@@ -36,14 +36,14 @@ See:
 ## Branch Model
 
 ```text
-original -> development -> production
+development -> production
 ```
 
-- `original`: upstream mirror branch
-- `development`: daily work branch
-- `production`: stable release branch
+- `development`: daily work branch and PR target for implementation work
+- `production`: stable release branch and release target
+- `main` is not part of the active workflow and should not be used for implementation or release work
 
-Do day-to-day work on `development`.
+Do day-to-day work from branches created off `development`.
 
 ## Versioning Strategy
 
@@ -143,11 +143,11 @@ The repo-level `.ncurc.json` excludes internal workspace packages from this work
 
 ## Issue Tracking
 
-This repository uses Beads (`bd`) for persistent issue tracking.
+This repository uses GitHub Issues as the shared team tracker.
 
-Beads is currently configured in local-only mode for this repository, so a missing Dolt remote is expected unless that setup is changed later.
+Use Beads (`bd`) locally for execution tracking, resumable notes, and AI session continuity.
 
-Common commands:
+Common local commands:
 
 ```bash
 bd ready
@@ -158,6 +158,16 @@ bd close <id>
 
 Run `bd prime` for the current workflow guide.
 Use `bd dolt push` only if a Beads remote is configured later.
+
+## Team Workflow
+
+- Start implementation work from `development`.
+- Never work directly on `development`; create a focused branch for each issue.
+- Before changing code, link the work to a GitHub Issue and a claimed Beads task.
+- Open a PR to `development` for every completed change.
+- Every PR should reference the GitHub Issue, the Beads task ID, and the verification performed.
+- `production` is release-only.
+- The removed `original` branch is not part of the workflow and must not be reintroduced.
 
 ## Archived Upstream Docs
 

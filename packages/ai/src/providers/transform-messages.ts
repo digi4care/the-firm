@@ -61,23 +61,28 @@ export function transformMessages<TApi extends Api>(
 				assistantMsg.provider === model.provider &&
 				assistantMsg.api === model.api &&
 				assistantMsg.model === model.id;
+			const hasInvalidThinkingSignatures =
+				assistantMsg.stopReason === "error" || assistantMsg.stopReason === "aborted";
 
 			const transformedContent = assistantMsg.content.flatMap((block) => {
 				if (block.type === "thinking") {
-					// Redacted thinking is opaque encrypted content, only valid for the same model.
-					// Drop it for cross-model to avoid API errors.
 					if (block.redacted) {
-						return isSameModel ? block : [];
+						if (!isSameModel || hasInvalidThinkingSignatures) {
+							return [];
+						}
+						return block;
 					}
+
+					const sanitizedBlock = hasInvalidThinkingSignatures ? { ...block, thinkingSignature: undefined } : block;
 					// For same model: keep thinking blocks with signatures (needed for replay)
 					// even if the thinking text is empty (OpenAI encrypted reasoning)
-					if (isSameModel && block.thinkingSignature) return block;
+					if (isSameModel && sanitizedBlock.thinkingSignature) return sanitizedBlock;
 					// Skip empty thinking blocks, convert others to plain text
-					if (!block.thinking || block.thinking.trim() === "") return [];
-					if (isSameModel) return block;
+					if (!sanitizedBlock.thinking || sanitizedBlock.thinking.trim() === "") return [];
+					if (isSameModel) return sanitizedBlock;
 					return {
 						type: "text" as const,
-						text: block.thinking,
+						text: sanitizedBlock.thinking,
 					};
 				}
 
@@ -210,7 +215,6 @@ export function transformMessages<TApi extends Api>(
 				}
 				continue;
 			}
-
 			if (toolCalls.length > 0) {
 				pendingToolCalls = toolCalls;
 				existingToolResultIds = new Set();

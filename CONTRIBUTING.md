@@ -1,4 +1,4 @@
-# Contributing to pi
+# Contributing to The Firm
 
 Thanks for wanting to contribute! This guide exists to save both of us time.
 
@@ -8,19 +8,32 @@ Thanks for wanting to contribute! This guide exists to save both of us time.
 
 Using AI to write code is fine. You can gain understanding by interrogating an agent with access to the codebase until you grasp all edge cases and effects of your changes. What's not fine is submitting agent-generated slop without that understanding.
 
-If you use an agent, run it from the `pi-mono` root directory so it picks up `AGENTS.md` automatically. Your agent must follow the rules and guidelines in that file.
+If you use an agent, run it from the repository root so it picks up `AGENTS.md` automatically. Your agent must follow the rules and guidelines in that file.
 
-## First-Time Contributors
+## Workflow
 
-We use an approval gate for new contributors:
+Use GitHub Issues as the shared team tracker.
 
-1. Open an issue describing what you want to change and why
-2. Keep it concise (if it doesn't fit on one screen, it's too long)
-3. Write in your own voice, at least for the intro
-4. A maintainer will comment `lgtm` if approved
-5. Once approved, you can submit PRs
+Use Beads (`bd`) locally for execution tracking, resumable notes, and AI session continuity.
 
-This exists because AI makes it trivial to generate plausible-looking but low-quality contributions. The issue step lets us filter early.
+### Standard Flow
+
+1. Open or pick a GitHub Issue describing the change.
+2. Create or claim a related Beads task locally.
+3. Start from `development`.
+4. Create a focused branch from `development`.
+5. Implement and verify the change.
+6. Open a PR to `development`.
+7. Reference the GitHub Issue, the Beads task ID, and the verification performed.
+
+### Rules
+
+- Never work directly on `development`.
+- `production` is the release target.
+- `main` is not part of the active workflow and should not be used.
+- Never reintroduce the removed `original` branch.
+- Every completed change goes through a PR to `development`.
+- Close the local Beads task only after the PR is merged or the work is explicitly stopped.
 
 ## Before Submitting a PR
 
@@ -35,8 +48,8 @@ If you're adding a new provider to `packages/ai`, see `AGENTS.md` for required t
 
 ## Philosophy
 
-pi's core is minimal. If your feature doesn't belong in the core, it should be an extension. PRs that bloat the core will likely be rejected.
+The Firm's core is minimal. If your feature doesn't belong in the core, it should be an extension. PRs that bloat the core will likely be rejected.
 
 ## Questions?
 
-Open an issue or ask on [Discord](https://discord.com/invite/nKXTsAcmbT).
+Open a GitHub Issue or ask a maintainer before starting broad or structural work.

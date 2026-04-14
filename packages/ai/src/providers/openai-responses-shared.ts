@@ -278,7 +278,19 @@ export function convertResponsesMessages<TApi extends Api>(
 		msgIndex++;
 	}
 
-	return messages;
+	const knownCallIds = new Set<string>();
+	for (const item of messages) {
+		if (item.type === "function_call" && typeof item.call_id === "string") {
+			knownCallIds.add(item.call_id);
+		}
+	}
+
+	return messages.filter((item) => {
+		if (item.type === "function_call_output" && typeof item.call_id === "string") {
+			return knownCallIds.has(item.call_id);
+		}
+		return true;
+	});
 }
 
 // =============================================================================

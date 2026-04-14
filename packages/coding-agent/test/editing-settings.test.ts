@@ -37,7 +37,7 @@ describe("Editing settings integration", () => {
 			writeFileSync(file, "line one\nline two\nline three\n");
 
 			const tool = createReadToolDefinition(testDir, { lineNumbers: true });
-			const result = await tool.execute("read-test", { path: file });
+			const result = await tool.execute("read-test", { path: file }, undefined, undefined, {} as any);
 			const output = getTextOutput(result);
 
 			expect(output).toContain("1 | line one");
@@ -50,7 +50,7 @@ describe("Editing settings integration", () => {
 			writeFileSync(file, "line one\nline two\n");
 
 			const tool = createReadToolDefinition(testDir, { lineNumbers: false });
-			const result = await tool.execute("read-test", { path: file });
+			const result = await tool.execute("read-test", { path: file }, undefined, undefined, {} as any);
 			const output = getTextOutput(result);
 
 			expect(output).not.toContain("1 | line one");
@@ -64,7 +64,7 @@ describe("Editing settings integration", () => {
 			writeFileSync(file, "alpha\nbeta\n");
 
 			const tool = createReadToolDefinition(testDir, { hashLines: true });
-			const result = await tool.execute("read-test", { path: file });
+			const result = await tool.execute("read-test", { path: file }, undefined, undefined, {} as any);
 			const output = getTextOutput(result);
 
 			expect(output).toContain(`alpha [${computeLineHash("alpha")}]`);
@@ -76,7 +76,7 @@ describe("Editing settings integration", () => {
 			writeFileSync(file, "alpha\nbeta\n");
 
 			const tool = createReadToolDefinition(testDir, { hashLines: false });
-			const result = await tool.execute("read-test", { path: file });
+			const result = await tool.execute("read-test", { path: file }, undefined, undefined, {} as any);
 			const output = getTextOutput(result);
 
 			expect(output).not.toContain("[");
@@ -90,7 +90,7 @@ describe("Editing settings integration", () => {
 			writeFileSync(file, "alpha\nbeta\n");
 
 			const tool = createReadToolDefinition(testDir, { lineNumbers: true, hashLines: true });
-			const result = await tool.execute("read-test", { path: file });
+			const result = await tool.execute("read-test", { path: file }, undefined, undefined, {} as any);
 			const output = getTextOutput(result);
 
 			expect(output).toContain(`1 | alpha [${computeLineHash("alpha")}]`);
@@ -107,7 +107,7 @@ describe("Editing settings integration", () => {
 			const result = await tool.execute("edit-test", {
 				path: file,
 				edits: [{ oldText: "hello world", newText: "goodbye world" }],
-			});
+			}, undefined, undefined, {} as any);
 
 			expect(getTextOutput(result)).toContain("Successfully replaced");
 			expect(readFileSync(file, "utf-8")).toBe("goodbye world\n");
@@ -123,8 +123,8 @@ describe("Editing settings integration", () => {
 			const hash = computeLineHash("line two");
 			const result = await tool.execute("edit-test", {
 				path: file,
-				edits: [{ hash, newText: "replaced two" }],
-			});
+				edits: [{ hash, oldText: "", newText: "replaced two" }],
+			}, undefined, undefined, {} as any);
 
 			expect(getTextOutput(result)).toContain("Successfully replaced");
 			expect(readFileSync(file, "utf-8")).toBe("line one\nreplaced two\nline three\n");
@@ -138,7 +138,7 @@ describe("Editing settings integration", () => {
 			const result = await tool.execute("edit-test", {
 				path: file,
 				edits: [{ oldText: "beta", newText: "gamma" }],
-			});
+			}, undefined, undefined, {} as any);
 
 			expect(getTextOutput(result)).toContain("Successfully replaced");
 			expect(readFileSync(file, "utf-8")).toBe("alpha\ngamma\n");
@@ -152,8 +152,8 @@ describe("Editing settings integration", () => {
 			await expect(
 				tool.execute("edit-test", {
 					path: file,
-					edits: [{ hash: "00000000", newText: "gamma" }],
-				}),
+					edits: [{ hash: "00000000", oldText: "", newText: "gamma" }],
+				}, undefined, undefined, {} as any),
 			).rejects.toThrow(/hash|not found/i);
 		});
 	});
