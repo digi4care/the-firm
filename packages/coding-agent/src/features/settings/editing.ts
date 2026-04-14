@@ -91,7 +91,7 @@ export const editingSettings: SettingsProvider = {
 		},
 
 		// ─── Read options ─────────────────────────────────────────
-		"readLineNumbers": {
+		readLineNumbers: {
 			type: "boolean",
 			default: false,
 			ui: {
@@ -101,7 +101,7 @@ export const editingSettings: SettingsProvider = {
 			},
 		},
 
-		"readHashLines": {
+		readHashLines: {
 			type: "boolean",
 			default: true,
 			ui: {

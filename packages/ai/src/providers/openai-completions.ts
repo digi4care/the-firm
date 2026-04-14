@@ -478,7 +478,10 @@ function buildParams(model: Model<"openai-completions">, context: Context, optio
 	return params;
 }
 
-function collectOpenAICompletionToolIds(messages: ChatCompletionMessageParam[]): { assistantToolCallIds: string[]; toolResultIds: string[] } {
+function collectOpenAICompletionToolIds(messages: ChatCompletionMessageParam[]): {
+	assistantToolCallIds: string[];
+	toolResultIds: string[];
+} {
 	const assistantToolCallIds: string[] = [];
 	const toolResultIds: string[] = [];
 	for (const message of messages) {
@@ -550,7 +553,12 @@ export function convertMessages(
 		return id;
 	};
 
-	const transformedMessages = transformMessages(context.messages, model, (id) => normalizeToolCallId(id), providerTrace);
+	const transformedMessages = transformMessages(
+		context.messages,
+		model,
+		(id) => normalizeToolCallId(id),
+		providerTrace,
+	);
 
 	if (context.systemPrompt) {
 		const useDeveloperRole = model.reasoning && compat.supportsDeveloperRole;

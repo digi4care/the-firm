@@ -60,7 +60,10 @@ function createProviderTrace<TApi extends Api>(
 	return { trace, ownsTrace: true };
 }
 
-function withTraceOptions<TOptions extends StreamOptions>(options: TOptions | undefined, trace?: ProviderTraceScope): TOptions | undefined {
+function withTraceOptions<TOptions extends StreamOptions>(
+	options: TOptions | undefined,
+	trace?: ProviderTraceScope,
+): TOptions | undefined {
 	if (!trace || options?.providerTrace === trace) {
 		return options;
 	}

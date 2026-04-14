@@ -12,11 +12,11 @@
  * 5. recency — always keep last N messages (safety net, runs after tool-pairing)
  */
 
-import type { AgentMessage } from '@digi4care/the-firm-agent-core';
+import type { AgentMessage } from "@digi4care/the-firm-agent-core";
 
 // ─── Types ─────────────────────────────────────────────────────────────
 
-export type DcpRuleName = 'deduplication' | 'error-purging' | 'recency' | 'superseded-writes' | 'tool-pairing';
+export type DcpRuleName = "deduplication" | "error-purging" | "recency" | "superseded-writes" | "tool-pairing";
 
 export interface DcpConfig {
 	/** Master enable/disable toggle */
@@ -49,7 +49,7 @@ interface MsgWithMeta {
 // ─── Metadata helpers ──────────────────────────────────────────────────
 
 function simpleHash(content: unknown): string {
-	const str = typeof content === 'string' ? content : JSON.stringify(content);
+	const str = typeof content === "string" ? content : JSON.stringify(content);
 	let h = 0;
 	for (let i = 0; i < str.length; i++) {
 		const c = str.charCodeAt(i);
@@ -60,10 +60,14 @@ function simpleHash(content: unknown): string {
 
 function extractToolUseIds(msg: AgentMessage): string[] {
 	const ids: string[] = [];
+	if (msg.role === "toolResult") {
+		const toolCallId = (msg as any).toolCallId;
+		if (toolCallId) return [toolCallId];
+	}
 	const content = (msg as any).content;
 	if (Array.isArray(content)) {
 		for (const block of content) {
-			if (block?.type === 'tool_use' && block.id) ids.push(block.id);
+			if ((block?.type === "tool_use" || block?.type === "toolCall") && block.id) ids.push(block.id);
 		}
 	}
 	return ids;
@@ -71,17 +75,19 @@ function extractToolUseIds(msg: AgentMessage): string[] {
 
 function hasToolUse(msg: AgentMessage): boolean {
 	const content = (msg as any).content;
-	if (Array.isArray(content)) return content.some((b: any) => b?.type === 'tool_use');
+	if (Array.isArray(content)) return content.some((b: any) => b?.type === "tool_use" || b?.type === "toolCall");
 	return false;
 }
 
 function hasToolResult(msg: AgentMessage): boolean {
+	if (msg.role === "toolResult") return true;
 	const content = (msg as any).content;
-	if (Array.isArray(content)) return content.some((b: any) => b?.type === 'tool_result');
-	return msg.role === 'toolResult';
+	if (Array.isArray(content)) return content.some((b: any) => b?.type === "tool_result");
+	return false;
 }
 
 function isErrorMessage(msg: AgentMessage): boolean {
+	if (msg.role === "toolResult") return (msg as any).isError === true;
 	const content = (msg as any).content;
 	if (Array.isArray(content)) return content.some((b: any) => b?.is_error === true);
 	return false;
@@ -89,27 +95,44 @@ function isErrorMessage(msg: AgentMessage): boolean {
 
 function extractFilePath(msg: AgentMessage): string | undefined {
 	const content = (msg as any).content;
-	if (!Array.isArray(content)) return undefined;
-	for (const block of content) {
-		// Check tool_use input for path
-		if (block?.type === 'tool_use' && block.input?.path) return block.input.path;
-		// Check tool_result content for file path patterns
-		if (block?.type === 'tool_result' && typeof block.content === 'string') {
-			const match = block.content.match(/(?:wrote|edited|modified)\s+([^\s]+)/i);
-			if (match) return match[1];
+	if (Array.isArray(content)) {
+		for (const block of content) {
+			// Check tool_use / toolCall input/arguments for path
+			if (
+				(block?.type === "tool_use" || block?.type === "toolCall") &&
+				(block.input?.path || block.arguments?.path)
+			) {
+				return block.input?.path || block.arguments?.path;
+			}
+			// Check legacy tool_result content for file path patterns
+			if (block?.type === "tool_result" && typeof block.content === "string") {
+				const match = block.content.match(/(?:wrote|edited|modified)\s+([^\s]+)/i);
+				if (match) return match[1];
+			}
+			// Check TextContent in tool results for file path patterns
+			if (block?.type === "text" && typeof block.text === "string") {
+				const match = block.text.match(/(?:wrote|edited|modified)\s+([^\s]+)/i);
+				if (match) return match[1];
+			}
 		}
 	}
 	return undefined;
 }
 
 function isSameOperation(a: AgentMessage, b: AgentMessage): boolean {
-	// Compare tool operations by name and input (for tool_use messages)
+	// Compare tool operations by name and input/arguments (for tool_use / toolCall messages)
 	const aContent = (a as any).content;
 	const bContent = (b as any).content;
-	const aToolUse = Array.isArray(aContent) ? aContent.find((b: any) => b?.type === 'tool_use') : null;
-	const bToolUse = Array.isArray(bContent) ? bContent.find((b: any) => b?.type === 'tool_use') : null;
+	const aToolUse = Array.isArray(aContent)
+		? aContent.find((b: any) => b?.type === "tool_use" || b?.type === "toolCall")
+		: null;
+	const bToolUse = Array.isArray(bContent)
+		? bContent.find((b: any) => b?.type === "tool_use" || b?.type === "toolCall")
+		: null;
 	if (aToolUse && bToolUse) {
-		return aToolUse.name === bToolUse.name && JSON.stringify(aToolUse.input) === JSON.stringify(bToolUse.input);
+		const aInput = JSON.stringify(aToolUse.input ?? aToolUse.arguments);
+		const bInput = JSON.stringify(bToolUse.input ?? bToolUse.arguments);
+		return aToolUse.name === bToolUse.name && aInput === bInput;
 	}
 	// If comparing tool_results, match by looking at the tool_call context
 	// Use file path as a fallback heuristic
@@ -126,16 +149,19 @@ type RuleFn = (msgs: MsgWithMeta[]) => void;
 function deduplicationRule(msgs: MsgWithMeta[]): void {
 	// Phase 1: hash all messages
 	for (const m of msgs) {
-		m.meta.hash = simpleHash(m.msg.content);
+		m.meta.hash = simpleHash((m.msg as any).content);
 	}
 	// Phase 2: mark duplicates
 	const seen = new Set<string>();
 	for (const m of msgs) {
 		if (m.meta.shouldPrune) continue;
-		if (m.msg.role === 'user') { seen.add(m.meta.hash!); continue; }
+		if (m.msg.role === "user") {
+			seen.add(m.meta.hash!);
+			continue;
+		}
 		if (seen.has(m.meta.hash!)) {
 			m.meta.shouldPrune = true;
-			m.meta.pruneReason = 'duplicate content';
+			m.meta.pruneReason = "duplicate content";
 		} else {
 			seen.add(m.meta.hash!);
 		}
@@ -148,7 +174,6 @@ function errorPurgingRule(msgs: MsgWithMeta[]): void {
 		const path = extractFilePath(m.msg);
 		if (path) m.meta.filePath = path;
 	}
-
 	// Identify error tool_results and check if resolved by later success
 	for (let i = 0; i < msgs.length; i++) {
 		const m = msgs[i];
@@ -159,6 +184,8 @@ function errorPurgingRule(msgs: MsgWithMeta[]): void {
 		// Find the tool_use that preceded this error result
 		const errorToolUseIds: string[] = [];
 		if (hasToolResult(m.msg)) {
+			const toolCallId = (m.msg as any).toolCallId;
+			if (toolCallId) errorToolUseIds.push(toolCallId);
 			const content = (m.msg as any).content;
 			if (Array.isArray(content)) {
 				for (const block of content) {
@@ -206,7 +233,7 @@ function errorPurgingRule(msgs: MsgWithMeta[]): void {
 			m.meta.isError = true;
 			m.meta.errorResolved = true;
 			m.meta.shouldPrune = true;
-			m.meta.pruneReason = 'error resolved by later success';
+			m.meta.pruneReason = "error resolved by later success";
 		}
 	}
 }
@@ -222,7 +249,7 @@ function supersededWritesRule(msgs: MsgWithMeta[]): void {
 		const m = msgs[i];
 		if (m.meta.shouldPrune) continue;
 		if (!m.meta.filePath) continue;
-		if (m.msg.role === 'user') continue;
+		if (m.msg.role === "user") continue;
 		// Check if there's a later write to the same file
 		for (let j = i + 1; j < msgs.length; j++) {
 			if (msgs[j].meta.filePath === m.meta.filePath) {
@@ -254,7 +281,7 @@ function toolPairingRule(msgs: MsgWithMeta[]): void {
 			if (m.meta.toolUseIds.some((id) => n.meta.toolUseIds!.includes(id))) {
 				if (!n.meta.shouldPrune) {
 					n.meta.shouldPrune = true;
-					n.meta.pruneReason = 'orphaned tool_result (tool_use was pruned)';
+					n.meta.pruneReason = "orphaned tool_result (tool_use was pruned)";
 				}
 			}
 		}
@@ -313,11 +340,11 @@ function recencyRule(msgs: MsgWithMeta[], keepCount: number): void {
 // ─── Rule dispatch ─────────────────────────────────────────────────────
 
 const RULE_MAP: Record<DcpRuleName, RuleFn | null> = {
-	'deduplication': deduplicationRule,
-	'error-purging': errorPurgingRule,
-	'superseded-writes': supersededWritesRule,
-	'tool-pairing': toolPairingRule,
-	'recency': null, // handled specially
+	deduplication: deduplicationRule,
+	"error-purging": errorPurgingRule,
+	"superseded-writes": supersededWritesRule,
+	"tool-pairing": toolPairingRule,
+	recency: null, // handled specially
 };
 
 // ─── Public API ────────────────────────────────────────────────────────
@@ -339,7 +366,7 @@ export function applyContextPruning(messages: AgentMessage[], config: DcpConfig)
 
 	// Run non-recency rules in order
 	for (const ruleName of config.rules) {
-		if (ruleName === 'recency') continue; // recency runs last
+		if (ruleName === "recency") continue; // recency runs last
 		const ruleFn = RULE_MAP[ruleName];
 		if (ruleFn) ruleFn(wrapped);
 	}

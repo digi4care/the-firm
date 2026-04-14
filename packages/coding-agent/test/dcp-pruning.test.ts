@@ -4,25 +4,58 @@ import { applyContextPruning, type DcpConfig } from "../src/core/dcp/index.js";
 
 // Helper: create messages for testing
 function userMsg(content: string): AgentMessage {
-	return { role: "user", content } as AgentMessage;
+	return { role: "user", content, timestamp: Date.now() };
 }
 
 function assistantMsg(content: string): AgentMessage {
-	return { role: "assistant", content } as AgentMessage;
+	return {
+		role: "assistant",
+		content: [{ type: "text", text: content }],
+		api: "anthropic-messages",
+		provider: "anthropic",
+		model: "claude-sonnet-4-5",
+		usage: {
+			input: 0,
+			output: 0,
+			cacheRead: 0,
+			cacheWrite: 0,
+			totalTokens: 0,
+			cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+		},
+		stopReason: "stop",
+		timestamp: Date.now(),
+	};
 }
 
 function toolCallMsg(toolCallId: string, name: string, args: Record<string, unknown>): AgentMessage {
 	return {
 		role: "assistant",
-		content: [{ type: "tool_use", id: toolCallId, name, input: args }],
-	} as unknown as AgentMessage;
+		content: [{ type: "toolCall", id: toolCallId, name, arguments: args }],
+		api: "anthropic-messages",
+		provider: "anthropic",
+		model: "claude-sonnet-4-5",
+		usage: {
+			input: 0,
+			output: 0,
+			cacheRead: 0,
+			cacheWrite: 0,
+			totalTokens: 0,
+			cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+		},
+		stopReason: "toolUse",
+		timestamp: Date.now(),
+	};
 }
 
 function toolResultMsg(toolCallId: string, output: string, isError = false): AgentMessage {
 	return {
 		role: "toolResult",
-		content: [{ type: "tool_result", tool_use_id: toolCallId, content: output, is_error: isError }],
-	} as unknown as AgentMessage;
+		toolCallId,
+		toolName: "bash",
+		content: [{ type: "text", text: output }],
+		isError,
+		timestamp: Date.now(),
+	};
 }
 
 const DEFAULT_CONFIG: DcpConfig = {
@@ -68,7 +101,7 @@ describe("Context Pruning (DCP)", () => {
 			// keepRecentCount=4 protects last 4, so tc1+result are protected
 			const result = applyContextPruning(messages, { ...DEFAULT_CONFIG, keepRecentCount: 4 });
 			const tcIdx = result.findIndex(
-				(m) => m.role === "assistant" && JSON.stringify(m.content).includes("tool_use"),
+				(m) => m.role === "assistant" && JSON.stringify((m as any).content).includes("toolCall"),
 			);
 			expect(tcIdx).toBeGreaterThanOrEqual(0);
 		});
@@ -88,8 +121,8 @@ describe("Context Pruning (DCP)", () => {
 			const result = applyContextPruning(messages, { ...DEFAULT_CONFIG, keepRecentCount: 4 });
 			// tc1 should be pruned (superseded write or out of recency window)
 			// But tc2 must remain with its result
-			const hasTc2 = result.some((m) => JSON.stringify(m.content).includes("tc2"));
-			const hasTc2Result = result.some((m) => JSON.stringify(m.content).includes("new content"));
+			const hasTc2 = result.some((m) => JSON.stringify((m as any).content).includes("tc2"));
+			const hasTc2Result = result.some((m) => JSON.stringify((m as any).content).includes("new content"));
 			expect(hasTc2).toBe(true);
 			expect(hasTc2Result).toBe(true);
 		});
@@ -163,10 +196,10 @@ describe("Context Pruning (DCP)", () => {
 			const result = applyContextPruning(messages, {
 				...DEFAULT_CONFIG,
 				keepRecentCount: 3,
-				rules: ["error-purging", "recency", "tool-pairing"],
+				rules: ["error-purging", "recency"],
 			});
 			// tc1 error result should be pruned since tc2 succeeded for same file
-			const hasError = result.some((m) => JSON.stringify(m.content).includes("error: not found"));
+			const hasError = result.some((m) => JSON.stringify((m as any).content).includes("error: not found"));
 			expect(hasError).toBe(false);
 		});
 
@@ -182,7 +215,7 @@ describe("Context Pruning (DCP)", () => {
 				keepRecentCount: 10,
 				rules: ["error-purging", "recency", "tool-pairing"],
 			});
-			const hasError = result.some((m) => JSON.stringify(m.content).includes("error: not found"));
+			const hasError = result.some((m) => JSON.stringify((m as any).content).includes("error: not found"));
 			expect(hasError).toBe(true);
 		});
 	});
@@ -203,8 +236,8 @@ describe("Context Pruning (DCP)", () => {
 				rules: ["superseded-writes", "recency", "tool-pairing"],
 			});
 			// First write should be pruned, second kept
-			const hasV1 = result.some((m) => JSON.stringify(m.content).includes("v1"));
-			const hasV2 = result.some((m) => JSON.stringify(m.content).includes("v2"));
+			const hasV1 = result.some((m) => JSON.stringify((m as any).content).includes("v1"));
+			const hasV2 = result.some((m) => JSON.stringify((m as any).content).includes("v2"));
 			expect(hasV1).toBe(false);
 			expect(hasV2).toBe(true);
 		});

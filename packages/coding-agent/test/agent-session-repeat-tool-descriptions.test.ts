@@ -23,10 +23,13 @@ function createSessionWithRepeatToolDescriptions(repeatToolDescriptions: boolean
 		label: "Echo",
 		description: "Echo text back to the user.",
 		parameters: Type.Object({ text: Type.String() }),
-		execute: async (_toolCallId: string, params: { text: string }) => ({
-			content: [{ type: "text" as const, text: params.text }],
-			details: {},
-		}),
+		execute: async (_toolCallId: string, params: unknown) => {
+			const { text } = params as { text: string };
+			return {
+				content: [{ type: "text" as const, text }],
+				details: {},
+			};
+		},
 	};
 
 	const session = new AgentSession({

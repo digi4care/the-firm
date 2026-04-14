@@ -104,7 +104,13 @@ import {
 	createBashTool,
 	createBashToolDefinition,
 } from "./bash.js";
-import { createEditTool, createEditToolDefinition, type EditToolOptions, editTool, editToolDefinition } from "./edit.js";
+import {
+	createEditTool,
+	createEditToolDefinition,
+	type EditToolOptions,
+	editTool,
+	editToolDefinition,
+} from "./edit.js";
 import { createFindTool, createFindToolDefinition, findTool, findToolDefinition } from "./find.js";
 import { createGrepTool, createGrepToolDefinition, grepTool, grepToolDefinition } from "./grep.js";
 import { createLsTool, createLsToolDefinition, lsTool, lsToolDefinition } from "./ls.js";

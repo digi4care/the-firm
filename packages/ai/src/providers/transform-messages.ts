@@ -1,4 +1,13 @@
-import type { Api, AssistantMessage, Message, MessageSummary, Model, ProviderTraceScope, ToolCall, ToolResultMessage } from "../types.js";
+import type {
+	Api,
+	AssistantMessage,
+	Message,
+	MessageSummary,
+	Model,
+	ProviderTraceScope,
+	ToolCall,
+	ToolResultMessage,
+} from "../types.js";
 
 /**
  * Track whether a tool call has been resolved (real or synthetic result).
@@ -255,7 +264,6 @@ export function transformMessages<TApi extends Api>(
 
 	return result;
 }
-
 
 function summarizeMessages(messages: Message[]): MessageSummary[] {
 	return messages.map((message, index) => {

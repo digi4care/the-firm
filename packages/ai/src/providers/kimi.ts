@@ -11,7 +11,17 @@
  * Ported from oh-my-pi's dedicated kimi.ts provider.
  */
 
-import type { Api, AssistantMessage, Context, Message, MessageSummary, Model, SimpleStreamOptions, StreamFunction, ToolCall } from "../types.js";
+import type {
+	Api,
+	AssistantMessage,
+	Context,
+	Message,
+	MessageSummary,
+	Model,
+	SimpleStreamOptions,
+	StreamFunction,
+	ToolCall,
+} from "../types.js";
 import { AssistantMessageEventStream } from "../utils/event-stream.js";
 import { getKimiCommonHeaders } from "../utils/oauth/index.js";
 import { streamAnthropic } from "./anthropic.js";
@@ -217,7 +227,6 @@ function createErrorMessage(model: Model<Api>, err: unknown): AssistantMessage {
 export function isKimiModel(model: Model<Api>): boolean {
 	return model.provider === "kimi-coding";
 }
-
 
 function summarizeMessages(messages: Message[]): MessageSummary[] {
 	return messages.map((message, index) => {

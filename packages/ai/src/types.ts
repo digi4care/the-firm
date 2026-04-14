@@ -299,12 +299,7 @@ export interface TransformSnapshot {
 }
 
 export interface ToolCallMappingSnapshot {
-	stage:
-		| "toolCall:observed"
-		| "toolCall:normalized"
-		| "toolResult:observed"
-		| "toolResult:mapped"
-		| "toolResult:sent";
+	stage: "toolCall:observed" | "toolCall:normalized" | "toolResult:observed" | "toolResult:mapped" | "toolResult:sent";
 	originalId: string;
 	finalId: string;
 	reason:
@@ -367,11 +362,7 @@ export interface ResponseEventSnapshot {
 }
 
 export interface AdapterStepSnapshot {
-	step:
-		| "synthetic-model-created"
-		| "context-rewritten"
-		| "response-rewritten"
-		| "request-format-selected";
+	step: "synthetic-model-created" | "context-rewritten" | "response-rewritten" | "request-format-selected";
 	notes?: string[];
 	effectiveApi?: string;
 	effectiveProvider?: string;
@@ -383,14 +374,7 @@ export interface ProviderErrorSnapshot {
 	message: string;
 	statusCode?: number;
 	retryable?: boolean;
-	phase:
-		| "context"
-		| "transform"
-		| "request-build"
-		| "request-send"
-		| "response-parse"
-		| "adapter"
-		| "unknown";
+	phase: "context" | "transform" | "request-build" | "request-send" | "response-parse" | "adapter" | "unknown";
 }
 
 export interface CompletionSnapshot {

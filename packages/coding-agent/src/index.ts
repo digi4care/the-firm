@@ -207,6 +207,7 @@ export {
 	type SessionMessageEntry,
 	type ThinkingLevelChangeEntry,
 } from "./core/session-manager.js";
+export { bootstrapSettings } from "./core/settings-bootstrap.js";
 export {
 	type CompactionSettings,
 	type CompactionStrategy,
@@ -215,24 +216,22 @@ export {
 	type RetrySettings,
 	SettingsManager,
 } from "./core/settings-manager.js";
-
 // Declarative settings API
-export { settingsRegistry, type SettingsProvider } from "./core/settings-registry.js";
+export { type SettingsProvider, settingsRegistry } from "./core/settings-registry.js";
 export {
-	type SettingDef,
-	type SettingTab,
-	type SettingOption,
-	type UiMeta,
-	type BooleanDef,
-	type StringDef,
-	type NumberDef,
-	type EnumDef,
 	type ArrayDef,
+	type BooleanDef,
+	type EnumDef,
+	type NumberDef,
 	type RecordDef,
 	SETTING_TABS,
+	type SettingDef,
+	type SettingOption,
+	type SettingTab,
+	type StringDef,
 	TAB_METADATA,
+	type UiMeta,
 } from "./core/settings-schema.js";
-export { bootstrapSettings } from "./core/settings-bootstrap.js";
 
 // Skills
 export {

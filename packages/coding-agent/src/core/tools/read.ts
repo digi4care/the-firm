@@ -206,7 +206,7 @@ export function createReadToolDefinition(
 								let userLimitedLines: number | undefined;
 								// If limit is specified by the user, honor it first. Otherwise use defaultLimit from settings.
 								const effectiveLimit = limit ?? options?.defaultLimit;
-							if (effectiveLimit !== undefined) {
+								if (effectiveLimit !== undefined) {
 									const endLine = Math.min(startLine + effectiveLimit, allLines.length);
 									selectedLines = allLines.slice(startLine, endLine);
 									userLimitedLines = endLine - startLine;

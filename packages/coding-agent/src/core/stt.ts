@@ -11,11 +11,7 @@ export interface OpenAiSttEngineOptions {
 	createOpenAI?(options: { apiKey: string }): {
 		audio: {
 			transcriptions: {
-				create(params: {
-					file: File;
-					model: string;
-					language?: string;
-				}): Promise<{ text: string }>;
+				create(params: { file: File; model: string; language?: string }): Promise<{ text: string }>;
 			};
 		};
 	};
@@ -26,7 +22,9 @@ export function createOpenAiSttEngine(options: OpenAiSttEngineOptions): SttEngin
 		async transcribe(audioFilePath: string, language?: string): Promise<string> {
 			const apiKey = options.getApiKey();
 			if (!apiKey) {
-				throw new Error("OpenAI API key is required for speech-to-text. Set it via OPENAI_API_KEY or /login openai.");
+				throw new Error(
+					"OpenAI API key is required for speech-to-text. Set it via OPENAI_API_KEY or /login openai.",
+				);
 			}
 
 			// Lazy-load openai to avoid bundling it when STT is unused

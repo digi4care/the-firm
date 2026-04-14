@@ -159,7 +159,11 @@ const INTERCEPTED_COMMANDS: ReadonlyArray<{ pattern: RegExp; tool: string; examp
 	{ pattern: /^(?:grep|rg|ag|ack)\s/, tool: "grep", example: "grep -r 'pattern' path" },
 	{ pattern: /^(?:cat|bat|less|more|head|tail)\s/, tool: "read", example: "read path/to/file" },
 	{ pattern: /^(?:ls|exa|eza|lldb)\s/, tool: "ls", example: "ls path/to/dir" },
-	{ pattern: /^(?:git\s+diff|git\s+show|git\s+log)/, tool: "bash", example: "Use bash for git commands (no dedicated tool yet)" },
+	{
+		pattern: /^(?:git\s+diff|git\s+show|git\s+log)/,
+		tool: "bash",
+		example: "Use bash for git commands (no dedicated tool yet)",
+	},
 ];
 
 /** Check if a command should be intercepted. Returns warning message or null. */
@@ -311,7 +315,7 @@ export function createBashToolDefinition(
 						content: [{ type: "text" as const, text: intercepted }],
 						details: undefined,
 					};
-					}
+				}
 			}
 			const spawnContext = resolveSpawnContext(resolvedCommand, cwd, spawnHook);
 			if (onUpdate) {

@@ -7,7 +7,7 @@
 
 import { resolve } from "node:path";
 import { createInterface } from "node:readline";
-import { type ImageContent, type ProviderLogLevel, modelsAreEqual, supportsXhigh } from "@digi4care/the-firm-ai";
+import { type ImageContent, modelsAreEqual, type ProviderLogLevel, supportsXhigh } from "@digi4care/the-firm-ai";
 import { ProcessTerminal, setKeybindings, TUI } from "@digi4care/the-firm-tui";
 import chalk from "chalk";
 import { type Args, type Mode, parseArgs, printHelp } from "./cli/args.js";
@@ -28,6 +28,7 @@ import { KeybindingsManager } from "./core/keybindings.js";
 import type { ModelRegistry } from "./core/model-registry.js";
 import { resolveCliModel, resolveModelScope, type ScopedModel } from "./core/model-resolver.js";
 import { restoreStdout, takeOverStdout } from "./core/output-guard.js";
+import { createProviderLoggingRuntime, isProviderLogLevel } from "./core/provider-logging.js";
 import type { CreateAgentSessionOptions } from "./core/sdk.js";
 import {
 	formatMissingSessionCwdPrompt,
@@ -36,9 +37,8 @@ import {
 	type SessionCwdIssue,
 } from "./core/session-cwd.js";
 import { SessionManager } from "./core/session-manager.js";
-import { createProviderLoggingRuntime, isProviderLogLevel } from "./core/provider-logging.js";
-import { SettingsManager } from "./core/settings-manager.js";
 import { bootstrapSettings } from "./core/settings-bootstrap.js";
+import { SettingsManager } from "./core/settings-manager.js";
 import { printTimings, resetTimings, time } from "./core/timings.js";
 import { allTools } from "./core/tools/index.js";
 import { runMigrations, showDeprecationWarnings } from "./migrations.js";
@@ -107,7 +107,6 @@ function resolveProviderLoggingLevel(parsed: Args, settingsManager: SettingsMana
 	}
 	return "off";
 }
-
 
 type AppMode = "interactive" | "print" | "json" | "rpc";
 

@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
-import { buildSystemPrompt } from "../src/core/system-prompt.js";
 import type { ToolDefinition } from "../src/core/extensions/types.js";
+import { buildSystemPrompt } from "../src/core/system-prompt.js";
 
 describe("buildSystemPrompt", () => {
 	describe("empty tools", () => {
@@ -91,12 +91,14 @@ describe("buildSystemPrompt", () => {
 				label: "Read",
 				description: "Read the contents of a file.",
 				parameters: { type: "object", properties: { path: { type: "string" } } } as any,
+				execute: async () => ({ content: [], details: undefined }),
 			},
 			{
 				name: "bash",
 				label: "Bash",
 				description: "Execute a bash command.",
 				parameters: { type: "object", properties: { command: { type: "string" } } } as any,
+				execute: async () => ({ content: [], details: undefined }),
 			},
 		];
 

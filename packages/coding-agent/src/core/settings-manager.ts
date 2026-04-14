@@ -1064,8 +1064,7 @@ export class SettingsManager {
 	setPythonSharedGateway = (enabled: boolean) => this.set("python.sharedGateway", enabled);
 
 	// ─── Interaction/P4: interrupt mode ─────────────────────
-	getInterruptMode = (): "immediate" | "wait" =>
-		(this.get("interruptMode") ?? "immediate") as "immediate" | "wait";
+	getInterruptMode = (): "immediate" | "wait" => (this.get("interruptMode") ?? "immediate") as "immediate" | "wait";
 	setInterruptMode = (mode: "immediate" | "wait") => this.set("interruptMode", mode);
 
 	// ─── Interaction/P4: startup ────────────────────────────

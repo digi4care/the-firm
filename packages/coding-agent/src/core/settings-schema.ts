@@ -56,7 +56,6 @@ export interface UiMeta {
 	/** Live preview while browsing options */
 	onPreview?: (value: unknown) => void;
 	onPreviewCancel?: (original: unknown) => void;
-
 }
 // ═══════════════════════════════════════════════════════════════════════════
 // Type Definitions

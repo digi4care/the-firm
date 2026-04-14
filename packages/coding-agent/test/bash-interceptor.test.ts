@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { bootstrapSettings } from "../src/core/settings-bootstrap.js";
-import { SettingsManager } from "../src/core/settings-manager.js";
 import { createBashToolDefinition } from "../src/core/tools/bash.js";
 
 describe("bash interceptor", () => {
 	it("blocks find commands when interceptor is enabled", async () => {
 		const tool = createBashToolDefinition("/tmp", { interceptorEnabled: true });
 		const result = await tool.execute("test", { command: "find . -name '*.ts'" }, undefined, undefined, {} as any);
-		const text = result.content.filter((c: any) => c.type === "text").map((c: any) => c.text).join("\n");
+		const text = result.content
+			.filter((c: any) => c.type === "text")
+			.map((c: any) => c.text)
+			.join("\n");
 		expect(text).toContain("intercepted");
 		expect(text).toContain("find");
 	});
@@ -15,7 +16,10 @@ describe("bash interceptor", () => {
 	it("blocks grep commands when interceptor is enabled", async () => {
 		const tool = createBashToolDefinition("/tmp", { interceptorEnabled: true });
 		const result = await tool.execute("test", { command: "grep -r 'pattern' src/" }, undefined, undefined, {} as any);
-		const text = result.content.filter((c: any) => c.type === "text").map((c: any) => c.text).join("\n");
+		const text = result.content
+			.filter((c: any) => c.type === "text")
+			.map((c: any) => c.text)
+			.join("\n");
 		expect(text).toContain("intercepted");
 		expect(text).toContain("grep");
 	});
@@ -23,7 +27,10 @@ describe("bash interceptor", () => {
 	it("blocks cat commands when interceptor is enabled", async () => {
 		const tool = createBashToolDefinition("/tmp", { interceptorEnabled: true });
 		const result = await tool.execute("test", { command: "cat package.json" }, undefined, undefined, {} as any);
-		const text = result.content.filter((c: any) => c.type === "text").map((c: any) => c.text).join("\n");
+		const text = result.content
+			.filter((c: any) => c.type === "text")
+			.map((c: any) => c.text)
+			.join("\n");
 		expect(text).toContain("intercepted");
 		expect(text).toContain("read");
 	});
@@ -32,14 +39,20 @@ describe("bash interceptor", () => {
 		const tool = createBashToolDefinition("/tmp", { interceptorEnabled: false });
 		// This will actually try to run the command, so use a harmless one
 		const result = await tool.execute("test", { command: "echo hello" }, undefined, undefined, {} as any);
-		const text = result.content.filter((c: any) => c.type === "text").map((c: any) => c.text).join("\n");
+		const text = result.content
+			.filter((c: any) => c.type === "text")
+			.map((c: any) => c.text)
+			.join("\n");
 		expect(text).not.toContain("intercepted");
 	});
 
 	it("does not block when interceptor is not set", async () => {
 		const tool = createBashToolDefinition("/tmp");
 		const result = await tool.execute("test", { command: "echo hello" }, undefined, undefined, {} as any);
-		const text = result.content.filter((c: any) => c.type === "text").map((c: any) => c.text).join("\n");
+		const text = result.content
+			.filter((c: any) => c.type === "text")
+			.map((c: any) => c.text)
+			.join("\n");
 		expect(text).not.toContain("intercepted");
 	});
 });

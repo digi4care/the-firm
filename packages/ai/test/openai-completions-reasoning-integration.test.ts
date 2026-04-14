@@ -4,7 +4,10 @@ import { clampReasoning } from "../src/providers/simple-options.js";
 import type { Model } from "../src/types.js";
 
 describe("openai-completions reasoning effort integration with thinking-compat", () => {
-	function resolveReasoningEffort(model: Model<"openai-completions">, requested: "minimal" | "low" | "medium" | "high" | "xhigh" | undefined) {
+	function resolveReasoningEffort(
+		model: Model<"openai-completions">,
+		requested: "minimal" | "low" | "medium" | "high" | "xhigh" | undefined,
+	) {
 		// Mirrors the logic in streamSimpleOpenAICompletions
 		return supportsXhigh(model) ? requested : clampReasoning(requested);
 	}

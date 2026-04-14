@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-	getThinkingCompat,
-	getSupportedThinkingLevels,
-	resolveThinkingLevel,
-	supportsXhigh,
-} from "../src/index.js";
+import { getSupportedThinkingLevels, getThinkingCompat, resolveThinkingLevel, supportsXhigh } from "../src/index.js";
 
 describe("index.ts exports thinking-compat", () => {
 	it("exports getThinkingCompat", () => {

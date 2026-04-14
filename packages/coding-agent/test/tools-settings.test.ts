@@ -19,10 +19,9 @@ describe("Tools settings", () => {
 		});
 
 		it("should allow disabling wired tool toggles", () => {
-			const manager = SettingsManager.inMemory({
-				grep: { enabled: false },
-				find: { enabled: false },
-			});
+			const manager = SettingsManager.inMemory();
+			manager.set("grep.enabled", false);
+			manager.set("find.enabled", false);
 
 			expect(manager.getGrepEnabled()).toBe(false);
 			expect(manager.getFindEnabled()).toBe(false);

@@ -1,13 +1,13 @@
-import { describe, expect, it } from 'vitest';
-import { buildBaseOptions } from '../src/providers/simple-options.js';
-import type { Model, Api, SimpleStreamOptions } from '../src/types.js';
+import { describe, expect, it } from "vitest";
+import { buildBaseOptions } from "../src/providers/simple-options.js";
+import type { Api, Model, SimpleStreamOptions } from "../src/types.js";
 
 function makeModel(maxTokens = 128000): Model<Api> {
 	return { maxTokens } as Model<Api>;
 }
 
-describe('buildBaseOptions sampling forwarding', () => {
-	it('should forward all sampling params through buildBaseOptions', () => {
+describe("buildBaseOptions sampling forwarding", () => {
+	it("should forward all sampling params through buildBaseOptions", () => {
 		const model = makeModel();
 		const options: SimpleStreamOptions = {
 			temperature: 0.7,
@@ -28,7 +28,7 @@ describe('buildBaseOptions sampling forwarding', () => {
 		expect(result.repetitionPenalty).toBe(1.2);
 	});
 
-	it('should omit undefined sampling params', () => {
+	it("should omit undefined sampling params", () => {
 		const model = makeModel();
 		const options: SimpleStreamOptions = {
 			temperature: 0.5,
@@ -44,7 +44,7 @@ describe('buildBaseOptions sampling forwarding', () => {
 		expect(result.repetitionPenalty).toBeUndefined();
 	});
 
-	it('should forward temperature: undefined as undefined', () => {
+	it("should forward temperature: undefined as undefined", () => {
 		const model = makeModel();
 		const result = buildBaseOptions(model, {});
 

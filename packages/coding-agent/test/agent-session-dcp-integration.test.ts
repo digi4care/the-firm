@@ -1,6 +1,6 @@
-import { describe, expect, it } from "vitest";
 import { Agent } from "@digi4care/the-firm-agent-core";
 import { getModel } from "@digi4care/the-firm-ai";
+import { describe, expect, it } from "vitest";
 import { AgentSession } from "../src/core/agent-session.js";
 import { AuthStorage } from "../src/core/auth-storage.js";
 import { ModelRegistry } from "../src/core/model-registry.js";
@@ -11,8 +11,9 @@ import { createTestResourceLoader } from "./utilities.js";
 function createAgentWithDcp(enabled: boolean, keepRecentCount = 4, existingTransform?: (messages: any[]) => any[]) {
 	const model = getModel("anthropic", "claude-sonnet-4-5")!;
 	const settingsManager = SettingsManager.inMemory({
-		contextPruning: { enabled, keepRecentCount },
+		contextPruning: { enabled },
 	});
+	settingsManager.setContextPruningKeepRecentCount(keepRecentCount);
 	const sessionManager = SessionManager.inMemory();
 	const authStorage = AuthStorage.inMemory();
 	authStorage.setRuntimeApiKey("anthropic", "test-key");
@@ -24,9 +25,7 @@ function createAgentWithDcp(enabled: boolean, keepRecentCount = 4, existingTrans
 			systemPrompt: "You are a helpful assistant.",
 			tools: [],
 		},
-		transformContext: existingTransform
-			? async (messages) => existingTransform(messages)
-			: undefined,
+		transformContext: existingTransform ? async (messages) => existingTransform(messages) : undefined,
 	});
 
 	const session = new AgentSession({
@@ -41,17 +40,41 @@ function createAgentWithDcp(enabled: boolean, keepRecentCount = 4, existingTrans
 	return { session, agent, settingsManager };
 }
 
+function userMsg(content: string): any {
+	return { role: "user", content, timestamp: Date.now() };
+}
+
+function assistantMsg(content: string): any {
+	return {
+		role: "assistant",
+		content: [{ type: "text", text: content }],
+		api: "anthropic-messages",
+		provider: "anthropic",
+		model: "claude-sonnet-4-5",
+		usage: {
+			input: 0,
+			output: 0,
+			cacheRead: 0,
+			cacheWrite: 0,
+			totalTokens: 0,
+			cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+		},
+		stopReason: "stop",
+		timestamp: Date.now(),
+	};
+}
+
 describe("AgentSession DCP integration", () => {
 	it("prunes duplicate messages from LLM context when enabled", async () => {
 		const { session, agent } = createAgentWithDcp(true, 1);
 		try {
 			// Seed agent state with duplicate assistant messages
 			agent.state.messages = [
-				{ role: "user", content: "hello" },
-				{ role: "assistant", content: "same response" },
-				{ role: "user", content: "again" },
-				{ role: "assistant", content: "same response" },
-				{ role: "user", content: "final" },
+				userMsg("hello"),
+				assistantMsg("same response"),
+				userMsg("again"),
+				assistantMsg("same response"),
+				userMsg("final"),
 			];
 
 			const transformed = await agent.transformContext!(agent.state.messages, undefined);
@@ -61,7 +84,9 @@ describe("AgentSession DCP integration", () => {
 			// So index 3 gets pruned. Index 1 (first "same response") stays.
 			expect(transformed.length).toBe(4);
 			expect(transformed.filter((m) => m.role === "assistant").length).toBe(1);
-			expect(transformed.some((m) => m.role === "assistant" && m.content === "same response")).toBe(true);
+			expect(
+				transformed.some((m) => m.role === "assistant" && (m as any).content[0]?.text === "same response"),
+			).toBe(true);
 		} finally {
 			session.dispose();
 		}
@@ -71,10 +96,10 @@ describe("AgentSession DCP integration", () => {
 		const { session, agent } = createAgentWithDcp(false);
 		try {
 			agent.state.messages = [
-				{ role: "user", content: "hello" },
-				{ role: "assistant", content: "same response" },
-				{ role: "user", content: "again" },
-				{ role: "assistant", content: "same response" },
+				userMsg("hello"),
+				assistantMsg("same response"),
+				userMsg("again"),
+				assistantMsg("same response"),
 			];
 
 			const transformed = await agent.transformContext!(agent.state.messages, undefined);
@@ -87,15 +112,13 @@ describe("AgentSession DCP integration", () => {
 	});
 
 	it("composes DCP with an existing transformContext", async () => {
-		const { session, agent } = createAgentWithDcp(true, 1, (messages) =>
-			messages.filter((m) => m.role !== "custom"),
-		);
+		const { session, agent } = createAgentWithDcp(true, 1, (messages) => messages.filter((m) => m.role !== "custom"));
 		try {
 			agent.state.messages = [
-				{ role: "user", content: "hello" },
-				{ role: "assistant", content: "same response" },
-				{ role: "assistant", content: "same response" },
-				{ role: "user", content: "final" },
+				userMsg("hello"),
+				assistantMsg("same response"),
+				assistantMsg("same response"),
+				userMsg("final"),
 				{ role: "custom", customType: "test", content: "ignored" } as any,
 			];
 

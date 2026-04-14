@@ -104,10 +104,16 @@ describe("Editing settings integration", () => {
 			writeFileSync(file, "hello world\n");
 
 			const tool = createEditToolDefinition(testDir, { mode: "replace" });
-			const result = await tool.execute("edit-test", {
-				path: file,
-				edits: [{ oldText: "hello world", newText: "goodbye world" }],
-			}, undefined, undefined, {} as any);
+			const result = await tool.execute(
+				"edit-test",
+				{
+					path: file,
+					edits: [{ oldText: "hello world", newText: "goodbye world" }],
+				},
+				undefined,
+				undefined,
+				{} as any,
+			);
 
 			expect(getTextOutput(result)).toContain("Successfully replaced");
 			expect(readFileSync(file, "utf-8")).toBe("goodbye world\n");
@@ -121,10 +127,16 @@ describe("Editing settings integration", () => {
 
 			const tool = createEditToolDefinition(testDir, { mode: "hashline" });
 			const hash = computeLineHash("line two");
-			const result = await tool.execute("edit-test", {
-				path: file,
-				edits: [{ hash, oldText: "", newText: "replaced two" }],
-			}, undefined, undefined, {} as any);
+			const result = await tool.execute(
+				"edit-test",
+				{
+					path: file,
+					edits: [{ hash, oldText: "", newText: "replaced two" }],
+				},
+				undefined,
+				undefined,
+				{} as any,
+			);
 
 			expect(getTextOutput(result)).toContain("Successfully replaced");
 			expect(readFileSync(file, "utf-8")).toBe("line one\nreplaced two\nline three\n");
@@ -135,10 +147,16 @@ describe("Editing settings integration", () => {
 			writeFileSync(file, "alpha\nbeta\n");
 
 			const tool = createEditToolDefinition(testDir, { mode: "hashline" });
-			const result = await tool.execute("edit-test", {
-				path: file,
-				edits: [{ oldText: "beta", newText: "gamma" }],
-			}, undefined, undefined, {} as any);
+			const result = await tool.execute(
+				"edit-test",
+				{
+					path: file,
+					edits: [{ oldText: "beta", newText: "gamma" }],
+				},
+				undefined,
+				undefined,
+				{} as any,
+			);
 
 			expect(getTextOutput(result)).toContain("Successfully replaced");
 			expect(readFileSync(file, "utf-8")).toBe("alpha\ngamma\n");
@@ -150,10 +168,16 @@ describe("Editing settings integration", () => {
 
 			const tool = createEditToolDefinition(testDir, { mode: "hashline" });
 			await expect(
-				tool.execute("edit-test", {
-					path: file,
-					edits: [{ hash: "00000000", oldText: "", newText: "gamma" }],
-				}, undefined, undefined, {} as any),
+				tool.execute(
+					"edit-test",
+					{
+						path: file,
+						edits: [{ hash: "00000000", oldText: "", newText: "gamma" }],
+					},
+					undefined,
+					undefined,
+					{} as any,
+				),
 			).rejects.toThrow(/hash|not found/i);
 		});
 	});
