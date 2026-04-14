@@ -979,13 +979,4 @@ export class SettingsManager {
 
 	getFindEnabled = (): boolean => (this.get("find.enabled") ?? true) as boolean;
 	setFindEnabled = (enabled: boolean) => this.set("find.enabled", enabled);
-
-	getFetchEnabled = (): boolean => (this.get("fetch.enabled") ?? true) as boolean;
-	setFetchEnabled = (enabled: boolean) => this.set("fetch.enabled", enabled);
-
-	getBrowserEnabled = (): boolean => (this.get("browser.enabled") ?? true) as boolean;
-	setBrowserEnabled = (enabled: boolean) => this.set("browser.enabled", enabled);
-
-	getBrowserHeadless = (): boolean => (this.get("browser.headless") ?? true) as boolean;
-	setBrowserHeadless = (enabled: boolean) => this.set("browser.headless", enabled);
 }
