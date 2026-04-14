@@ -2558,6 +2558,8 @@ export class AgentSession {
 		const defaultLimit = this.settingsManager.getReadDefaultLimit();
 		const bashInterceptorEnabled = this.settingsManager.getBashInterceptorEnabled();
 		const editMode = this.settingsManager.getEditMode();
+		const editFuzzyMatch = this.settingsManager.getEditFuzzyMatch();
+		const editFuzzyThreshold = this.settingsManager.getEditFuzzyThreshold();
 		const baseToolDefinitions = this._baseToolsOverride
 			? Object.fromEntries(
 					Object.entries(this._baseToolsOverride).map(([name, tool]) => [
@@ -2568,7 +2570,7 @@ export class AgentSession {
 			: createAllToolDefinitions(this._cwd, {
 					read: { autoResizeImages, lineNumbers, hashLines, defaultLimit },
 					bash: { commandPrefix: shellCommandPrefix, interceptorEnabled: bashInterceptorEnabled },
-					edit: { mode: editMode },
+					edit: { mode: editMode, fuzzyMatch: editFuzzyMatch, fuzzyThreshold: editFuzzyThreshold },
 				});
 
 		this._baseToolDefinitions = new Map(

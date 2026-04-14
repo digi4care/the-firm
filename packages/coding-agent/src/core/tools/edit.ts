@@ -87,6 +87,10 @@ export interface EditToolOptions {
 	operations?: EditOperations;
 	/** Edit mode variant. Default: "replace" */
 	mode?: "replace" | "patch" | "hashline" | "chunk";
+	/** Whether fuzzy matching is enabled for edit text matching. Default: true */
+	fuzzyMatch?: boolean;
+	/** Similarity threshold for fuzzy matches (0.0–1.0). Default: 0.95 */
+	fuzzyThreshold?: number;
 }
 
 function prepareEditArguments(input: unknown): EditToolInput {
@@ -189,6 +193,8 @@ export function createEditToolDefinition(
 	const ops = options?.operations ?? defaultEditOperations;
 	const mode = options?.mode ?? "replace";
 	const isHashline = mode === "hashline";
+	const ops_fuzzyMatch = options?.fuzzyMatch ?? true;
+	const ops_fuzzyThreshold = options?.fuzzyThreshold ?? 0.95;
 
 	return {
 		name: "edit",
@@ -284,6 +290,7 @@ export function createEditToolDefinition(
 									normalizedContent,
 									edits,
 									path,
+									{ fuzzyMatch: ops_fuzzyMatch, fuzzyThreshold: ops_fuzzyThreshold },
 								);
 
 								// Check if aborted before writing.

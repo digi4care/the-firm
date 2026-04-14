@@ -93,7 +93,11 @@ export interface AppliedEditsResult {
  * fuzzy-normalized version of the content (trailing whitespace stripped,
  * Unicode quotes/dashes normalized to ASCII).
  */
-export function fuzzyFindText(content: string, oldText: string): FuzzyMatchResult {
+export function fuzzyFindText(
+	content: string,
+	oldText: string,
+	options?: { fuzzyMatch?: boolean; fuzzyThreshold?: number },
+): FuzzyMatchResult {
 	// Try exact match first
 	const exactIndex = content.indexOf(oldText);
 	if (exactIndex !== -1) {
@@ -107,6 +111,16 @@ export function fuzzyFindText(content: string, oldText: string): FuzzyMatchResul
 	}
 
 	// Try fuzzy match - work entirely in normalized space
+	const fuzzyEnabled = options?.fuzzyMatch !== false; // default true
+	if (!fuzzyEnabled) {
+		return {
+			found: false,
+			index: -1,
+			matchLength: 0,
+			usedFuzzyMatch: false,
+			contentForReplacement: content,
+		};
+	}
 	const fuzzyContent = normalizeForFuzzyMatch(content);
 	const fuzzyOldText = normalizeForFuzzyMatch(oldText);
 	const fuzzyIndex = fuzzyContent.indexOf(fuzzyOldText);
@@ -194,6 +208,7 @@ export function applyEditsToNormalizedContent(
 	normalizedContent: string,
 	edits: Edit[],
 	path: string,
+	fuzzyOptions?: { fuzzyMatch?: boolean; fuzzyThreshold?: number },
 ): AppliedEditsResult {
 	const normalizedEdits = edits.map((edit) => ({
 		oldText: normalizeToLF(edit.oldText),
@@ -206,7 +221,7 @@ export function applyEditsToNormalizedContent(
 		}
 	}
 
-	const initialMatches = normalizedEdits.map((edit) => fuzzyFindText(normalizedContent, edit.oldText));
+	const initialMatches = normalizedEdits.map((edit) => fuzzyFindText(normalizedContent, edit.oldText, fuzzyOptions));
 	const baseContent = initialMatches.some((match) => match.usedFuzzyMatch)
 		? normalizeForFuzzyMatch(normalizedContent)
 		: normalizedContent;
@@ -214,7 +229,7 @@ export function applyEditsToNormalizedContent(
 	const matchedEdits: MatchedEdit[] = [];
 	for (let i = 0; i < normalizedEdits.length; i++) {
 		const edit = normalizedEdits[i];
-		const matchResult = fuzzyFindText(baseContent, edit.oldText);
+		const matchResult = fuzzyFindText(baseContent, edit.oldText, fuzzyOptions);
 		if (!matchResult.found) {
 			throw getNotFoundError(path, i, normalizedEdits.length);
 		}
@@ -405,6 +420,7 @@ export async function computeEditsDiff(
 	path: string,
 	edits: Edit[],
 	cwd: string,
+	fuzzyOptions?: { fuzzyMatch?: boolean; fuzzyThreshold?: number },
 ): Promise<EditDiffResult | EditDiffError> {
 	const absolutePath = resolveToCwd(path, cwd);
 
@@ -422,7 +438,7 @@ export async function computeEditsDiff(
 		// Strip BOM before matching (LLM won't include invisible BOM in oldText)
 		const { text: content } = stripBom(rawContent);
 		const normalizedContent = normalizeToLF(content);
-		const { baseContent, newContent } = applyEditsToNormalizedContent(normalizedContent, edits, path);
+		const { baseContent, newContent } = applyEditsToNormalizedContent(normalizedContent, edits, path, fuzzyOptions);
 
 		// Generate the diff
 		return generateDiffString(baseContent, newContent);
