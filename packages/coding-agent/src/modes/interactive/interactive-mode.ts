@@ -2207,6 +2207,12 @@ export class InteractiveMode {
 				await this.handleCompactCommand(customInstructions);
 				return;
 			}
+			if (text === "/handoff" || text.startsWith("/handoff ")) {
+				const customInstructions = text.startsWith("/handoff ") ? text.slice(9).trim() : undefined;
+				this.editor.setText("");
+				await this.handleHandoffCommand(customInstructions);
+				return;
+			}
 			if (text === "/reload") {
 				this.editor.setText("");
 				await this.handleReloadCommand();
@@ -4798,6 +4804,28 @@ export class InteractiveMode {
 			await this.session.compact(customInstructions);
 		} catch {
 			// Ignore, will be emitted as an event
+		}
+	}
+
+	private async handleHandoffCommand(customInstructions?: string): Promise<void> {
+		const entries = this.sessionManager.getEntries();
+		const messageCount = entries.filter((e) => e.type === "message").length;
+
+		if (messageCount < 2) {
+			this.showWarning("Nothing to hand off (no messages yet)");
+			return;
+		}
+
+		if (this.loadingAnimation) {
+			this.loadingAnimation.stop();
+			this.loadingAnimation = undefined;
+		}
+		this.statusContainer.clear();
+
+		try {
+			await this.session.handoff(customInstructions);
+		} catch {
+			// Ignore, will be emitted as an event or shown via status
 		}
 	}
 

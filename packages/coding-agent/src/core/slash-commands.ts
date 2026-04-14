@@ -32,6 +32,7 @@ export const BUILTIN_SLASH_COMMANDS: ReadonlyArray<BuiltinSlashCommand> = [
 	{ name: "logout", description: "Logout from OAuth provider" },
 	{ name: "new", description: "Start a new session" },
 	{ name: "compact", description: "Manually compact the session context" },
+	{ name: "handoff", description: "Generate handoff document and start a new session" },
 	{ name: "resume", description: "Resume a different session" },
 	{ name: "reload", description: "Reload keybindings, extensions, skills, prompts, and themes" },
 	{ name: "debug-providers", description: "Show provider log files for the current session" },
