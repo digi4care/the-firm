@@ -184,6 +184,9 @@ export class InteractiveMode {
 	private changelogMarkdown: string | undefined = undefined;
 	private startupNoticesShown = false;
 	private anthropicSubscriptionWarningShown = false;
+	private audioRecorder: import("../../core/audio-recorder.js").AudioRecorder | undefined = undefined;
+	private sttEngine: import("../../core/stt.js").SttEngine | undefined = undefined;
+	private isRecordingStt = false;
 
 	// Status line tracking (for mutating immediately-sequential status updates)
 	private lastStatusSpacer: Spacer | undefined = undefined;
@@ -1890,6 +1893,9 @@ export class InteractiveMode {
 				if (!customEditor.onPasteImage) {
 					customEditor.onPasteImage = () => this.defaultEditor.onPasteImage?.();
 				}
+				if (!customEditor.onSttRecord) {
+					customEditor.onSttRecord = () => this.defaultEditor.onSttRecord?.();
+				}
 				if (!customEditor.onExtensionShortcut) {
 					customEditor.onExtensionShortcut = (data: string) => this.defaultEditor.onExtensionShortcut?.(data);
 				}
@@ -2092,6 +2098,54 @@ export class InteractiveMode {
 		this.defaultEditor.onPasteImage = () => {
 			this.handleClipboardImagePaste();
 		};
+
+		// Handle STT record (triggered on Ctrl+Shift+R)
+		this.defaultEditor.onSttRecord = () => {
+			void this.handleSttRecord();
+		};
+	}
+
+	private async handleSttRecord(): Promise<void> {
+		if (!this.settingsManager.getSttEnabled()) {
+			this.showStatus("Speech-to-text is disabled in settings.");
+			return;
+		}
+
+		if (this.isRecordingStt) {
+			// Stop recording
+			try {
+				this.showStatus("Transcribing...");
+				const audioPath = await this.audioRecorder!.stop();
+				this.isRecordingStt = false;
+				const text = await this.sttEngine!.transcribe(audioPath, this.settingsManager.getSttLanguage());
+				if (text) {
+					this.editor.insertTextAtCursor?.(text);
+					this.ui.requestRender();
+				}
+			} catch (err) {
+				this.showStatus(`STT error: ${err instanceof Error ? err.message : String(err)}`);
+			}
+			return;
+		}
+
+		// Start recording
+		try {
+			const { createAudioRecorder } = await import("../../core/audio-recorder.js");
+			const { createOpenAiSttEngine } = await import("../../core/stt.js");
+			this.audioRecorder = createAudioRecorder();
+			await this.audioRecorder.start();
+			this.isRecordingStt = true;
+			this.showStatus("Recording... Press Ctrl+Shift+R to stop.");
+
+			// Lazy-init STT engine
+			if (!this.sttEngine) {
+				this.sttEngine = createOpenAiSttEngine({
+					getApiKey: () => process.env.OPENAI_API_KEY,
+				});
+			}
+		} catch (err) {
+			this.showStatus(`STT error: ${err instanceof Error ? err.message : String(err)}`);
+		}
 	}
 
 	private async handleClipboardImagePaste(): Promise<void> {
@@ -4872,6 +4926,10 @@ export class InteractiveMode {
 		if (this.isInitialized) {
 			this.ui.stop();
 			this.isInitialized = false;
+		}
+		if (this.isRecordingStt && this.audioRecorder) {
+			this.audioRecorder.stop().catch(() => {});
+			this.isRecordingStt = false;
 		}
 	}
 }

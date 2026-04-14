@@ -12,6 +12,7 @@ export class CustomEditor extends Editor {
 	public onEscape?: () => void;
 	public onCtrlD?: () => void;
 	public onPasteImage?: () => void;
+	public onSttRecord?: () => void;
 	/** Handler for extension-registered shortcuts. Returns true if handled. */
 	public onExtensionShortcut?: (data: string) => boolean;
 
@@ -36,6 +37,12 @@ export class CustomEditor extends Editor {
 		// Check for paste image keybinding
 		if (this.keybindings.matches(data, "app.clipboard.pasteImage")) {
 			this.onPasteImage?.();
+			return;
+		}
+
+		// Check for STT record keybinding
+		if (this.keybindings.matches(data, "app.stt.record")) {
+			this.onSttRecord?.();
 			return;
 		}
 
