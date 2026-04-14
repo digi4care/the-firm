@@ -871,6 +871,12 @@ export class SettingsManager {
 	getRepeatToolDescriptions = (): boolean => (this.get("repeatToolDescriptions") ?? false) as boolean;
 	setRepeatToolDescriptions = (enabled: boolean) => this.set("repeatToolDescriptions", enabled);
 
+	getContextPruningEnabled = (): boolean => (this.get("contextPruning.enabled") ?? false) as boolean;
+	setContextPruningEnabled = (enabled: boolean) => this.set("contextPruning.enabled", enabled);
+
+	getContextPruningKeepRecentCount = (): number => (this.get("contextPruning.keepRecentCount") ?? 4) as number;
+	setContextPruningKeepRecentCount = (count: number) => this.set("contextPruning.keepRecentCount", count);
+
 	getShowImages = (): boolean => (this.get("terminal.showImages") ?? true) as boolean;
 	setShowImages = (show: boolean) => this.set("terminal.showImages", show);
 

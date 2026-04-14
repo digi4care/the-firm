@@ -47,6 +47,7 @@ import {
 	prepareCompaction,
 	shouldCompact,
 } from "./compaction/index.js";
+import { applyContextPruning } from "./dcp/index.js";
 import { DEFAULT_THINKING_LEVEL } from "./defaults.js";
 import { exportSessionToHtml, type ToolHtmlRenderer } from "./export-html/index.js";
 import { createToolHtmlRenderer } from "./export-html/tool-renderer.js";
@@ -346,6 +347,28 @@ export class AgentSession {
 			activeToolNames: this._initialActiveToolNames,
 			includeAllExtensionTools: true,
 		});
+
+		// Wire DCP context pruning into transformContext
+		this._wrapAgentTransformContextWithDcp();
+	}
+
+	private _wrapAgentTransformContextWithDcp(): void {
+		const existingTransform = this.agent.transformContext;
+		this.agent.transformContext = async (messages, signal) => {
+			let result = messages;
+			if (existingTransform) {
+				result = await existingTransform(messages, signal);
+			}
+			if (this.settingsManager.getContextPruningEnabled()) {
+				const keepRecentCount = this.settingsManager.getContextPruningKeepRecentCount();
+				result = applyContextPruning(result, {
+					enabled: true,
+					keepRecentCount,
+					rules: ['deduplication', 'error-purging', 'superseded-writes', 'tool-pairing', 'recency'],
+				});
+			}
+			return result;
+		};
 	}
 
 	/** Model registry for API key resolution and model discovery */
