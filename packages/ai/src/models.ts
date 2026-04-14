@@ -1,4 +1,5 @@
 import { MODELS } from "./models.generated.js";
+import { supportsXhigh as supportsXhighCompat } from "./thinking-compat.js";
 import type { Api, KnownProvider, Model, Usage } from "./types.js";
 
 const modelRegistry: Map<string, Map<string, Model<Api>>> = new Map();
@@ -48,20 +49,16 @@ export function calculateCost<TApi extends Api>(model: Model<TApi>, usage: Usage
 /**
  * Check if a model supports xhigh thinking level.
  *
- * Supported today:
- * - GPT-5.2 / GPT-5.3 / GPT-5.4 model families
- * - Opus 4.6 models (xhigh maps to adaptive effort "max" on Anthropic-compatible providers)
+ * Delegates to the data-driven thinking-compat module so provider profiles
+ * and model-specific overrides are the single source of truth.
  */
-export function supportsXhigh<TApi extends Api>(model: Model<TApi>): boolean {
-	if (model.id.includes("gpt-5.2") || model.id.includes("gpt-5.3") || model.id.includes("gpt-5.4")) {
-		return true;
+export function supportsXhigh(provider: string, modelId: string): boolean;
+export function supportsXhigh<TApi extends Api>(model: Model<TApi>): boolean;
+export function supportsXhigh<TApi extends Api>(arg1: string | Model<TApi>, arg2?: string): boolean {
+	if (typeof arg1 === "string" && arg2 !== undefined) {
+		return supportsXhighCompat(arg1, arg2);
 	}
-
-	if (model.id.includes("opus-4-6") || model.id.includes("opus-4.6")) {
-		return true;
-	}
-
-	return false;
+	return supportsXhighCompat(arg1.provider, arg1.id);
 }
 
 /**

@@ -78,6 +78,11 @@ const PROFILES: ReadonlyArray<ThinkingCompatProfile> = [
 		format: 'reasoning_effort',
 		maxLevel: 'high',
 		unsupportedBehavior: 'clamp',
+		modelOverrides: [
+			{ pattern: 'gpt-5.2', maxLevel: 'xhigh' },
+			{ pattern: 'gpt-5.3', maxLevel: 'xhigh' },
+			{ pattern: 'gpt-5.4', maxLevel: 'xhigh' },
+		],
 	},
 	{
 		provider: 'github-copilot',
