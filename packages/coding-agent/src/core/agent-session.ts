@@ -927,6 +927,12 @@ export class AgentSession {
 			loaderAppendSystemPrompt.length > 0 ? loaderAppendSystemPrompt.join("\n\n") : undefined;
 		const loadedSkills = this._resourceLoader.getSkills().skills;
 		const loadedContextFiles = this._resourceLoader.getAgentsFiles().agentsFiles;
+		const repeatToolDescriptions = this.settingsManager.getRepeatToolDescriptions();
+		const toolDefinitions = repeatToolDescriptions
+			? validToolNames
+					.map((name) => this._toolDefinitions.get(name)?.definition)
+					.filter((def): def is NonNullable<typeof def> => def !== undefined)
+			: undefined;
 
 		return buildSystemPrompt({
 			cwd: this._cwd,
@@ -937,6 +943,8 @@ export class AgentSession {
 			selectedTools: validToolNames,
 			toolSnippets,
 			promptGuidelines,
+			repeatToolDescriptions,
+			toolDefinitions,
 		});
 	}
 

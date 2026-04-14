@@ -3,6 +3,7 @@
  */
 
 import { getDocsPath, getExamplesPath, getReadmePath } from "../config.js";
+import type { ToolDefinition } from "./extensions/types.js";
 import { formatSkillsForPrompt, type Skill } from "./skills.js";
 
 export interface BuildSystemPromptOptions {
@@ -22,6 +23,10 @@ export interface BuildSystemPromptOptions {
 	contextFiles?: Array<{ path: string; content: string }>;
 	/** Pre-loaded skills. */
 	skills?: Skill[];
+	/** Include full tool descriptions in the system prompt. */
+	repeatToolDescriptions?: boolean;
+	/** Full tool definitions to repeat when repeatToolDescriptions is true. */
+	toolDefinitions?: ToolDefinition[];
 }
 
 /** Build the system prompt with tools, guidelines, and context */
@@ -35,6 +40,8 @@ export function buildSystemPrompt(options: BuildSystemPromptOptions = {}): strin
 		cwd,
 		contextFiles: providedContextFiles,
 		skills: providedSkills,
+		repeatToolDescriptions,
+		toolDefinitions,
 	} = options;
 	const resolvedCwd = cwd ?? process.cwd();
 	const promptCwd = resolvedCwd.replace(/\\/g, "/");
@@ -158,6 +165,18 @@ Pi documentation (read only when the user asks about pi itself, its SDK, extensi
 	// Append skills section (only if read tool is available)
 	if (hasRead && skills.length > 0) {
 		prompt += formatSkillsForPrompt(skills);
+	}
+
+	// Append full tool descriptions when requested
+	if (repeatToolDescriptions && toolDefinitions && toolDefinitions.length > 0) {
+		prompt += "\n\n## Tool Descriptions\n\n";
+		for (const tool of toolDefinitions) {
+			prompt += `### ${tool.name}\n\n`;
+			prompt += `${tool.description}\n\n`;
+			if (tool.parameters) {
+				prompt += `Parameters:\n\`\`\`json\n${JSON.stringify(tool.parameters, null, 2)}\n\`\`\`\n\n`;
+			}
+		}
 	}
 
 	// Add date and working directory last
