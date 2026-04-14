@@ -2556,6 +2556,7 @@ export class AgentSession {
 		const lineNumbers = this.settingsManager.getReadLineNumbers();
 		const hashLines = this.settingsManager.getReadHashLines();
 		const defaultLimit = this.settingsManager.getReadDefaultLimit();
+		const bashInterceptorEnabled = this.settingsManager.getBashInterceptorEnabled();
 		const editMode = this.settingsManager.getEditMode();
 		const baseToolDefinitions = this._baseToolsOverride
 			? Object.fromEntries(
@@ -2566,7 +2567,7 @@ export class AgentSession {
 				)
 			: createAllToolDefinitions(this._cwd, {
 					read: { autoResizeImages, lineNumbers, hashLines, defaultLimit },
-					bash: { commandPrefix: shellCommandPrefix },
+					bash: { commandPrefix: shellCommandPrefix, interceptorEnabled: bashInterceptorEnabled },
 					edit: { mode: editMode },
 				});
 

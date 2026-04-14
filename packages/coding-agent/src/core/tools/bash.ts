@@ -147,9 +147,31 @@ export interface BashToolOptions {
 	commandPrefix?: string;
 	/** Hook to adjust command, cwd, or env before execution */
 	spawnHook?: BashSpawnHook;
+	/** Block shell commands that have dedicated tools (find, grep, cat, ls, head, tail, read) */
+	interceptorEnabled?: boolean;
 }
 
 const BASH_PREVIEW_LINES = 5;
+
+/** Patterns for commands that have dedicated tools. */
+const INTERCEPTED_COMMANDS: ReadonlyArray<{ pattern: RegExp; tool: string; example: string }> = [
+	{ pattern: /^(?:find|fd)\s/, tool: "find", example: "find . -name '*.ts'" },
+	{ pattern: /^(?:grep|rg|ag|ack)\s/, tool: "grep", example: "grep -r 'pattern' path" },
+	{ pattern: /^(?:cat|bat|less|more|head|tail)\s/, tool: "read", example: "read path/to/file" },
+	{ pattern: /^(?:ls|exa|eza|lldb)\s/, tool: "ls", example: "ls path/to/dir" },
+	{ pattern: /^(?:git\s+diff|git\s+show|git\s+log)/, tool: "bash", example: "Use bash for git commands (no dedicated tool yet)" },
+];
+
+/** Check if a command should be intercepted. Returns warning message or null. */
+function checkBashInterceptor(command: string): string | null {
+	const trimmed = command.trim();
+	for (const { pattern, tool, example } of INTERCEPTED_COMMANDS) {
+		if (pattern.test(trimmed)) {
+			return `Command intercepted: this looks like a ${tool} operation. Use the dedicated \`${tool}\` tool instead for better results.\nExample: \`${example}\`\n\nTo disable this interceptor, set bashInterceptor.enabled to false in settings.`;
+		}
+	}
+	return null;
+}
 
 type BashRenderState = {
 	startedAt: number | undefined;
@@ -280,6 +302,17 @@ export function createBashToolDefinition(
 			_ctx?,
 		) {
 			const resolvedCommand = commandPrefix ? `${commandPrefix}\n${command}` : command;
+
+			// Interceptor: block commands that should use dedicated tools
+			if (options?.interceptorEnabled) {
+				const intercepted = checkBashInterceptor(command);
+				if (intercepted) {
+					return {
+						content: [{ type: "text" as const, text: intercepted }],
+						details: undefined,
+					};
+					}
+			}
 			const spawnContext = resolveSpawnContext(resolvedCommand, cwd, spawnHook);
 			if (onUpdate) {
 				onUpdate({ content: [], details: undefined });
