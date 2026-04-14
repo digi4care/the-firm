@@ -104,7 +104,7 @@ import {
 	createBashTool,
 	createBashToolDefinition,
 } from "./bash.js";
-import { createEditTool, createEditToolDefinition, editTool, editToolDefinition } from "./edit.js";
+import { createEditTool, createEditToolDefinition, type EditToolOptions, editTool, editToolDefinition } from "./edit.js";
 import { createFindTool, createFindToolDefinition, findTool, findToolDefinition } from "./find.js";
 import { createGrepTool, createGrepToolDefinition, grepTool, grepToolDefinition } from "./grep.js";
 import { createLsTool, createLsToolDefinition, lsTool, lsToolDefinition } from "./ls.js";
@@ -155,13 +155,14 @@ export type ToolName = keyof typeof allTools;
 export interface ToolsOptions {
 	read?: ReadToolOptions;
 	bash?: BashToolOptions;
+	edit?: EditToolOptions;
 }
 
 export function createCodingToolDefinitions(cwd: string, options?: ToolsOptions): ToolDef[] {
 	return [
 		createReadToolDefinition(cwd, options?.read),
 		createBashToolDefinition(cwd, options?.bash),
-		createEditToolDefinition(cwd),
+		createEditToolDefinition(cwd, options?.edit),
 		createWriteToolDefinition(cwd),
 	];
 }

@@ -86,7 +86,7 @@ export interface EditToolOptions {
 	/** Custom operations for file editing. Default: local filesystem */
 	operations?: EditOperations;
 	/** Edit mode variant. Default: "replace" */
-	mode?: "replace" | "hashline";
+	mode?: "replace" | "patch" | "hashline" | "chunk";
 }
 
 function prepareEditArguments(input: unknown): EditToolInput {
