@@ -120,75 +120,55 @@ When The Firm resolves a model's effective configuration, it merges in this orde
 6. Runtime user override          (user settings -- e.g. custom temperature)
 ```
 
-## Lazy Loading Architecture
+## Lazy Loading
 
 ### Problem
 
-The current implementation loads all 827 models into memory at import time via `mergeCatalogWithGenerated()`. A typical session uses 1 model. This wastes memory and startup time.
+The current implementation loads all 827 models into memory at import time via `mergeCatalogWithGenerated()`. A typical session uses 1 model. Load only what you use.
 
-### Three-tier loading
+### Design
 
-```
-Tier 1: Provider index     <- loaded once at startup (23 entries, ~2KB)
-Tier 2: Model name index   <- loaded once per provider (~50 entries each)
-Tier 3: Full model data     <- loaded on demand per getModel() call
-```
+No tiers, no indices, no LRU caches. One simple rule:
 
-| Tier | When | What | Size |
-|------|------|------|------|
-| 1. Provider index | Startup | `provider_id -> { api, base_url, sampling }` | ~2KB total |
-| 2. Model index | When provider is first accessed | `model_id -> { name, reasoning, input }` | ~5KB per provider |
-| 3. Full model | `getModel()` call | costs, sampling, subscriptions, rate limits | ~1KB per model |
-
-### Build output
+**`getModel(provider, modelId)` loads one JSON file, resolves one model, done.**
 
 ```
-dist/
-  index.json                        <- Tier 1: provider index
-  providers/
-    openai-codex.json               <- Tier 2+3: model index + full data
-    anthropic.json
-    ...
-```
-
-The build pipeline already produces `dist/providers/<id>.json`. The new `dist/index.json` is a lightweight summary:
-
-```json
-{
-  "openai-codex": { "api": "openai-codex-responses", "base_url": "https://api.openai.com" },
-  "anthropic": { "api": "anthropic-messages", "base_url": "https://api.anthropic.com" }
-}
+Startup:   nothing loaded
+getModel("openai-codex", "gpt-5.4")
+  → read dist/providers/openai-codex.json   (~50KB for the whole provider)
+  → find gpt-5.4 in the models array
+  → return Model<TApi>
+  → cache this provider for the session
 ```
 
 ### Consumer: `models.ts`
 
 ```typescript
-// Current (eager -- loads 827 models at import):
+// Current (eager — loads 827 models at import):
 const modelRegistry = mergeCatalogWithGenerated();
 
-// Target (lazy -- loads provider index, resolves on demand):
-const providerIndex = loadProviderIndex();              // Tier 1, ~2KB
-
+// Target (lazy — loads nothing until getModel is called):
 function getModel(provider, modelId) {
-  // Tier 2+3: load provider file on first access, cache
-  const providerData = loadProvider(provider);           // ~5KB
-  return providerData.resolve(modelId);                  // ~1KB
+  // 1. Check cached provider data (already loaded this session?)
+  // 2. If not, read dist/providers/<provider>.json (one file)
+  // 3. Find model by id, return Model<TApi>
+  // 4. Cache the provider data for subsequent calls
 }
 ```
 
-### Fallback strategy
+### Fallback
 
-Custom models (Ollama, local) are never in the catalog. The flow:
+Custom models (Ollama, local) are never in the catalog:
 
-1. `getModel("ollama", "llama3")` -> check catalog index -> not found
-2. Fall back to `models.generated.ts` -> not found
-3. Fall back to minimal Model with `-1` costs and unknown capabilities
+1. `getModel("ollama", "llama3")` → catalog has no ollama provider
+2. Fall back to `models.generated.ts` → not found
+3. Return minimal Model with `-1` costs and unknown capabilities
 
 ### Caching
 
-- Provider index: cached for process lifetime
-- Provider data: cached after first load (LRU, max 10 providers)
-- `models.generated.ts`: lazy-loaded only if catalog does not cover a provider
+- Per-provider JSON: loaded once, cached for session lifetime
+- `models.generated.ts`: loaded only if catalog doesn't cover a provider
+- No startup cost — nothing happens until a model is actually needed
 
 ## Package: `@digi4care/the-firm-catalog`
 
