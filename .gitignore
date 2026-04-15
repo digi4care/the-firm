@@ -46,3 +46,4 @@ collect.sh
 *.db
 .beads-credential-key
 packages/the-firm-catalog
+packages/the-firm-catalog-dist
