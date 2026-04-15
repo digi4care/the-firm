@@ -3,11 +3,22 @@ import { buildBaseOptions } from "../src/providers/simple-options.js";
 import type { Api, Model, SimpleStreamOptions } from "../src/types.js";
 
 function makeModel(maxTokens = 128000): Model<Api> {
-	return { maxTokens } as Model<Api>;
+	return {
+		id: "test-model",
+		name: "Test Model",
+		api: "openai-completions",
+		provider: "test-provider",
+		baseUrl: "https://api.test.com",
+		reasoning: false,
+		input: ["text"],
+		cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+		contextWindow: 128000,
+		maxTokens,
+	} as Model<Api>;
 }
 
 describe("buildBaseOptions sampling forwarding", () => {
-	it("should forward all sampling params through buildBaseOptions", () => {
+	it("should forward supported sampling params through buildBaseOptions", () => {
 		const model = makeModel();
 		const options: SimpleStreamOptions = {
 			temperature: 0.7,
@@ -20,12 +31,13 @@ describe("buildBaseOptions sampling forwarding", () => {
 
 		const result = buildBaseOptions(model, options);
 
+		// openai-completions supports: temperature, topP, presencePenalty
 		expect(result.temperature).toBe(0.7);
 		expect(result.topP).toBe(0.9);
-		expect(result.topK).toBe(50);
-		expect(result.minP).toBe(0.05);
+		expect(result.topK).toBeUndefined(); // not supported by openai-completions
+		expect(result.minP).toBeUndefined(); // not supported
 		expect(result.presencePenalty).toBe(0.6);
-		expect(result.repetitionPenalty).toBe(1.2);
+		expect(result.repetitionPenalty).toBeUndefined(); // not supported
 	});
 
 	it("should omit undefined sampling params", () => {
