@@ -30,8 +30,22 @@ function loadCatalogSync() {
 		// eslint-disable-next-line @typescript-eslint/no-require-imports
 		const fs = require("node:fs");
 		const path = require("node:path");
-		const providersDir = path.resolve(__dirname, "../../the-firm-catalog/dist/providers");
-		if (!fs.existsSync(providersDir)) return null;
+
+		// Try dist/providers first (npm installed), then providers/ (symlinked dev)
+		const candidates = [
+			path.resolve(__dirname, "../../the-firm-catalog/dist/providers"),
+			path.resolve(__dirname, "../../the-firm-catalog/providers"),
+		];
+
+		let providersDir: string | undefined;
+		for (const dir of candidates) {
+			if (fs.existsSync(dir)) {
+				providersDir = dir;
+				break;
+			}
+		}
+
+		if (!providersDir) return null;
 
 		const catalog = new Map();
 		for (const file of fs.readdirSync(providersDir)) {
