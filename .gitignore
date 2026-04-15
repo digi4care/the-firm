@@ -45,3 +45,4 @@ collect.sh
 .dolt/
 *.db
 .beads-credential-key
+packages/the-firm-catalog

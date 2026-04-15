@@ -1,17 +1,10 @@
 import { MODELS } from "./models.generated.js";
+import { mergeCatalogWithGenerated } from "./catalog-adapter.js";
 import { supportsXhigh as supportsXhighCompat } from "./thinking-compat.js";
 import type { Api, KnownProvider, Model, Usage } from "./types.js";
 
-const modelRegistry: Map<string, Map<string, Model<Api>>> = new Map();
-
-// Initialize registry from MODELS on module load
-for (const [provider, models] of Object.entries(MODELS)) {
-	const providerModels = new Map<string, Model<Api>>();
-	for (const [id, model] of Object.entries(models)) {
-		providerModels.set(id, model as Model<Api>);
-	}
-	modelRegistry.set(provider, providerModels);
-}
+// Initialize registry: catalog overlays generated defaults (catalog wins)
+const modelRegistry: Map<string, Map<string, Model<Api>>> = mergeCatalogWithGenerated();
 
 type ModelApi<
 	TProvider extends KnownProvider,
