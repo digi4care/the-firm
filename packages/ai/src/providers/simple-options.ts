@@ -1,13 +1,27 @@
+import { resolveSamplingCapabilities } from "../sampling-capabilities.js";
 import type { Api, Model, SimpleStreamOptions, StreamOptions, ThinkingBudgets, ThinkingLevel } from "../types.js";
 
+/** Sentinel value from settings-manager meaning "not set" */
+const NOT_SET = -1;
+
+function filterSampling(value: number | undefined, supported: boolean): number | undefined {
+	if (value === undefined || value === NOT_SET || !supported) return undefined;
+	return value;
+}
+
 export function buildBaseOptions(model: Model<Api>, options?: SimpleStreamOptions, apiKey?: string): StreamOptions {
+	const caps = resolveSamplingCapabilities(
+		model.api,
+		model.samplingCapabilities,
+	);
+
 	return {
-		temperature: options?.temperature,
-		topP: options?.topP,
-		topK: options?.topK,
-		minP: options?.minP,
-		presencePenalty: options?.presencePenalty,
-		repetitionPenalty: options?.repetitionPenalty,
+		temperature: filterSampling(options?.temperature, caps.temperature),
+		topP: filterSampling(options?.topP, caps.topP),
+		topK: filterSampling(options?.topK, caps.topK),
+		minP: filterSampling(options?.minP, caps.minP),
+		presencePenalty: filterSampling(options?.presencePenalty, caps.presencePenalty),
+		repetitionPenalty: filterSampling(options?.repetitionPenalty, caps.repetitionPenalty),
 		maxTokens: options?.maxTokens || Math.min(model.maxTokens, 32000),
 		signal: options?.signal,
 		apiKey: apiKey || options?.apiKey,

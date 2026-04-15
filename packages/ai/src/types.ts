@@ -643,6 +643,8 @@ export interface Model<TApi extends Api> {
 	contextWindow: number;
 	maxTokens: number;
 	headers?: Record<string, string>;
+	/** Per-model sampling capability overrides. When set, merged with API-level defaults. */
+	samplingCapabilities?: import("./sampling-capabilities.js").SamplingCapabilities;
 	/** Compatibility overrides for OpenAI-compatible APIs. If not set, auto-detected from baseUrl. */
 	compat?: TApi extends "openai-completions"
 		? OpenAICompletionsCompat

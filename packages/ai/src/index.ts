@@ -4,6 +4,11 @@ export { Type } from "@sinclair/typebox";
 export * from "./api-registry.js";
 export * from "./env-api-keys.js";
 export * from "./models.js";
+export {
+	getSamplingCapabilities,
+	resolveSamplingCapabilities,
+	type SamplingCapabilities,
+} from "./sampling-capabilities.js";
 export type { BedrockOptions } from "./providers/amazon-bedrock.js";
 export type { AnthropicOptions } from "./providers/anthropic.js";
 export type { AzureOpenAIResponsesOptions } from "./providers/azure-openai-responses.js";
